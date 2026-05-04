@@ -41,7 +41,10 @@
     "vue-router": "^5.0.6"
   },
   "devDependencies": {
+    "@e18e/eslint-plugin": "0.4.1",
     "@types/better-sqlite3": "^7.6.13",
+    "eslint-plugin-regexp": "3.1.0",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.16",
     "typescript": "^6.0.3"
   },
   "engines": {
