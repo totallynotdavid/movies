@@ -1,0 +1,13 @@
+packages:
+  - .
+
+allowBuilds:
+  "@parcel/watcher": false
+  better-sqlite3: true
+  core-js: false
+  esbuild: false
+  "sharp@0.34.5": true
+  vue-demi: false
+
+dedupePeers: true
+ignoreWorkspaceRootCheck: true
