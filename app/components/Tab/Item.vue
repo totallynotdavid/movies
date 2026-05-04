@@ -1,36 +1,36 @@
 <script setup lang="ts">
-import type { IconClass } from '~/types'
+import type { IconClass } from "~/types";
 
-defineOptions({ name: 'TabItem', inheritAttrs: false })
+defineOptions({ name: "TabItem", inheritAttrs: false });
 
 const props = withDefaults(
   defineProps<{
-    value: string
-    icon?: IconClass
-    tabId?: string
-    variant?: 'primary' | 'secondary'
-    size?: 'sm' | 'md'
+    value: string;
+    icon?: IconClass;
+    tabId?: string;
+    variant?: "primary" | "secondary";
+    size?: "sm" | "md";
   }>(),
   {
-    variant: 'secondary',
-    size: 'md',
+    variant: "secondary",
+    size: "md",
   },
-)
+);
 
-const attrs = useAttrs()
+const attrs = useAttrs();
 
-const selected = inject<WritableComputedRef<string>>('tabs-selected')
-const getTabId = inject<(value: string) => string>('tabs-tab-id')
-const getPanelId = inject<(value: string) => string>('tabs-panel-id')
+const selected = inject<WritableComputedRef<string>>("tabs-selected");
+const getTabId = inject<(value: string) => string>("tabs-tab-id");
+const getPanelId = inject<(value: string) => string>("tabs-panel-id");
 if (!selected || !getTabId || !getPanelId) {
-  throw new Error('TabItem must be used inside a TabRoot component')
+  throw new Error("TabItem must be used inside a TabRoot component");
 }
-const isSelected = computed(() => selected.value === props.value)
-const resolvedTabId = computed(() => props.tabId ?? getTabId(props.value))
-const resolvedPanelId = computed(() => getPanelId(props.value))
+const isSelected = computed(() => selected.value === props.value);
+const resolvedTabId = computed(() => props.tabId ?? getTabId(props.value));
+const resolvedPanelId = computed(() => getPanelId(props.value));
 const select = () => {
-  selected.value = props.value
-}
+  selected.value = props.value;
+};
 </script>
 
 <template>

@@ -1,12 +1,12 @@
 export default defineNuxtRouteMiddleware(async (to) => {
-  if (to.path === '/login') return
+  if (to.path === "/login") return;
 
-  const { data } = await useFetch('/api/auth/session', {
-    key: 'auth-session',
-    credentials: 'include',
-  })
+  const { data } = await useFetch("/api/auth/session", {
+    key: "auth-session",
+    credentials: "include",
+  });
 
-  if (!data.value?.user && to.path === '/library') {
-    return navigateTo('/login')
+  if (!data.value?.user && to.path === "/library") {
+    return navigateTo("/login");
   }
-})
+});

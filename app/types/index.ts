@@ -1,1 +1,1 @@
-export type IconClass = string
+export type IconClass = string;

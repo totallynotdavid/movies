@@ -1,79 +1,79 @@
 <script setup lang="ts">
-import type { NuxtLinkProps } from '#app'
-import type { IconClass } from '~/types'
+import type { NuxtLinkProps } from "#app";
+import type { IconClass } from "~/types";
 
 const props = withDefaults(
   defineProps<{
     /** Disabled links will be displayed as plain text */
-    disabled?: boolean
+    disabled?: boolean;
     /**
      * `type` should never be used, because this will always be a link.
      * */
-    type?: never
+    type?: never;
     /** Visual style of the link */
-    variant?: 'button-primary' | 'button-secondary' | 'link'
+    variant?: "button-primary" | "button-secondary" | "link";
     /** Size (only applicable for button variants) */
-    size?: 'sm' | 'md'
+    size?: "sm" | "md";
     /** Makes the link take full width */
-    block?: boolean
+    block?: boolean;
 
     /** Keyboard shortcut hint */
-    ariaKeyshortcuts?: string
+    ariaKeyshortcuts?: string;
 
     /**
      * Don't use this directly. This will automatically be set to `_blank` for external links passed via `to`.
      */
-    target?: never
+    target?: never;
 
     /**
      * Don't use this directly. This will automatically be set for external links passed via `to`.
      */
-    rel?: never
+    rel?: never;
 
     /** Icon class to display */
-    classicon?: IconClass
+    classicon?: IconClass;
 
     /** Link destination (internal or external URL) */
-    to?: NuxtLinkProps['to']
+    to?: NuxtLinkProps["to"];
 
     /** always use `to` instead of `href` */
-    href?: never
+    href?: never;
 
     /** should only be used for links where the context makes it very clear they are clickable. Don't just use this, because you don't like underlines. */
-    noUnderline?: boolean
+    noUnderline?: boolean;
 
     /**
      * Hide external link icon (deprecated)
      * @deprecated @todo remove this property and add separate clean component without this logic
      */
-    noNewTabIcon?: boolean
+    noNewTabIcon?: boolean;
   }>(),
-  { variant: 'link', size: 'md' },
-)
+  { variant: "link", size: "md" },
+);
 
 const isLinkExternal = computed(
   () =>
     !!props.to &&
-    typeof props.to === 'string' &&
-    (props.to.startsWith('http:') || props.to.startsWith('https:') || props.to.startsWith('//')),
-)
+    typeof props.to === "string" &&
+    (props.to.startsWith("http:") || props.to.startsWith("https:") || props.to.startsWith("//")),
+);
 const isLinkAnchor = computed(
-  () => !!props.to && typeof props.to === 'string' && props.to.startsWith('#'),
-)
+  () => !!props.to && typeof props.to === "string" && props.to.startsWith("#"),
+);
 
 /** size is only applicable for button like links */
-const isLink = computed(() => props.variant === 'link')
-const isButton = computed(() => !isLink.value)
-const isButtonSmall = computed(() => props.size === 'sm' && !isLink.value)
-const isButtonMedium = computed(() => props.size === 'md' && !isLink.value)
-const keyboardShortcutsEnabled = useKeyboardShortcuts()
+const isLink = computed(() => props.variant === "link");
+const isButton = computed(() => !isLink.value);
+const isButtonSmall = computed(() => props.size === "sm" && !isLink.value);
+const isButtonMedium = computed(() => props.size === "md" && !isLink.value);
+const keyboardShortcutsEnabled = useKeyboardShortcuts();
 </script>
 
 <template>
   <span
     v-if="disabled"
     :class="{
-      'flex': block,
+      flex: block,
       'inline-flex': !block,
       'opacity-50 gap-x-1 items-center justify-center font-mono border border-transparent rounded-md':
         isButton,
@@ -89,7 +89,7 @@ const keyboardShortcutsEnabled = useKeyboardShortcuts()
     v-else
     class="group/link gap-x-1 items-center"
     :class="{
-      'flex': block,
+      flex: block,
       'inline-flex': !block,
       'underline-offset-[0.2rem] underline decoration-1 decoration-fg/30':
         !isLinkAnchor && isLink && !noUnderline,

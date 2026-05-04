@@ -1,24 +1,24 @@
 <script setup lang="ts">
-const login = ref('dev@example.com')
-const password = ref('password')
-const pending = ref(false)
-const error = ref('')
+const login = ref("dev@example.com");
+const password = ref("password");
+const pending = ref(false);
+const error = ref("");
 
 async function submit() {
-  pending.value = true
-  error.value = ''
+  pending.value = true;
+  error.value = "";
 
   try {
-    await $fetch('/api/auth/login', {
-      method: 'POST',
+    await $fetch("/api/auth/login", {
+      method: "POST",
       body: { login: login.value, password: password.value },
-      credentials: 'include',
-    })
-    await navigateTo('/library')
+      credentials: "include",
+    });
+    await navigateTo("/library");
   } catch {
-    error.value = 'Invalid credentials'
+    error.value = "Invalid credentials";
   } finally {
-    pending.value = false
+    pending.value = false;
   }
 }
 </script>
@@ -35,7 +35,7 @@ async function submit() {
     </label>
     <p v-if="error" class="text-sm text-fg">{{ error }}</p>
     <ButtonBase type="submit" variant="primary" :disabled="pending">
-      {{ pending ? 'signing in' : 'sign in' }}
+      {{ pending ? "signing in" : "sign in" }}
     </ButtonBase>
   </form>
 </template>

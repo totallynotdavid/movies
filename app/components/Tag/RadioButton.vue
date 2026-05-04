@@ -1,27 +1,27 @@
 <script setup lang="ts">
-const model = defineModel<string>()
+const model = defineModel<string>();
 
 const props = defineProps<{
-  disabled?: boolean
+  disabled?: boolean;
   /**
    * type should never be used, because this will always be a radio button.
    *
    * If you want a link use `TagLink` instead.
    *  */
-  type?: never
+  type?: never;
 
   /** Shouldn't try to set `checked` explicitly, is handled internally */
-  checked?: never
-  value: string
-}>()
+  checked?: never;
+  value: string;
+}>();
 
-const uid = useId()
-const internalId = `${model.value}-${uid}`
-const checked = computed(() => model.value === props.value)
+const uid = useId();
+const internalId = `${model.value}-${uid}`;
+const checked = computed(() => model.value === props.value);
 /** Todo: This shouldn't be necessary, but using v-model on `input type=radio` doesn't work as expected in Vue */
 const onChange = () => {
-  model.value = props.value
-}
+  model.value = props.value;
+};
 </script>
 
 <template>

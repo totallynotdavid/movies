@@ -1,22 +1,22 @@
 <script setup lang="ts">
-defineOptions({ name: 'TabPanel' })
+defineOptions({ name: "TabPanel" });
 
 const props = defineProps<{
-  value: string
-  panelId?: string
-}>()
+  value: string;
+  panelId?: string;
+}>();
 
-const selected = inject<WritableComputedRef<string>>('tabs-selected')
-const getTabId = inject<(value: string) => string>('tabs-tab-id')
-const getPanelId = inject<(value: string) => string>('tabs-panel-id')
+const selected = inject<WritableComputedRef<string>>("tabs-selected");
+const getTabId = inject<(value: string) => string>("tabs-tab-id");
+const getPanelId = inject<(value: string) => string>("tabs-panel-id");
 
 if (!selected || !getTabId || !getPanelId) {
-  throw new Error('TabPanel must be used inside a TabRoot component')
+  throw new Error("TabPanel must be used inside a TabRoot component");
 }
 
-const isSelected = computed(() => selected.value === props.value)
-const resolvedPanelId = computed(() => props.panelId ?? getPanelId(props.value))
-const resolvedTabId = computed(() => getTabId(props.value))
+const isSelected = computed(() => selected.value === props.value);
+const resolvedPanelId = computed(() => props.panelId ?? getPanelId(props.value));
+const resolvedTabId = computed(() => getTabId(props.value));
 </script>
 
 <template>

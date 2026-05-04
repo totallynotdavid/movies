@@ -1,28 +1,34 @@
 <script setup lang="ts">
-type MediaType = 'movie' | 'show'
+type MediaType = "movie" | "show";
 
-const q = ref('')
-const type = ref<MediaType | ''>('')
-const selectedType = computed(() => type.value || undefined)
-const enabled = computed(() => q.value.trim().length > 1)
+const q = ref("");
+const type = ref<MediaType | "">("");
+const selectedType = computed(() => type.value || undefined);
+const enabled = computed(() => q.value.trim().length > 1);
 
-const { data, pending, execute } = await useFetch('/api/media/search', {
+const { data, pending, execute } = await useFetch("/api/media/search", {
   query: { q, type: selectedType },
   immediate: false,
   watch: false,
-})
+});
 
 const search = useDebounceFn(() => {
-  if (enabled.value) execute()
-}, 250)
+  if (enabled.value) execute();
+}, 250);
 
-watch([q, type], search)
+watch([q, type], search);
 </script>
 
 <template>
   <div class="grid gap-3">
     <div class="flex flex-col sm:flex-row gap-2">
-      <InputBase v-model="q" type="search" name="q" placeholder="Search TMDB and local titles" class="flex-1" />
+      <InputBase
+        v-model="q"
+        type="search"
+        name="q"
+        placeholder="Search TMDB and local titles"
+        class="flex-1"
+      />
       <select
         v-model="type"
         class="bg-bg-subtle border border-border rounded-lg px-3 py-2 font-mono text-sm text-fg"
@@ -44,7 +50,9 @@ watch([q, type], search)
             <p class="font-mono text-sm">{{ entry.title }}</p>
             <TagStatic>{{ entry.type }}</TagStatic>
           </div>
-          <p class="text-sm text-fg-muted line-clamp-3">{{ entry.overview || 'No overview stored.' }}</p>
+          <p class="text-sm text-fg-muted line-clamp-3">
+            {{ entry.overview || "No overview stored." }}
+          </p>
           <NuxtLink class="font-mono text-xs text-accent" :to="`/media/${entry.id}`">open</NuxtLink>
         </div>
       </BaseCard>

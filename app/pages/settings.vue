@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const colorMode = useColorMode()
+const colorMode = useColorMode();
 </script>
 
 <template>
@@ -13,7 +13,7 @@ const colorMode = useColorMode()
         :items="[
           { label: 'System', value: 'system' },
           { label: 'Dark', value: 'dark' },
-          { label: 'Light', value: 'light' }
+          { label: 'Light', value: 'light' },
         ]"
       />
     </div>

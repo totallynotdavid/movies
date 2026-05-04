@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import type { IconClass } from '~/types'
+import type { IconClass } from "~/types";
 
 const props = withDefaults(
   defineProps<{
-    as?: string | Component
-    variant?: 'ghost' | 'default'
+    as?: string | Component;
+    variant?: "ghost" | "default";
 
-    classicon?: IconClass
+    classicon?: IconClass;
   }>(),
-  { as: 'span', variant: 'default' },
-)
+  { as: "span", variant: "default" },
+);
 </script>
 
 <template>

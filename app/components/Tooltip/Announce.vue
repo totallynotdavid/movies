@@ -1,12 +1,12 @@
 <script setup lang="ts">
 const props = defineProps<{
   /** Tooltip text */
-  text: string
+  text: string;
   /** Position: 'top' | 'bottom' | 'left' | 'right' */
-  position?: 'top' | 'bottom' | 'left' | 'right'
+  position?: "top" | "bottom" | "left" | "right";
   /** is tooltip visible */
-  isVisible: boolean
-}>()
+  isVisible: boolean;
+}>();
 </script>
 
 <template>

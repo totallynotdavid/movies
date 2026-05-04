@@ -1,9 +1,9 @@
 <script setup lang="ts">
 defineProps<{
   /** Whether this is an exact match for the query */
-  isExactMatch?: boolean
-  selected?: boolean
-}>()
+  isExactMatch?: boolean;
+  selected?: boolean;
+}>();
 </script>
 
 <template>

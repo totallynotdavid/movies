@@ -1,47 +1,47 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import type { Placement, Strategy } from '@floating-ui/vue'
-import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
+import type { HTMLAttributes } from "vue";
+import type { Placement, Strategy } from "@floating-ui/vue";
+import { autoUpdate, flip, offset, shift, useFloating } from "@floating-ui/vue";
 
 const props = withDefaults(
   defineProps<{
     /** Tooltip text (optional when using content slot) */
-    text?: string
+    text?: string;
     /** Position: 'top' | 'bottom' | 'left' | 'right' */
-    position?: 'top' | 'bottom' | 'left' | 'right'
+    position?: "top" | "bottom" | "left" | "right";
     /** is tooltip visible */
-    isVisible: boolean
+    isVisible: boolean;
     /** Allow pointer events on tooltip (for interactive content like links) */
-    interactive?: boolean
+    interactive?: boolean;
     /** attributes for tooltip element */
-    tooltipAttr?: HTMLAttributes
+    tooltipAttr?: HTMLAttributes;
     /** Teleport target for the tooltip content (defaults to 'body') */
-    to?: string | HTMLElement
+    to?: string | HTMLElement;
     /** Whether to defer teleport rendering until after the component is mounted */
-    defer?: boolean
+    defer?: boolean;
     /** Offset distance in pixels (default: 4) */
-    offset?: number
+    offset?: number;
     /** Strategy for the tooltip - prefer fixed for sticky containers (defaults to 'absolute') */
-    strategy?: Strategy
+    strategy?: Strategy;
   }>(),
   {
-    to: 'body',
+    to: "body",
     offset: 4,
-    strategy: 'absolute',
+    strategy: "absolute",
   },
-)
+);
 
-const triggerRef = useTemplateRef('triggerRef')
-const tooltipRef = useTemplateRef('tooltipRef')
+const triggerRef = useTemplateRef("triggerRef");
+const tooltipRef = useTemplateRef("tooltipRef");
 
-const placement = computed<Placement>(() => props.position || 'bottom')
+const placement = computed<Placement>(() => props.position || "bottom");
 
 const { floatingStyles } = useFloating(triggerRef, tooltipRef, {
   placement,
   whileElementsMounted: autoUpdate,
   strategy: props.strategy,
   middleware: [offset(props.offset), flip(), shift({ padding: 8 })],
-})
+});
 </script>
 
 <template>

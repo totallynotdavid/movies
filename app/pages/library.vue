@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const { data: library } = await useFetch('/api/tracking/library', {
-  credentials: 'include',
-})
+const { data: library } = await useFetch("/api/tracking/library", {
+  credentials: "include",
+});
 </script>
 
 <template>

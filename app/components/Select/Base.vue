@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { SelectBaseProps } from './types'
-import { SELECT_SIZES } from './types'
+import type { SelectBaseProps } from "./types";
+import { SELECT_SIZES } from "./types";
 
-const model = defineModel<string | undefined>({ default: undefined })
+const model = defineModel<string | undefined>({ default: undefined });
 
 const props = withDefaults(defineProps<SelectBaseProps>(), {
-  size: 'md',
-})
+  size: "md",
+});
 </script>
 
 <template>

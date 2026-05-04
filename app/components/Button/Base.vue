@@ -1,44 +1,44 @@
 <script setup lang="ts">
-import type { IconClass } from '~/types'
+import type { IconClass } from "~/types";
 
 /**
  * A base button component that supports multiple variants, sizes, and states as well as icons and keyboard shortcuts.
  */
 defineOptions({
-  name: 'ButtonBase',
-})
+  name: "ButtonBase",
+});
 
 const props = withDefaults(
   defineProps<{
-    disabled?: boolean
+    disabled?: boolean;
     /** @default "button" */
-    type?: 'button' | 'submit'
+    type?: "button" | "submit";
     /** @default "secondary" */
-    variant?: 'primary' | 'secondary'
+    variant?: "primary" | "secondary";
     /** @default "md" */
-    size?: 'sm' | 'md'
+    size?: "sm" | "md";
     /** Keyboard shortcut hint */
-    ariaKeyshortcuts?: string
+    ariaKeyshortcuts?: string;
     /** Forces the button to occupy the entire width of its container. */
-    block?: boolean
+    block?: boolean;
 
-    classicon?: IconClass
+    classicon?: IconClass;
   }>(),
   {
-    type: 'button',
-    variant: 'secondary',
-    size: 'md',
+    type: "button",
+    variant: "secondary",
+    size: "md",
   },
-)
+);
 
-const el = useTemplateRef('el')
+const el = useTemplateRef("el");
 
-const keyboardShortcutsEnabled = useKeyboardShortcuts()
+const keyboardShortcutsEnabled = useKeyboardShortcuts();
 
 defineExpose({
   focus: () => el.value?.focus(),
   getBoundingClientRect: () => el.value?.getBoundingClientRect(),
-})
+});
 </script>
 
 <template>
@@ -47,7 +47,7 @@ defineExpose({
     class="group gap-x-1 items-center justify-center font-mono border border-border rounded-md transition-all duration-200 disabled:(opacity-40 cursor-not-allowed border-transparent)"
     :class="{
       'inline-flex': !block,
-      'flex': block,
+      flex: block,
       'text-sm px-4 py-2': size === 'md',
       'text-xs px-2 py-0.5': size === 'sm',
       'bg-transparent text-fg hover:enabled:(bg-fg/10) focus-visible:enabled:(bg-fg/10) aria-pressed:(bg-fg/10 border-fg/20 hover:enabled:(bg-fg/20 text-fg/50))':

@@ -1,41 +1,41 @@
 <script setup lang="ts">
-import type { SelectBaseProps } from './types'
+import type { SelectBaseProps } from "./types";
 
 const SELECT_FIELD_SIZES = {
-  sm: 'text-xs py-1.75 ps-2 pe-6 rounded-md',
-  md: 'text-sm py-2.25 ps-3 pe-9 rounded-lg',
-  lg: 'text-base py-4 ps-6 pe-15 rounded-xl',
-}
+  sm: "text-xs py-1.75 ps-2 pe-6 rounded-md",
+  md: "text-sm py-2.25 ps-3 pe-9 rounded-lg",
+  lg: "text-base py-4 ps-6 pe-15 rounded-xl",
+};
 const SELECT_FIELD_ICON_SIZES = {
-  sm: 'inset-ie-2 size-[0.75rem]',
-  md: 'inset-ie-3 size-[1rem]',
-  lg: 'inset-ie-5 size-[1.5rem]',
-}
+  sm: "inset-ie-2 size-[0.75rem]",
+  md: "inset-ie-3 size-[1rem]",
+  lg: "inset-ie-5 size-[1.5rem]",
+};
 const SELECT_FIELD_LABEL_SIZES = {
-  sm: 'text-2xs',
-  md: 'text-xs',
-  lg: 'text-sm',
-}
+  sm: "text-2xs",
+  md: "text-xs",
+  lg: "text-sm",
+};
 
-const model = defineModel<string | undefined>({ default: undefined })
+const model = defineModel<string | undefined>({ default: undefined });
 
 type SelectFieldProps = SelectBaseProps & {
-  items: { label: string; value: string; disabled?: boolean }[]
-  size?: keyof typeof SELECT_FIELD_SIZES
-  selectAttrs?: Omit<SelectBaseProps, 'size' | 'id'> &
-    Record<string, string | number | boolean | undefined>
-  label?: string
-  labelAttrs?: Record<string, string | number | boolean | undefined>
+  items: { label: string; value: string; disabled?: boolean }[];
+  size?: keyof typeof SELECT_FIELD_SIZES;
+  selectAttrs?: Omit<SelectBaseProps, "size" | "id"> &
+    Record<string, string | number | boolean | undefined>;
+  label?: string;
+  labelAttrs?: Record<string, string | number | boolean | undefined>;
   /** Visually hide label */
-  hiddenLabel?: boolean
-  id: string
+  hiddenLabel?: boolean;
+  id: string;
   /** Render select full width */
-  block?: boolean
-}
+  block?: boolean;
+};
 
 const props = withDefaults(defineProps<SelectFieldProps>(), {
-  size: 'md',
-})
+  size: "md",
+});
 </script>
 
 <template>

@@ -1,52 +1,52 @@
 <script setup lang="ts">
-import { noCorrect, noPasswordManager } from '~/utils/input'
+import { noCorrect, noPasswordManager } from "~/utils/input";
 
-const model = defineModel<string>({ default: '' })
+const model = defineModel<string>({ default: "" });
 
 const props = withDefaults(
   defineProps<{
-    disabled?: boolean
+    disabled?: boolean;
     /** @default 'md' */
-    size?: 'sm' | 'md' | 'lg'
+    size?: "sm" | "md" | "lg";
     /**
      * Prevents the browser from automatically modifying user input
      * (e.g. autocorrect, autocomplete, autocapitalize, and spellcheck).
      * @default true
      */
-    noCorrect?: boolean
+    noCorrect?: boolean;
     /** Keyboard shortcut hint */
-    ariaKeyshortcuts?: string
+    ariaKeyshortcuts?: string;
     /**
      * Prevents most common password managers from recognizing the input as a password field.
      * Note: This is not a standard HTML attribute but vendor-specific data-* attributes.
      * @default false
      */
-    noPasswordManager?: boolean
+    noPasswordManager?: boolean;
   }>(),
   {
-    size: 'md',
+    size: "md",
     noCorrect: true,
   },
-)
+);
 
 const emit = defineEmits<{
-  focus: [event: FocusEvent]
-  blur: [event: FocusEvent]
-}>()
+  focus: [event: FocusEvent];
+  blur: [event: FocusEvent];
+}>();
 
-const el = useTemplateRef('el')
+const el = useTemplateRef("el");
 
-const keyboardShortcutsEnabled = useKeyboardShortcuts()
+const keyboardShortcutsEnabled = useKeyboardShortcuts();
 
 defineExpose({
   focus: () => el.value?.focus(),
   blur: () => el.value?.blur(),
-})
+});
 
 const inputAttrs = computed(() => ({
   ...(props.noCorrect ? noCorrect : {}),
   ...(props.noPasswordManager ? noPasswordManager : {}),
-}))
+}));
 </script>
 
 <template>

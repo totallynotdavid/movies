@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { LibraryEntry } from '#shared/types/tracking'
+import type { LibraryEntry } from "#shared/types/tracking";
 
-defineProps<{ entry: LibraryEntry }>()
+defineProps<{ entry: LibraryEntry }>();
 </script>
 
 <template>

@@ -1,50 +1,50 @@
 <script setup lang="ts">
 const props = defineProps<{
   /** Tooltip text (optional when using content slot) */
-  text?: string
+  text?: string;
   /** Position: 'top' | 'bottom' | 'left' | 'right' */
-  position?: 'top' | 'bottom' | 'left' | 'right'
+  position?: "top" | "bottom" | "left" | "right";
   /** Enable interactive tooltip (pointer events + hide delay for clickable content) */
-  interactive?: boolean
+  interactive?: boolean;
   /** Teleport target for the tooltip content (defaults to 'body') */
-  to?: string | HTMLElement
+  to?: string | HTMLElement;
   /** Whether to defer teleport rendering until after the component is mounted */
-  defer?: boolean
+  defer?: boolean;
   /** Offset distance in pixels (default: 4) */
-  offset?: number
-}>()
+  offset?: number;
+}>();
 
-const isVisible = shallowRef(false)
-const tooltipId = useId()
-const hideTimeout = shallowRef<ReturnType<typeof setTimeout> | null>(null)
+const isVisible = shallowRef(false);
+const tooltipId = useId();
+const hideTimeout = shallowRef<ReturnType<typeof setTimeout> | null>(null);
 
 function show() {
   if (hideTimeout.value) {
-    clearTimeout(hideTimeout.value)
-    hideTimeout.value = null
+    clearTimeout(hideTimeout.value);
+    hideTimeout.value = null;
   }
-  isVisible.value = true
+  isVisible.value = true;
 }
 
 function hide() {
   if (props.interactive) {
     // Delay hide so cursor can travel from trigger to tooltip
     hideTimeout.value = setTimeout(() => {
-      isVisible.value = false
-    }, 150)
+      isVisible.value = false;
+    }, 150);
   } else {
-    isVisible.value = false
+    isVisible.value = false;
   }
 }
 
 const tooltipAttrs = computed(() => {
-  const attrs: Record<string, unknown> = { role: 'tooltip', id: tooltipId }
+  const attrs: Record<string, unknown> = { role: "tooltip", id: tooltipId };
   if (props.interactive) {
-    attrs.onMouseenter = show
-    attrs.onMouseleave = hide
+    attrs.onMouseenter = show;
+    attrs.onMouseleave = hide;
   }
-  return attrs
-})
+  return attrs;
+});
 </script>
 
 <template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const { data: catalog } = await useFetch('/api/media/catalog', {
+const { data: catalog } = await useFetch("/api/media/catalog", {
   query: { limit: 12 },
-})
+});
 </script>
 
 <template>
@@ -25,11 +25,14 @@ const { data: catalog } = await useFetch('/api/media/catalog', {
       <div class="mb-3 flex-split gap-4">
         <h2 class="font-mono text-lg">seeded catalog</h2>
         <p class="text-xs text-fg-muted font-mono">
-          {{ catalog?.generatedAt ? 'available locally' : 'empty' }}
+          {{ catalog?.generatedAt ? "available locally" : "empty" }}
         </p>
       </div>
 
-      <div v-if="!catalog?.entries.length" class="bg-bg-subtle border border-border rounded-lg p-6 text-fg-muted">
+      <div
+        v-if="!catalog?.entries.length"
+        class="bg-bg-subtle border border-border rounded-lg p-6 text-fg-muted"
+      >
         No titles available yet.
       </div>
 
@@ -41,7 +44,7 @@ const { data: catalog } = await useFetch('/api/media/catalog', {
               <TagStatic>{{ entry.type }}</TagStatic>
             </div>
             <p class="line-clamp-3 text-sm text-fg-muted">
-              {{ entry.overview || 'No overview stored.' }}
+              {{ entry.overview || "No overview stored." }}
             </p>
             <div class="flex flex-wrap gap-1">
               <TagStatic v-for="genre in entry.genreNames.slice(0, 3)" :key="genre">
