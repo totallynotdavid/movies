@@ -1,5 +1,5 @@
-import { getDb } from "./client.ts";
-import { migrateDb } from "./migrate.ts";
+import { getDb } from "./client";
+import { migrateDb } from "./migrate";
 
 const db = await getDb();
 await migrateDb(db);

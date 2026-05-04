@@ -3,7 +3,7 @@ import { Kysely, SqliteDialect } from "kysely";
 import { D1Dialect } from "kysely-d1";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import type { DatabaseSchema } from "./schema.ts";
+import type { DatabaseSchema } from "./schema";
 
 export type AppDb = Kysely<DatabaseSchema>;
 export type SqlDatabase = AppDb;

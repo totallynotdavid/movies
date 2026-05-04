@@ -1,5 +1,5 @@
-import type { SqlDatabase } from "../db/client.ts";
-import { assertAllowedFetchUrl } from "./cached-fetch-config.ts";
+import type { SqlDatabase } from "../db/client";
+import { assertAllowedFetchUrl } from "./cached-fetch-config";
 
 interface CacheEnvelope<T> {
   value: T;

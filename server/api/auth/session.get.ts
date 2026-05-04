@@ -1,5 +1,5 @@
-import { getDb } from "../../db/client.ts";
-import { getSession } from "../../auth/sessions.ts";
+import { getDb } from "../../db/client";
+import { getSession } from "../../auth/sessions";
 
 export default defineEventHandler(async (event) => {
   const db = await getDb(event);

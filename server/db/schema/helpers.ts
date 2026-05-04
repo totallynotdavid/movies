@@ -1,4 +1,4 @@
-import type { SqlDatabase } from "../client.ts";
+import type { SqlDatabase } from "../client";
 
 export interface IndexSpec {
   name: string;

@@ -1,9 +1,9 @@
 import { safeParse } from "valibot";
 import { MarkMovieWatchedSchema } from "#shared/schemas/tracking";
-import { getDb } from "../../../../db/client.ts";
-import { requireAuth } from "../../../../auth/require-auth.ts";
-import { validateCsrf } from "../../../../auth/csrf.ts";
-import { upsertMovieWatched } from "../../../../tracking/repository.ts";
+import { getDb } from "../../../../db/client";
+import { requireAuth } from "../../../../auth/require-auth";
+import { validateCsrf } from "../../../../auth/csrf";
+import { upsertMovieWatched } from "../../../../tracking/repository";
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");

@@ -1,6 +1,6 @@
-import type { SqlDatabase } from "../db/client.ts";
-import { cachedJsonFetch } from "../cache/cached-fetch.ts";
-import { mapTmdbDetails, mapTmdbSearchResult } from "./tmdb-mapper.ts";
+import type { SqlDatabase } from "../db/client";
+import { cachedJsonFetch } from "../cache/cached-fetch";
+import { mapTmdbDetails, mapTmdbSearchResult } from "./tmdb-mapper";
 
 function getToken(): string {
   const token = useRuntimeConfig().tmdb.readAccessToken;

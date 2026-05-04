@@ -1,4 +1,4 @@
-import type { SqlDatabase } from "../db/client.ts";
+import type { SqlDatabase } from "../db/client";
 
 export async function recordFailedLogin(db: SqlDatabase, key: string): Promise<void> {
   await db

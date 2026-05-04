@@ -1,8 +1,8 @@
-import { getDb } from "./client.ts";
-import { migrateDb } from "./migrate.ts";
-import { countEntities } from "../media/repository.ts";
-import { importSeedFixture } from "../media/import-fixture.ts";
-import { hashPassword } from "../auth/sessions.ts";
+import { getDb } from "./client";
+import { migrateDb } from "./migrate";
+import { countEntities } from "../media/repository";
+import { importSeedFixture } from "../media/import-fixture";
+import { hashPassword } from "../auth/sessions";
 
 const db = await getDb();
 await migrateDb(db);

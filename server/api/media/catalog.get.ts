@@ -1,6 +1,6 @@
-import { getDb } from "../../db/client.ts";
-import { migrateDb } from "../../db/migrate.ts";
-import { searchEntities } from "../../media/repository.ts";
+import { getDb } from "../../db/client";
+import { migrateDb } from "../../db/migrate";
+import { searchEntities } from "../../media/repository";
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);

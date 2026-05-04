@@ -1,11 +1,11 @@
-import type { SqlDatabase } from "./client.ts";
-import { migrateAggregationSchema } from "./schema/modules/aggregation.ts";
-import { migrateAuthSchema } from "./schema/modules/auth.ts";
-import { migrateCacheSchema } from "./schema/modules/cache.ts";
-import { migrateListsSchema } from "./schema/modules/lists.ts";
-import { migrateMediaSchema } from "./schema/modules/media.ts";
-import { migrateRecommendationsSchema } from "./schema/modules/recommendations.ts";
-import { migrateTrackingSchema } from "./schema/modules/tracking.ts";
+import type { SqlDatabase } from "./client";
+import { migrateAggregationSchema } from "./schema/modules/aggregation";
+import { migrateAuthSchema } from "./schema/modules/auth";
+import { migrateCacheSchema } from "./schema/modules/cache";
+import { migrateListsSchema } from "./schema/modules/lists";
+import { migrateMediaSchema } from "./schema/modules/media";
+import { migrateRecommendationsSchema } from "./schema/modules/recommendations";
+import { migrateTrackingSchema } from "./schema/modules/tracking";
 
 export async function migrateDb(db: SqlDatabase): Promise<void> {
   await migrateAuthSchema(db);

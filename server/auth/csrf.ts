@@ -1,6 +1,6 @@
-import { getDb } from "../db/client.ts";
-import { hashToken } from "./sessions.ts";
-import { requireAuth } from "./require-auth.ts";
+import { getDb } from "../db/client";
+import { hashToken } from "./sessions";
+import { requireAuth } from "./require-auth";
 
 function isUnsafe(method: string) {
   return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());

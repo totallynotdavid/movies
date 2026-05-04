@@ -1,5 +1,5 @@
-import type { SqlDatabase } from "../../client.ts";
-import { createIndexes } from "../helpers.ts";
+import type { SqlDatabase } from "../../client";
+import { createIndexes } from "../helpers";
 
 export async function migrateRecommendationsSchema(db: SqlDatabase): Promise<void> {
   await db.schema

@@ -1,4 +1,4 @@
-import { clearAuthCookies } from "../../auth/cookies.ts";
+import { clearAuthCookies } from "../../auth/cookies";
 
 export default defineEventHandler(async (event) => {
   clearAuthCookies(event);

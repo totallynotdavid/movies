@@ -1,5 +1,5 @@
 import type { LibraryEntry, TrackingStatus } from "#shared/types/tracking";
-import type { SqlDatabase } from "../db/client.ts";
+import type { SqlDatabase } from "../db/client";
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);

@@ -1,7 +1,7 @@
-import { getDb } from "../../db/client.ts";
-import { migrateDb } from "../../db/migrate.ts";
-import { searchEntities, upsertEntities } from "../../media/repository.ts";
-import { searchTmdb } from "../../media/tmdb-client.ts";
+import { getDb } from "../../db/client";
+import { migrateDb } from "../../db/migrate";
+import { searchEntities, upsertEntities } from "../../media/repository";
+import { searchTmdb } from "../../media/tmdb-client";
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);

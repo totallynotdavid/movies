@@ -1,5 +1,5 @@
-import type { SqlDatabase } from "../../client.ts";
-import { createIndexes } from "../helpers.ts";
+import type { SqlDatabase } from "../../client";
+import { createIndexes } from "../helpers";
 
 async function createUsersTable(db: SqlDatabase) {
   await db.schema

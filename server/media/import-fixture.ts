@@ -1,9 +1,9 @@
 import type { MediaSeedCatalog } from "#shared/types/media";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { SqlDatabase } from "../db/client.ts";
-import { mapSeedEntity } from "./tmdb-mapper.ts";
-import { upsertEntities } from "./repository.ts";
+import type { SqlDatabase } from "../db/client";
+import { mapSeedEntity } from "./tmdb-mapper";
+import { upsertEntities } from "./repository";
 
 export async function importSeedFixture(db: SqlDatabase): Promise<{ inserted: number }> {
   const seedPath = resolve(process.cwd(), "server/assets/seed/tmdb-media.seed.json");

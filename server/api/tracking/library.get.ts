@@ -1,6 +1,6 @@
-import { getDb } from "../../db/client.ts";
-import { requireAuth } from "../../auth/require-auth.ts";
-import { listLibraryEntries } from "../../tracking/repository.ts";
+import { getDb } from "../../db/client";
+import { requireAuth } from "../../auth/require-auth";
+import { listLibraryEntries } from "../../tracking/repository";
 
 export default defineEventHandler(async (event) => {
   const db = await getDb(event);

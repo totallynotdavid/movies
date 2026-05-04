@@ -1,5 +1,5 @@
-import type { SqlDatabase } from "../db/client.ts";
-import type { MediaEntityRow } from "./tmdb-mapper.ts";
+import type { SqlDatabase } from "../db/client";
+import type { MediaEntityRow } from "./tmdb-mapper";
 
 function toMediaEntity(
   row: any,

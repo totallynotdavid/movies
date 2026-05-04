@@ -1,4 +1,4 @@
-import type { SqlDatabase } from "../../client.ts";
+import type { SqlDatabase } from "../../client";
 
 export async function migrateAggregationSchema(db: SqlDatabase): Promise<void> {
   await db.schema

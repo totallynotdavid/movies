@@ -1,7 +1,7 @@
-import { getDb } from "../../db/client.ts";
-import { migrateDb } from "../../db/migrate.ts";
-import { getEntityById, upsertEntity } from "../../media/repository.ts";
-import { getTmdbDetails } from "../../media/tmdb-client.ts";
+import { getDb } from "../../db/client";
+import { migrateDb } from "../../db/migrate";
+import { getEntityById, upsertEntity } from "../../media/repository";
+import { getTmdbDetails } from "../../media/tmdb-client";
 
 function parseTmdbId(id: string): { type: "movie" | "show"; tmdbId: number } | null {
   const match = /^tmdb:(movie|show):(\d+)$/.exec(id);

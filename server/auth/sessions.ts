@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { sql } from "kysely";
-import type { SqlDatabase } from "../db/client.ts";
-import { CSRF_COOKIE, SESSION_COOKIE, setAuthCookies } from "./cookies.ts";
+import type { SqlDatabase } from "../db/client";
+import { CSRF_COOKIE, SESSION_COOKIE, setAuthCookies } from "./cookies";
 
 export interface AuthUser {
   id: string;

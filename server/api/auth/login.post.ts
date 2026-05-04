@@ -1,7 +1,7 @@
-import { getDb } from "../../db/client.ts";
-import { migrateDb } from "../../db/migrate.ts";
-import { createSession, findUserByLogin, verifyPassword } from "../../auth/sessions.ts";
-import { recordFailedLogin, resetLoginThrottle } from "../../auth/throttle.ts";
+import { getDb } from "../../db/client";
+import { migrateDb } from "../../db/migrate";
+import { createSession, findUserByLogin, verifyPassword } from "../../auth/sessions";
+import { recordFailedLogin, resetLoginThrottle } from "../../auth/throttle";
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ login?: string; password?: string }>(event);
