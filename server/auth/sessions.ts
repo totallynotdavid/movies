@@ -11,6 +11,11 @@ export interface AuthUser {
   isExcludedFromAggregation: boolean;
 }
 
+export interface LoginUser {
+  user: AuthUser;
+  passwordHash: string;
+}
+
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -26,11 +31,11 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export function hashToken(token: string): string {
-  return sha256(token);
+export function hashToken(value: string): string {
+  return sha256(value);
 }
 
-function token() {
+function createToken() {
   return randomBytes(32).toString("base64url");
 }
 
@@ -49,8 +54,8 @@ export async function createSession(
   event: any,
   user: AuthUser,
 ): Promise<{ user: AuthUser; csrfToken: string }> {
-  const sessionToken = token();
-  const csrfToken = token();
+  const sessionToken = createToken();
+  const csrfToken = createToken();
   const now = new Date();
   const expires = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 30);
   const sessionId = crypto.randomUUID();
@@ -101,17 +106,19 @@ export async function getSession(
   return row ? { user: mapUser(row), csrfTokenHash: row.csrf_token_hash } : null;
 }
 
-export async function findUserByLogin(
-  db: SqlDatabase,
-  login: string,
-): Promise<(AuthUser & { passwordHash: string }) | null> {
+export async function findUserByLogin(db: SqlDatabase, login: string): Promise<LoginUser | null> {
   const normalized = login.toLowerCase();
   const byEmail = await db
     .selectFrom("users")
     .selectAll()
     .where(sql`lower(email)`, "=", normalized)
     .executeTakeFirst();
-  if (byEmail) return { ...mapUser(byEmail), passwordHash: byEmail.password_hash };
+  if (byEmail) {
+    return {
+      user: mapUser(byEmail),
+      passwordHash: byEmail.password_hash,
+    };
+  }
 
   const byUsername = await db
     .selectFrom("users")
@@ -119,7 +126,12 @@ export async function findUserByLogin(
     .where(sql`lower(username)`, "=", normalized)
     .executeTakeFirst();
 
-  return byUsername ? { ...mapUser(byUsername), passwordHash: byUsername.password_hash } : null;
+  return byUsername
+    ? {
+        user: mapUser(byUsername),
+        passwordHash: byUsername.password_hash,
+      }
+    : null;
 }
 
 export function csrfCookie(event: any) {

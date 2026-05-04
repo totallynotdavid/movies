@@ -13,15 +13,14 @@ export default defineEventHandler(async (event) => {
 
   const db = await getDb(event);
   await migrateDb(db);
-  const user = await findUserByLogin(db, login);
-  const valid = user ? await verifyPassword(password, user.passwordHash) : false;
+  const loginUser = await findUserByLogin(db, login);
+  const valid = loginUser ? await verifyPassword(password, loginUser.passwordHash) : false;
 
-  if (!user || !valid) {
+  if (!loginUser || !valid) {
     await recordFailedLogin(db, login.toLowerCase());
     throw createError({ statusCode: 401, statusMessage: "invalid_credentials" });
   }
 
   await resetLoginThrottle(db, login.toLowerCase());
-  const { passwordHash, ...authUser } = user;
-  return await createSession(db, event, authUser);
+  return await createSession(db, event, loginUser.user);
 });
