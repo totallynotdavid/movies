@@ -13,7 +13,6 @@ export const theme = {
     "5xs": { fontSize: "0.5rem" }, // 8px
   },
   colors: {
-    // Minimal black & white palette with subtle grays
     bg: {
       DEFAULT: "var(--bg)",
       subtle: "var(--bg-subtle)",
@@ -34,7 +33,6 @@ export const theme = {
       DEFAULT: "var(--accent)",
       fallback: "var(--accent-muted)",
     },
-    // Syntax highlighting colors (inspired by GitHub Dark)
     syntax: {
       fn: "var(--syntax-fn)",
       str: "var(--syntax-str)",
@@ -51,7 +49,6 @@ export const theme = {
       purple: "var(--badge-purple)",
       pink: "var(--badge-pink)",
     },
-    // Playground provider brand colors
     provider: {
       stackblitz: "#1389FD",
       codesandbox: "#FFCC00",
