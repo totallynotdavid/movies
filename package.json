@@ -4,12 +4,13 @@
   "type": "module",
   "scripts": {
     "dev": "vp run db:migrate && vp run db:seed && nuxt dev",
+    "lint": "vp lint && vp fmt --check",
+    "lint:fix": "vp lint --fix && vp fmt",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check",
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "db:migrate": "node server/db/migrate-cli.ts",
-    "db:seed": "node server/db/seed.ts",
-    "tmdb:refresh-seed": "node server/media/refresh-seed.ts",
     "postinstall": "nuxt prepare && vp config"
   },
   "dependencies": {
