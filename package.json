@@ -3,14 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node server/db/migrate-cli.ts && node server/db/seed.ts && nuxt dev",
+    "dev": "pnpm server/db/migrate-cli.ts && pnpm server/db/seed.ts && nuxt dev",
     "lint": "vp lint && vp fmt --check",
     "lint:fix": "vp lint --fix && vp fmt",
     "format": "vp fmt",
     "format:check": "vp fmt --check",
-    "db:migrate": "node server/db/migrate-cli.ts",
-    "db:seed": "node server/db/seed.ts",
-    "tmdb:refresh-seed": "node server/media/refresh-seed.ts",
+    "db:migrate": "pnpm server/db/migrate-cli.ts",
+    "db:seed": "pnpm server/db/seed.ts",
+    "tmdb:refresh-seed": "pnpm server/media/refresh-seed.ts",
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -48,7 +48,7 @@
     "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.16"
   },
   "engines": {
-    "node": "24"
+    "pnpm": "11.0.6"
   },
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@11.0.6"
 }
