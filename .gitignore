@@ -13,3 +13,4 @@ node_modules
 .env
 .env.*
 !.env.example
+server/middleware/__void-dev-trigger.ts
