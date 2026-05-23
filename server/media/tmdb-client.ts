@@ -1,4 +1,3 @@
-import type { SqlDatabase } from "../db/client";
 import { cachedJsonFetch } from "../cache/cached-fetch";
 import { mapTmdbDetails, mapTmdbSearchResult } from "./tmdb-mapper";
 
@@ -18,31 +17,21 @@ function tmdbUrl(path: string, query: Record<string, string | number | undefined
   return url.toString();
 }
 
-export async function searchTmdb(
-  db: SqlDatabase,
-  input: {
-    q: string;
-    type?: "movie" | "show";
-  },
-) {
+export async function searchTmdb(input: { q: string; type?: "movie" | "show" }) {
   const types = input.type ? [input.type] : (["movie", "show"] as const);
   const results = [];
 
   for (const type of types) {
     const tmdbType = type === "show" ? "tv" : "movie";
     const data = await cachedJsonFetch<{ results?: any[] }>(
-      db,
       tmdbUrl(`/search/${tmdbType}`, {
         query: input.q,
         include_adult: "false",
         language: "en-US",
         page: 1,
       }),
-      {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      },
+      { headers: { Authorization: `Bearer ${getToken()}` } },
     );
-
     results.push(
       ...(data.results || []).map((result) => mapTmdbSearchResult(result, type)).filter(Boolean),
     );
@@ -51,17 +40,11 @@ export async function searchTmdb(
   return results;
 }
 
-export async function getTmdbDetails(db: SqlDatabase, type: "movie" | "show", tmdbId: number) {
+export async function getTmdbDetails(type: "movie" | "show", tmdbId: number) {
   const tmdbType = type === "show" ? "tv" : "movie";
   const data = await cachedJsonFetch<any>(
-    db,
-    tmdbUrl(`/${tmdbType}/${tmdbId}`, {
-      language: "en-US",
-    }),
-    {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    },
+    tmdbUrl(`/${tmdbType}/${tmdbId}`, { language: "en-US" }),
+    { headers: { Authorization: `Bearer ${getToken()}` } },
   );
-
   return mapTmdbDetails(data, type);
 }

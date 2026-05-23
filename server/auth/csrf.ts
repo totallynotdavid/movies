@@ -1,4 +1,3 @@
-import { getDb } from "../db/client";
 import { hashToken } from "./sessions";
 import { requireAuth } from "./require-auth";
 
@@ -20,8 +19,7 @@ export async function validateCsrf(event: any): Promise<void> {
     throw createError({ statusCode: 403, statusMessage: "fetch_metadata_not_allowed" });
   }
 
-  const db = await getDb(event);
-  const auth = await requireAuth(event, db);
+  const auth = await requireAuth(event);
   const token = getHeader(event, "x-csrf-token");
   if (!token || hashToken(token) !== auth.csrfTokenHash) {
     throw createError({ statusCode: 403, statusMessage: "csrf_token_invalid" });

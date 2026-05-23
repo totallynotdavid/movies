@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { sql } from "kysely";
-import type { SqlDatabase } from "../db/client";
+import { and, eq, gt, or, sql } from "drizzle-orm";
+import { db } from "void/db";
+import { requestSessions, userSessions, users } from "../db/schema";
 import { CSRF_COOKIE, SESSION_COOKIE, setAuthCookies } from "./cookies";
 
 export interface AuthUser {
@@ -39,18 +40,17 @@ function createToken() {
   return randomBytes(32).toString("base64url");
 }
 
-function mapUser(row: any): AuthUser {
+function mapUser(row: typeof users.$inferSelect): AuthUser {
   return {
     id: row.id,
     email: row.email,
     username: row.username,
-    isAdmin: Boolean(row.is_admin),
-    isExcludedFromAggregation: Boolean(row.is_excluded_from_aggregation),
+    isAdmin: row.isAdmin,
+    isExcludedFromAggregation: row.isExcludedFromAggregation,
   };
 }
 
 export async function createSession(
-  db: SqlDatabase,
   event: any,
   user: AuthUser,
 ): Promise<{ user: AuthUser; csrfToken: string }> {
@@ -60,78 +60,77 @@ export async function createSession(
   const expires = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 30);
   const sessionId = crypto.randomUUID();
 
-  await db
-    .insertInto("user_sessions")
-    .values({
-      id: sessionId,
-      user_id: user.id,
-      token_hash: hashToken(sessionToken),
-      csrf_token_hash: hashToken(csrfToken),
-      expires_at: expires.toISOString(),
-      created_at: now.toISOString(),
-    })
-    .execute();
-  await db
-    .insertInto("request_sessions")
-    .values({
-      id: crypto.randomUUID(),
-      user_id: user.id,
-      session_id: sessionId,
-      ip_hash: null,
-      user_agent: getHeader(event, "user-agent") || null,
-      created_at: now.toISOString(),
-    })
-    .execute();
+  await db.insert(userSessions).values({
+    id: sessionId,
+    userId: user.id,
+    tokenHash: hashToken(sessionToken),
+    csrfTokenHash: hashToken(csrfToken),
+    expiresAt: expires.toISOString(),
+    createdAt: now.toISOString(),
+  });
+
+  await db.insert(requestSessions).values({
+    id: crypto.randomUUID(),
+    userId: user.id,
+    sessionId,
+    ipHash: null,
+    userAgent: getHeader(event, "user-agent") || null,
+    createdAt: now.toISOString(),
+  });
 
   setAuthCookies(event, { sessionToken, csrfToken, expires });
   return { user, csrfToken };
 }
 
 export async function getSession(
-  db: SqlDatabase,
   event: any,
 ): Promise<{ user: AuthUser; csrfTokenHash: string } | null> {
   const sessionToken = getCookie(event, SESSION_COOKIE);
   if (!sessionToken) return null;
 
-  const row = await db
-    .selectFrom("user_sessions as s")
-    .innerJoin("users as u", "u.id", "s.user_id")
-    .selectAll("u")
-    .select("s.csrf_token_hash")
-    .where("s.token_hash", "=", hashToken(sessionToken))
-    .where("s.expires_at", ">", new Date().toISOString())
-    .executeTakeFirst();
+  const [row] = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      username: users.username,
+      isAdmin: users.isAdmin,
+      isExcludedFromAggregation: users.isExcludedFromAggregation,
+      csrfTokenHash: userSessions.csrfTokenHash,
+    })
+    .from(userSessions)
+    .innerJoin(users, eq(users.id, userSessions.userId))
+    .where(
+      and(
+        eq(userSessions.tokenHash, hashToken(sessionToken)),
+        gt(userSessions.expiresAt, new Date().toISOString()),
+      ),
+    )
+    .limit(1);
 
-  return row ? { user: mapUser(row), csrfTokenHash: row.csrf_token_hash } : null;
+  if (!row) return null;
+  return {
+    user: {
+      id: row.id,
+      email: row.email,
+      username: row.username,
+      isAdmin: row.isAdmin,
+      isExcludedFromAggregation: row.isExcludedFromAggregation,
+    },
+    csrfTokenHash: row.csrfTokenHash,
+  };
 }
 
-export async function findUserByLogin(db: SqlDatabase, login: string): Promise<LoginUser | null> {
+export async function findUserByLogin(login: string): Promise<LoginUser | null> {
   const normalized = login.toLowerCase();
-  const byEmail = await db
-    .selectFrom("users")
-    .selectAll()
-    .where(sql`lower(email)`, "=", normalized)
-    .executeTakeFirst();
-  if (byEmail) {
-    return {
-      user: mapUser(byEmail),
-      passwordHash: byEmail.password_hash,
-    };
-  }
+  const [row] = await db
+    .select()
+    .from(users)
+    .where(
+      or(sql`lower(${users.email}) = ${normalized}`, sql`lower(${users.username}) = ${normalized}`),
+    )
+    .limit(1);
 
-  const byUsername = await db
-    .selectFrom("users")
-    .selectAll()
-    .where(sql`lower(username)`, "=", normalized)
-    .executeTakeFirst();
-
-  return byUsername
-    ? {
-        user: mapUser(byUsername),
-        passwordHash: byUsername.password_hash,
-      }
-    : null;
+  return row ? { user: mapUser(row), passwordHash: row.passwordHash } : null;
 }
 
 export function csrfCookie(event: any) {

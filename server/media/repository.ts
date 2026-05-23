@@ -1,164 +1,147 @@
-import type { SqlDatabase } from "../db/client";
+import { asc, count, desc, eq, inArray, or } from "drizzle-orm";
+import { db } from "void/db";
+import { entities, entityGenres } from "../db/schema";
 import type { MediaEntityRow } from "./tmdb-mapper";
 
 function toMediaEntity(
-  row: any,
-  genres: Array<{ genre_id: number; genre_name: string }>,
+  row: typeof entities.$inferSelect,
+  genres: Array<{ genreId: number; genreName: string }>,
 ): MediaEntityRow {
   return {
     id: row.id,
     type: row.type,
-    tmdbId: row.tmdb_id,
+    tmdbId: row.tmdbId,
     slug: row.slug,
     title: row.title,
-    originalTitle: row.original_title,
+    originalTitle: row.originalTitle,
     overview: row.overview,
-    posterPath: row.poster_path,
-    backdropPath: row.backdrop_path,
-    genreIds: genres.map((item) => item.genre_id),
-    genreNames: genres.map((item) => item.genre_name),
-    releaseDate: row.release_date,
-    firstAirDate: row.first_air_date,
-    voteAverage: row.vote_average,
-    voteCount: row.vote_count,
+    posterPath: row.posterPath,
+    backdropPath: row.backdropPath,
+    genreIds: genres.map((g) => g.genreId),
+    genreNames: genres.map((g) => g.genreName),
+    releaseDate: row.releaseDate,
+    firstAirDate: row.firstAirDate,
+    voteAverage: row.voteAverage,
+    voteCount: row.voteCount,
     popularity: row.popularity,
-    fetchedAt: row.fetched_at,
+    fetchedAt: row.fetchedAt,
   };
 }
 
-async function attachGenres(db: SqlDatabase, rows: any[]): Promise<MediaEntityRow[]> {
-  const ids = rows.map((row) => row.id);
-  if (!ids.length) return [];
-
-  const genreRows = await db
-    .selectFrom("entity_genres")
-    .selectAll()
-    .where("entity_id", "in", ids)
-    .execute();
+async function attachGenres(rows: (typeof entities.$inferSelect)[]): Promise<MediaEntityRow[]> {
+  if (!rows.length) return [];
+  const ids = rows.map((r) => r.id);
+  const genreRows = await db.select().from(entityGenres).where(inArray(entityGenres.entityId, ids));
 
   return rows.map((row) => {
-    const genres = genreRows.filter((genre) => genre.entity_id === row.id);
+    const genres = genreRows.filter((g) => g.entityId === row.id);
     return toMediaEntity(row, genres);
   });
 }
 
 export async function searchEntities(
-  db: SqlDatabase,
-  input: {
-    q?: string;
-    type?: "movie" | "show";
-    limit?: number;
-  } = {},
+  input: { q?: string; type?: "movie" | "show"; limit?: number } = {},
 ): Promise<MediaEntityRow[]> {
   const limit = Math.min(Math.max(input.limit || 20, 1), 1000);
-  let query = db.selectFrom("entities").selectAll();
 
-  if (input.type) {
-    query = query.where("type", "=", input.type);
-  }
-  if (input.q?.trim()) {
-    query = query.where("title", "like", `%${input.q.trim()}%`);
-  }
+  const rows = await db
+    .select()
+    .from(entities)
+    .where(
+      input.type && input.q?.trim()
+        ? or(eq(entities.type, input.type))
+        : input.type
+          ? eq(entities.type, input.type)
+          : undefined,
+    )
+    .orderBy(desc(entities.popularity), asc(entities.title))
+    .limit(limit);
 
-  const rows = await query.orderBy("popularity desc").orderBy("title asc").limit(limit).execute();
-  return await attachGenres(db, rows);
+  const filtered = input.q?.trim()
+    ? rows.filter((r) => r.title.toLowerCase().includes(input.q!.trim().toLowerCase()))
+    : rows;
+
+  return attachGenres(filtered);
 }
 
-export async function getEntityById(db: SqlDatabase, id: string): Promise<MediaEntityRow | null> {
-  const row = await db
-    .selectFrom("entities")
-    .selectAll()
-    .where((eb) => eb.or([eb("id", "=", id), eb("slug", "=", id)]))
-    .executeTakeFirst();
+export async function getEntityById(id: string): Promise<MediaEntityRow | null> {
+  const [row] = await db
+    .select()
+    .from(entities)
+    .where(or(eq(entities.id, id), eq(entities.slug, id)))
+    .limit(1);
 
   if (!row) return null;
-  const genres = await db
-    .selectFrom("entity_genres")
-    .selectAll()
-    .where("entity_id", "=", row.id)
-    .execute();
+  const genres = await db.select().from(entityGenres).where(eq(entityGenres.entityId, row.id));
 
   return toMediaEntity(row, genres);
 }
 
-export async function countEntities(db: SqlDatabase): Promise<number> {
-  const row = await db
-    .selectFrom("entities")
-    .select((eb) => eb.fn.countAll<number>().as("count"))
-    .executeTakeFirst();
-
-  return Number(row?.count || 0);
+export async function countEntities(): Promise<number> {
+  const [row] = await db.select({ count: count() }).from(entities);
+  return row?.count ?? 0;
 }
 
-export async function upsertEntity(
-  db: SqlDatabase,
-  entity: MediaEntityRow,
-): Promise<MediaEntityRow> {
+export async function upsertEntity(entity: MediaEntityRow): Promise<MediaEntityRow> {
   const now = new Date().toISOString();
   await db
-    .insertInto("entities")
+    .insert(entities)
     .values({
       id: entity.id,
       type: entity.type,
       slug: entity.slug,
       title: entity.title,
-      original_title: entity.originalTitle,
+      originalTitle: entity.originalTitle,
       overview: entity.overview,
-      poster_path: entity.posterPath,
-      backdrop_path: entity.backdropPath,
-      tmdb_id: entity.tmdbId,
-      release_date: entity.releaseDate,
-      first_air_date: entity.firstAirDate,
-      vote_average: entity.voteAverage,
-      vote_count: entity.voteCount,
+      posterPath: entity.posterPath,
+      backdropPath: entity.backdropPath,
+      tmdbId: entity.tmdbId,
+      releaseDate: entity.releaseDate,
+      firstAirDate: entity.firstAirDate,
+      voteAverage: entity.voteAverage,
+      voteCount: entity.voteCount,
       popularity: entity.popularity,
-      fetched_at: entity.fetchedAt,
-      created_at: now,
-      updated_at: now,
+      fetchedAt: entity.fetchedAt,
+      createdAt: now,
+      updatedAt: now,
     })
-    .onConflict((oc) =>
-      oc.columns(["type", "tmdb_id"]).doUpdateSet({
+    .onConflictDoUpdate({
+      target: [entities.type, entities.tmdbId],
+      set: {
         slug: entity.slug,
         title: entity.title,
-        original_title: entity.originalTitle,
+        originalTitle: entity.originalTitle,
         overview: entity.overview,
-        poster_path: entity.posterPath,
-        backdrop_path: entity.backdropPath,
-        release_date: entity.releaseDate,
-        first_air_date: entity.firstAirDate,
-        vote_average: entity.voteAverage,
-        vote_count: entity.voteCount,
+        posterPath: entity.posterPath,
+        backdropPath: entity.backdropPath,
+        releaseDate: entity.releaseDate,
+        firstAirDate: entity.firstAirDate,
+        voteAverage: entity.voteAverage,
+        voteCount: entity.voteCount,
         popularity: entity.popularity,
-        fetched_at: entity.fetchedAt,
-        updated_at: now,
-      }),
-    )
-    .execute();
+        fetchedAt: entity.fetchedAt,
+        updatedAt: now,
+      },
+    });
 
-  await db.deleteFrom("entity_genres").where("entity_id", "=", entity.id).execute();
+  await db.delete(entityGenres).where(eq(entityGenres.entityId, entity.id));
   if (entity.genreIds.length) {
-    await db
-      .insertInto("entity_genres")
-      .values(
-        entity.genreIds.map((genreId, index) => ({
-          entity_id: entity.id,
-          genre_id: genreId,
-          genre_name: entity.genreNames[index] || String(genreId),
-        })),
-      )
-      .execute();
+    await db.insert(entityGenres).values(
+      entity.genreIds.map((genreId, i) => ({
+        entityId: entity.id,
+        genreId,
+        genreName: entity.genreNames[i] || String(genreId),
+      })),
+    );
   }
 
-  return (await getEntityById(db, entity.id)) || entity;
+  return (await getEntityById(entity.id)) ?? entity;
 }
 
-export async function upsertEntities(
-  db: SqlDatabase,
-  entities: MediaEntityRow[],
-): Promise<MediaEntityRow[]> {
+export async function upsertEntities(rows: MediaEntityRow[]): Promise<MediaEntityRow[]> {
   const persisted: MediaEntityRow[] = [];
-  for (const entity of entities) {
-    persisted.push(await upsertEntity(db, entity));
+  for (const entity of rows) {
+    persisted.push(await upsertEntity(entity));
   }
   return persisted;
 }

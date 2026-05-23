@@ -5,6 +5,10 @@ export default defineConfig({
     "*": "vp check --fix",
   },
   lint: {
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
     plugins: ["unicorn", "typescript", "oxc", "vue", "vitest"],
     jsPlugins: ["@e18e/eslint-plugin", "eslint-plugin-regexp"],
     categories: {

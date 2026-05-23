@@ -1,18 +1,20 @@
-import type { SqlDatabase } from "../db/client";
+import { eq, sql } from "drizzle-orm";
+import { db } from "void/db";
+import { authThrottleCounters } from "../db/schema";
 
-export async function recordFailedLogin(db: SqlDatabase, key: string): Promise<void> {
+export async function recordFailedLogin(key: string): Promise<void> {
   await db
-    .insertInto("auth_throttle_counters")
-    .values({ key, attempts: 1, locked_until: null, updated_at: new Date().toISOString() })
-    .onConflict((oc) =>
-      oc.column("key").doUpdateSet((eb) => ({
-        attempts: eb("auth_throttle_counters.attempts", "+", 1),
-        updated_at: new Date().toISOString(),
-      })),
-    )
-    .execute();
+    .insert(authThrottleCounters)
+    .values({ key, attempts: 1, lockedUntil: null, updatedAt: new Date().toISOString() })
+    .onConflictDoUpdate({
+      target: authThrottleCounters.key,
+      set: {
+        attempts: sql`${authThrottleCounters.attempts} + 1`,
+        updatedAt: new Date().toISOString(),
+      },
+    });
 }
 
-export async function resetLoginThrottle(db: SqlDatabase, key: string): Promise<void> {
-  await db.deleteFrom("auth_throttle_counters").where("key", "=", key).execute();
+export async function resetLoginThrottle(key: string): Promise<void> {
+  await db.delete(authThrottleCounters).where(eq(authThrottleCounters.key, key));
 }

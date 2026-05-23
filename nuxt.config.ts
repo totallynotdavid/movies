@@ -1,6 +1,4 @@
-if (process.env.VERCEL) {
-  throw new Error("Vercel deployment is deferred until a Vercel-native DB adapter is added.");
-}
+import { voidPlugin } from "void";
 
 export default defineNuxtConfig({
   compatibilityDate: "2026-05-02",
@@ -13,6 +11,15 @@ export default defineNuxtConfig({
     "@vueuse/nuxt",
     "@artmizu/nuxt-prometheus",
   ],
+
+  vite: {
+    // @ts-expect-error voidPlugin() is Plugin<any>[] from vite 8; nuxt's bundled vite 7 types differ
+    plugins: [...voidPlugin()],
+  },
+
+  nitro: {
+    preset: "cloudflare-module",
+  },
 
   css: ["~/assets/main.css"],
 
