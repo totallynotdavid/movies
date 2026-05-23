@@ -12,8 +12,7 @@ export const noPasswordManager = {
 } as const;
 
 export function isEditableElement(target: EventTarget | null): boolean {
-  const node = target as HTMLElement | null;
-  if (!node) return false;
-  if (node.isContentEditable) return true;
-  return ["INPUT", "TEXTAREA", "SELECT"].includes(node.tagName);
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
 }
