@@ -16,7 +16,7 @@ function mapEntry(
     entityId: row.entityId,
     mediaType: row.mediaType,
     title: row.title,
-    status: row.status as TrackingStatus,
+    status: row.status,
     score100: row.score100,
     progressCurrent: row.progressCurrent,
     progressTotal: row.progressTotal,
