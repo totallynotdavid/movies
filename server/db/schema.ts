@@ -1,4 +1,5 @@
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "void/schema-d1";
+import type { TrackingStatus } from "#shared/types/tracking";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -183,7 +184,7 @@ export const libraryEntries = sqliteTable(
     entityId: text("entity_id")
       .notNull()
       .references(() => entities.id, { onDelete: "cascade" }),
-    status: text("status").notNull(),
+    status: text("status").$type<TrackingStatus>().notNull(),
     score100: integer("score100"),
     progressCurrent: integer("progress_current").notNull().default(0),
     progressTotal: integer("progress_total"),
