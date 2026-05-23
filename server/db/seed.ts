@@ -67,7 +67,7 @@ export default async function seed({ db }: { db: BetterSQLite3Database }) {
   }
 
   const seedPath = resolve(process.cwd(), "server/assets/seed/tmdb-media.seed.json");
-  const catalog = JSON.parse(await readFile(seedPath, "utf-8")) as { entries: SeedEntry[] };
+  const catalog: { entries: SeedEntry[] } = JSON.parse(await readFile(seedPath, "utf-8"));
 
   for (const entry of catalog.entries) {
     const slug = `${entry.type}-${slugify(entry.title, String(entry.tmdbId))}-${entry.tmdbId}`;

@@ -19,7 +19,7 @@ export async function cachedJsonFetch<T>(url: string, init: RequestInit = {}): P
     });
   }
 
-  const value = (await response.json()) as T;
+  const value: T = await response.json();
   await kv.put(key, value, { ttl: ttlSeconds });
   return value;
 }
