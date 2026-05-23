@@ -4,7 +4,9 @@ import { getTmdbDetails } from "../../media/tmdb-client";
 function parseTmdbId(id: string): { type: "movie" | "show"; tmdbId: number } | null {
   const match = /^tmdb:(movie|show):(\d+)$/.exec(id);
   if (!match) return null;
-  return { type: match[1] as "movie" | "show", tmdbId: Number(match[2]) };
+  const type = match[1];
+  if (type !== "movie" && type !== "show") return null;
+  return { type, tmdbId: Number(match[2]) };
 }
 
 export default defineEventHandler(async (event) => {
