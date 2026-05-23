@@ -56,11 +56,11 @@ function directionSizeRTL(
     if (!size) return undefined;
     const defaultMap = { l: "is", r: "ie" };
     const map = prefixMap || defaultMap;
-    const replacement = map[direction as "l" | "r"];
+    const replacement = direction === "l" ? map.l : map.r;
 
     const fullClass = context.rawSelector || match;
     const prefix = match.substring(0, 1); // 'p' or 'm'
-    const suggestedBase = match.replace(`${prefix}${direction!}`, `${prefix}${replacement}`);
+    const suggestedBase = match.replace(`${prefix}${direction}`, `${prefix}${replacement}`);
     const suggestedClass = fullClass.replace(match, suggestedBase);
 
     reportWarning(fullClass, suggestedClass, checker);
@@ -78,16 +78,17 @@ function handlerRounded(
 
   if (s === "full") return corners.map((i) => [`border${i}-radius`, "calc(infinity * 1px)"]);
 
-  const _v = theme.radius?.[s] ?? h.bracket?.cssvar?.global?.fraction?.rem?.(s);
-  if (_v != null) {
-    return corners.map((i) => [`border${i}-radius`, _v]);
-  }
+  const v = theme.radius?.[s] ?? h.bracket?.cssvar?.global?.fraction?.rem?.(s);
+  if (v != null) return corners.map((i) => [`border${i}-radius`, v]);
+
+  return undefined;
 }
 
 function handlerBorderSize([, a = "", b = "1"]: string[]): CSSEntries | undefined {
   const v = h.bracket?.cssvar?.global?.px?.(b);
   const directions = directionMap[a];
   if (directions && v != null) return directions.map((i) => [`border${i}-width`, v]);
+  return undefined;
 }
 
 function handlerForceDirectionSize(
@@ -96,12 +97,11 @@ function handlerForceDirectionSize(
   { theme }: RuleContext<any>,
 ): CSSEntries | undefined {
   const v =
-    theme.spacing?.[size || "DEFAULT"] ?? h.bracket?.cssvar?.global?.auto?.fraction?.rem?.(size!);
-  const directions = directionMap[direction!];
+    theme.spacing?.[size || "DEFAULT"] ?? h.bracket?.cssvar?.global?.auto?.fraction?.rem?.(size);
+  const directions = directionMap[direction];
 
-  if (v != null && directions) {
-    return directions.map((i) => [`${propertyPrefix}${i}`, v]);
-  }
+  if (v != null && directions) return directions.map((i) => [`${propertyPrefix}${i}`, v]);
+  return undefined;
 }
 
 /**
@@ -128,18 +128,14 @@ export function presetRtl(checker?: CollectorChecker): Preset {
       ],
       [
         /^force-(?:position-|pos-)?(left|right)-(.+)$/,
-        ([_, direction, size], context) => {
-          // Map 'left'/'right' to 'l'/'r' for directionMap lookup if needed,
-          // but directionMap has 'left'/'right' keys? No, it has 'l'/'r'.
-          // Wait, directionMap keys are 'l', 'r'.
-          // But inset usually uses 'left', 'right' properties directly.
-          // Let's use a custom handler for inset to be safe.
+        ([, direction, size]: string[], { theme }: RuleContext<any>) => {
           const v =
-            (context.theme as unknown as any).spacing?.[size || "DEFAULT"] ??
-            h.bracket?.cssvar?.global?.auto?.fraction?.rem?.(size!);
+            theme.spacing?.[size || "DEFAULT"] ??
+            h.bracket?.cssvar?.global?.auto?.fraction?.rem?.(size);
           if (v != null) {
-            return [[direction === "left" ? "left" : "right", v]];
+            return [[direction === "left" ? "left" : "right", v]] as CSSEntries;
           }
+          return undefined;
         },
         { autocomplete: "force-(left|right)-<num>" },
       ],
@@ -151,12 +147,12 @@ export function presetRtl(checker?: CollectorChecker): Preset {
       [
         /^force-rounded-([rl])(?:-(.+))?$/,
         ([, direction, size], context) =>
-          handlerRounded(["", direction!, size ?? "DEFAULT"], context),
+          handlerRounded(["", direction, size ?? "DEFAULT"], context),
         { autocomplete: "force-rounded-(l|r)-<num>" },
       ],
       [
         /^force-border-([rl])(?:-(.+))?$/,
-        ([, direction, size]) => handlerBorderSize(["", direction!, size || "1"]),
+        ([, direction, size]) => handlerBorderSize(["", direction, size || "1"]),
         { autocomplete: "force-border-(l|r)-<num>" },
       ],
 
@@ -198,7 +194,7 @@ export function presetRtl(checker?: CollectorChecker): Preset {
 
           const suggestedClass = originalClass.replace(
             direction === "start" ? "left" : "right",
-            direction!,
+            direction,
           );
 
           reportWarning(originalClass, suggestedClass, checker);
@@ -206,7 +202,7 @@ export function presetRtl(checker?: CollectorChecker): Preset {
           // Return a cssvar with the warning message to satisfy UnoCSS
           // and avoid "unmatched utility" warning.
           return {
-            [`--x-rtl-${direction!}`]: `"${originalClass} -> ${suggestedClass}"`,
+            [`--x-rtl-${direction}`]: `"${originalClass} -> ${suggestedClass}"`,
           };
         },
         { autocomplete: "text-(left|right)" },
@@ -223,7 +219,7 @@ export function presetRtl(checker?: CollectorChecker): Preset {
           if (!replacement) return undefined;
 
           const fullClass = context.rawSelector || match;
-          const suggestedBase = match.replace(`rounded-${direction!}`, `rounded-${replacement}`);
+          const suggestedBase = match.replace(`rounded-${direction}`, `rounded-${replacement}`);
           const suggestedClass = fullClass.replace(match, suggestedBase);
 
           reportWarning(fullClass, suggestedClass, checker);
@@ -237,7 +233,7 @@ export function presetRtl(checker?: CollectorChecker): Preset {
           const replacement = direction === "l" ? "is" : "ie";
 
           const fullClass = context.rawSelector || match;
-          const suggestedBase = match.replace(`border-${direction!}`, `border-${replacement}`);
+          const suggestedBase = match.replace(`border-${direction}`, `border-${replacement}`);
           const suggestedClass = fullClass.replace(match, suggestedBase);
 
           reportWarning(fullClass, suggestedClass, checker);
