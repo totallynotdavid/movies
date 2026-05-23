@@ -2,4 +2,17 @@
   "name": "track",
   "compatibility_date": "2026-05-23",
   "compatibility_flags": ["nodejs_compat", "nodejs_als"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "default",
+      "database_id": "local",
+    },
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "local",
+    },
+  ],
 }
