@@ -1,3 +1,13 @@
 {
-  "sourceDir": "server"
+  "$schema": "./node_modules/void/schema.json",
+  "auth": {
+    "providers": ["email"]
+  },
+  "inference": {
+    "appType": "void"
+  },
+  "worker": {
+    "compatibility_date": "2026-02-24",
+    "compatibility_flags": ["nodejs_compat", "nodejs_als"]
+  }
 }

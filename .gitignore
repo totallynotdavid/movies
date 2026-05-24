@@ -14,3 +14,7 @@ node_modules
 .env.*
 !.env.example
 server/middleware/__void-dev-trigger.ts
+.void
+.wrangler
+*.tsbuildinfo
+.DS_Store
