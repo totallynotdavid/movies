@@ -60,3 +60,39 @@ export const libraryEntries = sqliteTable(
     index("idx_library_user_updated").on(t.userId, t.updatedAt),
   ],
 );
+
+export const userFavoriteMedia = sqliteTable(
+  "user_favorite_media",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    mediaId: text("media_id")
+      .notNull()
+      .references(() => media.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("uq_fav_media_user_media").on(t.userId, t.mediaId),
+    index("idx_fav_media_user").on(t.userId),
+  ],
+);
+
+export const userFavoriteActors = sqliteTable(
+  "user_favorite_actors",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    actorTmdbId: integer("actor_tmdb_id").notNull(),
+    actorName: text("actor_name").notNull(),
+    actorProfilePath: text("actor_profile_path"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("uq_fav_actor_user_actor").on(t.userId, t.actorTmdbId),
+    index("idx_fav_actor_user").on(t.userId),
+  ],
+);
