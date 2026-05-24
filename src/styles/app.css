@@ -1,4 +1,6 @@
-:root {
+/* Dark mode (default) */
+:root:not([data-theme="light"]),
+:root[data-theme="dark"] {
   --bg: oklch(0.158 0 0);
   --bg-subtle: oklch(0.19 0 0);
   --bg-muted: oklch(0.22 0 0);
@@ -16,6 +18,25 @@
   --status-dropped: oklch(0.65 0.17 25);
 }
 
+/* Light mode */
+:root[data-theme="light"] {
+  --bg: oklch(1 0 0);
+  --bg-subtle: oklch(0.979 0.001 286.375);
+  --bg-muted: oklch(0.955 0.001 286.76);
+  --bg-elevated: oklch(0.94 0.002 287.29);
+  --fg: oklch(0.146 0 0);
+  --fg-muted: oklch(0.398 0 0);
+  --fg-subtle: oklch(0.48 0 0);
+  --border: oklch(0.8514 0 0);
+  --border-hover: oklch(0.715 0 0);
+  --accent: oklch(0.5 0.16 247.27);
+  --status-planned: oklch(0.45 0.13 255);
+  --status-watching: oklch(0.52 0.14 85);
+  --status-completed: oklch(0.48 0.16 145);
+  --status-paused: oklch(0.45 0 0);
+  --status-dropped: oklch(0.5 0.17 25);
+}
+
 *,
 *::before,
 *::after {
@@ -24,17 +45,23 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
 }
 
 body {
   margin: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 10% -10%, oklch(0.787 0.128 230.318 / 0.12), transparent),
+    radial-gradient(
+      ellipse 80% 60% at 10% -10%,
+      color-mix(in oklch, var(--accent) 12%, transparent),
+      transparent
+    ),
     var(--bg);
   color: var(--fg);
   font-family: "IBM Plex Sans", "Inter", "Segoe UI", system-ui, sans-serif;
   line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -60,6 +87,17 @@ p {
   margin: 0;
 }
 
+/* Reset dd margin */
+dd {
+  margin: 0;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--fg-muted);
+  color: var(--bg-subtle);
+}
+
 /* Dialog / modal reset */
 dialog {
   border: none;
@@ -70,23 +108,56 @@ dialog {
 }
 
 dialog::backdrop {
-  background: oklch(0 0 0 / 0.6);
+  background: oklch(0 0 0 / 0.65);
   backdrop-filter: blur(4px);
 }
 
+/* Scroll lock when any modal is open */
+html:has(dialog:modal) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+
+/* Modal open animation */
+dialog[open] {
+  animation: scale-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
 /* Scrollbar */
+* {
+  scrollbar-color: var(--border) var(--bg);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-hover);
+  background: var(--border);
   border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* Focus visible */
+:focus-visible,
+:-moz-focusring {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
 }
 
 /* Skip link */
@@ -119,6 +190,26 @@ dialog::backdrop {
 
 .poster-wrap:hover img {
   transform: scale(1.04);
+}
+
+/* Keyboard hint glow on "?" hold */
+kbd {
+  position: relative;
+}
+
+kbd::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 4px 2px var(--accent);
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+  pointer-events: none;
+}
+
+html[data-kbd-hints="true"] kbd::before {
+  opacity: 1;
 }
 
 /* Skeleton animation */
