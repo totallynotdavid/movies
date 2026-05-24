@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import Modal from "./Modal.vue";
+import { auth } from "void/client";
+
+const props = defineProps<{
+  user: { id: string; name: string; email: string } | null;
+}>();
 
 type Command = {
   id: string;
@@ -16,18 +21,33 @@ const modalRef = ref<InstanceType<typeof Modal> | null>(null);
 const inputRef = ref<HTMLInputElement | null>(null);
 const previouslyFocused = ref<HTMLElement | null>(null);
 
-const commands: Command[] = [
-  { id: "home", label: "catalog", icon: "i-lucide:film", href: "/" },
-  { id: "library", label: "my library", icon: "i-lucide:library", href: "/library" },
-  { id: "profile", label: "profile", icon: "i-lucide:user", href: "/profile" },
-  { id: "settings", label: "settings", icon: "i-lucide:settings", href: "/settings" },
-  { id: "login", label: "sign in", icon: "i-lucide:log-in", href: "/login" },
-];
+const commands = computed<Command[]>(() => {
+  if (props.user) {
+    return [
+      { id: "library", label: "my library", icon: "i-lucide:library", href: "/library" },
+      { id: "profile", label: "profile", icon: "i-lucide:user", href: "/profile" },
+      { id: "settings", label: "settings", icon: "i-lucide:settings", href: "/settings" },
+      {
+        id: "signout",
+        label: "sign out",
+        icon: "i-lucide:log-out",
+        action: async () => {
+          await auth.signOut();
+          window.location.href = "/";
+        },
+      },
+    ];
+  }
+  return [
+    { id: "browse", label: "browse catalog", icon: "i-lucide:film", href: "/" },
+    { id: "login", label: "sign in", icon: "i-lucide:log-in", href: "/login" },
+  ];
+});
 
 const filtered = computed(() => {
   const q = query.value.toLowerCase().trim();
-  if (!q) return commands;
-  return commands.filter((c) => c.label.toLowerCase().includes(q));
+  if (!q) return commands.value;
+  return commands.value.filter((c) => c.label.toLowerCase().includes(q));
 });
 
 function open() {
@@ -53,6 +73,13 @@ function onModalClose() {
   }
   previouslyFocused.value?.focus();
   previouslyFocused.value = null;
+}
+
+async function runCommand(cmd: Command) {
+  close();
+  if (cmd.action) {
+    await cmd.action();
+  }
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -104,6 +131,8 @@ function getItems() {
   return Array.from(document.querySelectorAll<HTMLElement>("[data-palette-item]"));
 }
 
+defineExpose({ open, close });
+
 onMounted(() => document.addEventListener("keydown", handleKeydown));
 onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
 </script>
@@ -119,6 +148,7 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
           placeholder="type a command or search..."
           class="w-full bg-transparent text-fg placeholder:text-fg-subtle text-base outline-none font-mono lowercase"
           aria-label="command palette search"
+          aria-live="polite"
         />
       </div>
 
@@ -127,22 +157,38 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
           no commands found
         </div>
 
-        <a
-          v-for="cmd in filtered"
-          :key="cmd.id"
-          :href="cmd.href"
-          data-palette-item
-          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-fg no-underline transition-colors duration-100 hover:bg-bg-elevated focus:bg-bg-elevated outline-none cursor-pointer"
-          @click="close"
-        >
-          <span
-            v-if="cmd.icon"
-            :class="cmd.icon"
-            class="w-4 h-4 shrink-0 text-fg-muted"
-            aria-hidden="true"
-          />
-          <span class="font-mono text-sm lowercase">{{ cmd.label }}</span>
-        </a>
+        <template v-for="cmd in filtered" :key="cmd.id">
+          <a
+            v-if="cmd.href"
+            :href="cmd.href"
+            data-palette-item
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-fg no-underline transition-colors duration-100 hover:bg-bg-elevated focus:bg-bg-elevated outline-none cursor-pointer"
+            @click="close"
+          >
+            <span
+              v-if="cmd.icon"
+              :class="cmd.icon"
+              class="w-4 h-4 shrink-0 text-fg-muted"
+              aria-hidden="true"
+            />
+            <span class="font-mono text-sm lowercase">{{ cmd.label }}</span>
+          </a>
+          <button
+            v-else
+            type="button"
+            data-palette-item
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-fg transition-colors duration-100 hover:bg-bg-elevated focus:bg-bg-elevated outline-none cursor-pointer"
+            @click="runCommand(cmd)"
+          >
+            <span
+              v-if="cmd.icon"
+              :class="cmd.icon"
+              class="w-4 h-4 shrink-0 text-fg-muted"
+              aria-hidden="true"
+            />
+            <span class="font-mono text-sm lowercase">{{ cmd.label }}</span>
+          </button>
+        </template>
       </div>
 
       <div
