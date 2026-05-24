@@ -40,6 +40,7 @@ export default defineConfig({
       },
       border: {
         DEFAULT: "var(--border)",
+        subtle: "var(--border-subtle)",
         hover: "var(--border-hover)",
       },
       accent: {
@@ -81,6 +82,8 @@ export default defineConfig({
   },
   shortcuts: [
     ["container", "max-w-6xl mx-auto px-4 sm:px-6"],
+    ["container-sm", "max-w-4xl mx-auto px-4 sm:px-6"],
+    ["flex-split", "flex items-center justify-between"],
     ["focus-ring", "outline-none focus-visible:(ring-2 ring-fg/50 ring-offset-2 ring-offset-bg)"],
     ["link-subtle", "text-fg-muted hover:text-fg transition-colors duration-200 focus-ring"],
     ["badge-planned", "bg-blue-500/10 text-blue-400 border-blue-500/20"],
@@ -88,5 +91,9 @@ export default defineConfig({
     ["badge-completed", "bg-green-500/10 text-green-400 border-green-500/20"],
     ["badge-paused", "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"],
     ["badge-dropped", "bg-red-500/10 text-red-400 border-red-500/20"],
+  ],
+  rules: [
+    ["animate-fill-both", { "animation-fill-mode": "both" }],
+    ["scale-98", { transform: "scale(0.98)" }],
   ],
 });
