@@ -44,10 +44,23 @@ const hasSearched = ref(false);
 const trackedIds = computed(() => new Set(props.entries.map((e) => e.media.id)));
 
 const filterStatus = ref<string>("all");
-const filteredEntries = computed(() => {
-  if (filterStatus.value === "all") return props.entries;
-  return props.entries.filter((e) => e.status === filterStatus.value);
-});
+const filterType = ref<"all" | "movie" | "show">("all");
+
+type SortKey = "updated" | "title" | "rating" | "status";
+const sortKey = ref<SortKey>("updated");
+
+const sortOptions: { value: SortKey; label: string }[] = [
+  { value: "updated", label: "recent" },
+  { value: "title", label: "title" },
+  { value: "rating", label: "rating" },
+  { value: "status", label: "status" },
+];
+
+const typeOptions: { value: "all" | "movie" | "show"; label: string }[] = [
+  { value: "all", label: "all" },
+  { value: "movie", label: "movies" },
+  { value: "show", label: "shows" },
+];
 
 const statusOptions = [
   { value: "all", label: "all" },
@@ -57,6 +70,38 @@ const statusOptions = [
   { value: "paused", label: "paused" },
   { value: "dropped", label: "dropped" },
 ];
+
+const statusOrder: Record<string, number> = {
+  watching: 0,
+  planned: 1,
+  completed: 2,
+  paused: 3,
+  dropped: 4,
+};
+
+const filteredEntries = computed(() => {
+  let entries = props.entries;
+
+  if (filterStatus.value !== "all") {
+    entries = entries.filter((e) => e.status === filterStatus.value);
+  }
+  if (filterType.value !== "all") {
+    entries = entries.filter((e) => e.media.mediaType === filterType.value);
+  }
+
+  return [...entries].sort((a, b) => {
+    if (sortKey.value === "title") {
+      return a.media.title.localeCompare(b.media.title);
+    }
+    if (sortKey.value === "rating") {
+      return (b.score100 ?? -1) - (a.score100 ?? -1);
+    }
+    if (sortKey.value === "status") {
+      return (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+    }
+    return b.updatedAt - a.updatedAt;
+  });
+});
 
 async function runSearch() {
   const q = query.value.trim();
@@ -194,12 +239,10 @@ function clearSearch() {
 
       <p v-if="searchError" class="text-sm text-red-400 font-mono">{{ searchError }}</p>
 
-      <!-- Skeleton -->
       <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         <SkeletonCard v-for="n in 8" :key="n" />
       </div>
 
-      <!-- Search results -->
       <div
         v-else-if="searchLocal.length > 0 || searchRemote.length > 0"
         class="flex flex-col gap-5"
@@ -279,24 +322,70 @@ function clearSearch() {
 
     <!-- Library entries -->
     <section class="flex flex-col gap-5">
-      <div class="flex items-center justify-between flex-wrap gap-3">
-        <h2 class="text-sm font-mono text-fg-muted">tracked</h2>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 class="text-sm font-mono text-fg-muted">
+          tracked
+          <span class="text-fg-subtle ml-1">({{ filteredEntries.length }})</span>
+        </h2>
 
-        <div class="flex gap-1.5 flex-wrap">
-          <button
-            v-for="opt in statusOptions"
-            :key="opt.value"
-            type="button"
-            class="px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors"
-            :class="
-              filterStatus === opt.value
-                ? 'border-accent/40 bg-accent/10 text-accent'
-                : 'border-border bg-bg-subtle text-fg-muted hover:border-border-hover hover:text-fg'
-            "
-            @click="filterStatus = opt.value"
+        <div class="flex flex-wrap gap-2">
+          <!-- Type filter -->
+          <div class="flex gap-1">
+            <button
+              v-for="opt in typeOptions"
+              :key="opt.value"
+              type="button"
+              class="px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors"
+              :class="
+                filterType === opt.value
+                  ? 'border-accent/40 bg-accent/10 text-accent'
+                  : 'border-border bg-bg-subtle text-fg-muted hover:border-border-hover hover:text-fg'
+              "
+              @click="filterType = opt.value"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+
+          <!-- Status filter -->
+          <div class="flex gap-1 flex-wrap">
+            <button
+              v-for="opt in statusOptions"
+              :key="opt.value"
+              type="button"
+              class="px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors"
+              :class="
+                filterStatus === opt.value
+                  ? 'border-accent/40 bg-accent/10 text-accent'
+                  : 'border-border bg-bg-subtle text-fg-muted hover:border-border-hover hover:text-fg'
+              "
+              @click="filterStatus = opt.value"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+
+          <!-- Sort -->
+          <div
+            class="flex rounded-lg border border-border overflow-hidden"
+            role="group"
+            aria-label="sort by"
           >
-            {{ opt.label }}
-          </button>
+            <button
+              v-for="opt in sortOptions"
+              :key="opt.value"
+              type="button"
+              class="px-2.5 py-1 text-xs font-mono transition-colors"
+              :class="
+                sortKey === opt.value
+                  ? 'bg-bg-elevated text-fg'
+                  : 'bg-bg-subtle text-fg-muted hover:bg-bg-elevated hover:text-fg'
+              "
+              @click="sortKey = opt.value"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
         </div>
       </div>
 
