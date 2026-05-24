@@ -2,7 +2,8 @@
   "extends": "./.void/tsconfig.json",
   "files": ["./.void/db.d.ts"],
   "compilerOptions": {
-    "types": ["void/env"]
+    "types": ["void/env"],
+    "resolveJsonModule": true
   },
   "include": [
     "pages/**/*.ts",
@@ -12,6 +13,7 @@
     "db/**/*.ts",
     "src/**/*.ts",
     "src/**/*.vue",
-    "env.ts"
+    "env.ts",
+    "fixtures/**/*.ts"
   ]
 }

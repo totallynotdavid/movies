@@ -1,0 +1,19 @@
+{
+  "fetchedAt": "2026-05-24T05:58:26.111Z",
+  "mode": "trending",
+  "config": {
+    "trending": {
+      "movies": 30,
+      "shows": 20
+    },
+    "topRated": {
+      "movies": 20,
+      "shows": 20
+    }
+  },
+  "counts": {
+    "total": 54,
+    "movies": 32,
+    "shows": 22
+  }
+}
