@@ -15,5 +15,6 @@
     "src/**/*.vue",
     "env.ts",
     "fixtures/**/*.ts"
-  ]
+  ],
+  "exclude": ["scripts"]
 }

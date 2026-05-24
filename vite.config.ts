@@ -33,6 +33,7 @@ export default defineConfig({
       },
     ],
     ignorePatterns: [
+      "scripts/**",
       ".output/**",
       ".data/**",
       ".void/**",
