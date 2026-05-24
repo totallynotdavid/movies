@@ -4,6 +4,7 @@ import { getUser } from "void/auth";
 import { and, eq } from "drizzle-orm";
 import { db } from "void/db";
 import { libraryEntries, media, userFavoriteMedia } from "../../db/schema";
+import { getUserSettings } from "../../src/domain/library";
 
 export type Props = InferProps<typeof loader>;
 
@@ -28,9 +29,10 @@ export const loader = defineHandler(async (c) => {
   } | null = null;
 
   let isFavorited = false;
+  let ratingSystem: "score5" | "score10" | "score100" = "score100";
 
   if (user) {
-    const [entryRows, favRows] = await Promise.all([
+    const [entryRows, favRows, settings] = await Promise.all([
       db
         .select({
           id: libraryEntries.id,
@@ -48,10 +50,12 @@ export const loader = defineHandler(async (c) => {
         .from(userFavoriteMedia)
         .where(and(eq(userFavoriteMedia.userId, user.id), eq(userFavoriteMedia.mediaId, item.id)))
         .limit(1),
+      getUserSettings(user.id),
     ]);
     libraryEntry = entryRows[0] ?? null;
     isFavorited = favRows.length > 0;
+    ratingSystem = settings.ratingSystem;
   }
 
-  return { media: item, libraryEntry, isFavorited, user: user ?? null };
+  return { media: item, libraryEntry, isFavorited, user: user ?? null, ratingSystem };
 });
