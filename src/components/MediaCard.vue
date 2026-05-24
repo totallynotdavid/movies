@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import BaseCard from "./BaseCard.vue";
 
-const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
+const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
 
 const props = defineProps<{
   title: string;
@@ -16,8 +16,6 @@ const props = defineProps<{
 
 const year = computed(() => (props.releaseDate ? new Date(props.releaseDate).getFullYear() : null));
 
-const rating = computed(() => (props.voteAverage ? (props.voteAverage / 2).toFixed(1) : null));
-
 const statusClass: Record<string, string> = {
   planned: "badge-planned",
   watching: "badge-watching",
@@ -29,13 +27,17 @@ const statusClass: Record<string, string> = {
 
 <template>
   <BaseCard>
-    <a :href="slug ? `/media/${slug}` : undefined" class="block -mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
+    <a
+      :href="slug ? `/media/${slug}` : undefined"
+      class="block -mx-0 -mt-0 overflow-hidden rounded-t-lg"
+    >
       <div class="poster-wrap rounded-b-none">
         <img
           v-if="posterPath"
           :src="`${TMDB_IMG}${posterPath}`"
           :alt="`${title} poster`"
           loading="lazy"
+          decoding="async"
         />
         <div
           v-else
@@ -46,7 +48,7 @@ const statusClass: Record<string, string> = {
       </div>
     </a>
 
-    <div class="flex flex-col gap-1.5 pt-3">
+    <div class="flex flex-col gap-1.5 p-3">
       <div class="flex items-start justify-between gap-2">
         <a
           :href="slug ? `/media/${slug}` : undefined"
@@ -65,9 +67,9 @@ const statusClass: Record<string, string> = {
 
       <div class="flex items-center gap-2 text-xs text-fg-subtle font-mono">
         <span v-if="year">{{ year }}</span>
-        <span v-if="year && rating">·</span>
-        <span v-if="rating">★ {{ rating }}</span>
-        <span class="ml-auto text-[0.65rem] px-1.5 py-0.5 rounded-full border border-border">
+        <span v-if="year && voteAverage" aria-hidden="true">·</span>
+        <span v-if="voteAverage">★ {{ (voteAverage / 2).toFixed(1) }}</span>
+        <span class="ml-auto text-[0.65rem] px-1.5 py-0.5 rounded-full border border-border-subtle">
           {{ mediaType }}
         </span>
       </div>
