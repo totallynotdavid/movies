@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { Props } from "./library.server";
+import LibraryCard from "../src/components/LibraryCard.vue";
 import MediaCard from "../src/components/MediaCard.vue";
 import SkeletonCard from "../src/components/SkeletonCard.vue";
 
-const props = defineProps<Props>();
+type Status = "planned" | "watching" | "completed" | "paused" | "dropped";
+type RatingSystem = "score5" | "score10" | "score100";
 
 type RemoteCandidate = {
   mediaType: "movie" | "show";
@@ -22,6 +24,11 @@ type RemoteCandidate = {
   cached: boolean;
   cachedMediaId: string | null;
 };
+
+const props = defineProps<Props>();
+
+// Reactive local copy — no page reload needed
+const localEntries = ref([...props.entries]);
 
 const query = ref("");
 const loading = ref(false);
@@ -41,7 +48,7 @@ const searchRemote = ref<RemoteCandidate[]>([]);
 const remoteEnabled = ref(false);
 const hasSearched = ref(false);
 
-const trackedIds = computed(() => new Set(props.entries.map((e) => e.media.id)));
+const trackedIds = computed(() => new Set(localEntries.value.map((e) => e.media.id)));
 
 const filterStatus = ref<string>("all");
 const filterType = ref<"all" | "movie" | "show">("all");
@@ -80,7 +87,7 @@ const statusOrder: Record<string, number> = {
 };
 
 const filteredEntries = computed(() => {
-  let entries = props.entries;
+  let entries = localEntries.value;
 
   if (filterStatus.value !== "all") {
     entries = entries.filter((e) => e.status === filterStatus.value);
@@ -102,6 +109,15 @@ const filteredEntries = computed(() => {
     return b.updatedAt - a.updatedAt;
   });
 });
+
+function onEntryUpdate(id: string, status: Status, score100: number | null) {
+  const entry = localEntries.value.find((e) => e.id === id);
+  if (entry) {
+    entry.status = status;
+    entry.score100 = score100;
+    entry.updatedAt = Date.now();
+  }
+}
 
 async function runSearch() {
   const q = query.value.trim();
@@ -155,7 +171,11 @@ async function addFromRemote(item: RemoteCandidate) {
       const p = (await trackRes.json()) as { error?: string };
       throw new Error(p.error ?? "add failed");
     }
-    window.location.reload();
+
+    const listRes = await fetch("/api/tracking/library");
+    const list = (await listRes.json()) as { entries?: typeof localEntries.value };
+    if (list.entries) localEntries.value = list.entries;
+    clearSearch();
   } catch (err) {
     searchError.value = err instanceof Error ? err.message : "failed to add";
   }
@@ -173,7 +193,11 @@ async function addFromLocal(mediaId: string) {
       const p = (await res.json()) as { error?: string };
       throw new Error(p.error ?? "add failed");
     }
-    window.location.reload();
+
+    const listRes = await fetch("/api/tracking/library");
+    const list = (await listRes.json()) as { entries?: typeof localEntries.value };
+    if (list.entries) localEntries.value = list.entries;
+    clearSearch();
   } catch (err) {
     searchError.value = err instanceof Error ? err.message : "failed to add";
   }
@@ -191,20 +215,23 @@ function clearSearch() {
 <template>
   <div class="flex flex-col gap-10">
     <!-- Header -->
-    <div class="flex flex-col gap-3">
-      <div class="flex items-center justify-between">
+    <div class="flex-split motion-safe:animate-slide-up animate-fill-both">
+      <div class="flex flex-col gap-1">
         <h1 class="text-3xl font-mono font-bold">{{ user.name }}'s library</h1>
-        <span
-          class="text-xs font-mono px-2 py-0.5 rounded-full border border-border bg-bg-subtle text-fg-muted"
-        >
-          {{ entries.length }} tracked
-        </span>
+        <p class="text-fg-muted text-sm">track what you watch, plan what's next.</p>
       </div>
-      <p class="text-fg-muted text-sm">track what you watch, plan what's next.</p>
+      <span
+        class="text-xs font-mono px-2 py-0.5 rounded-full border border-border bg-bg-subtle text-fg-muted shrink-0"
+      >
+        {{ localEntries.length }} tracked
+      </span>
     </div>
 
-    <!-- Search -->
-    <section class="flex flex-col gap-4 p-5 rounded-2xl border border-border bg-bg-subtle">
+    <!-- Search / Add -->
+    <section
+      class="flex flex-col gap-4 p-5 rounded-2xl border border-border bg-bg-subtle motion-safe:animate-slide-up animate-fill-both"
+      style="animation-delay: 0.05s"
+    >
       <h2 class="text-sm font-mono text-fg-muted">add to library</h2>
 
       <div class="flex gap-2">
@@ -217,16 +244,16 @@ function clearSearch() {
         />
         <button
           type="button"
-          class="px-4 py-2 rounded-lg border border-accent/40 bg-accent/10 text-fg text-sm font-mono hover:bg-accent/15 transition-colors disabled:opacity-40"
+          class="px-4 py-2 rounded-lg border border-accent/40 bg-accent/10 text-fg text-sm font-mono hover:bg-accent/15 transition-colors disabled:opacity-40 focus-ring"
           :disabled="loading || !query.trim()"
           @click="runSearch"
         >
-          {{ loading ? "searching..." : "search" }}
+          {{ loading ? "..." : "search" }}
         </button>
         <button
           v-if="hasSearched"
           type="button"
-          class="px-3 py-2 rounded-lg border border-border bg-bg-subtle text-fg-muted text-sm font-mono hover:border-border-hover hover:text-fg transition-colors"
+          class="px-3 py-2 rounded-lg border border-border bg-bg-subtle text-fg-muted text-sm font-mono hover:border-border-hover hover:text-fg transition-colors focus-ring"
           @click="clearSearch"
         >
           clear
@@ -260,7 +287,7 @@ function clearSearch() {
               />
               <button
                 type="button"
-                class="w-full px-3 py-1.5 rounded-lg border text-xs font-mono transition-colors"
+                class="w-full px-3 py-1.5 rounded-lg border text-xs font-mono transition-colors focus-ring"
                 :class="
                   trackedIds.has(item.id)
                     ? 'border-border text-fg-subtle cursor-default'
@@ -292,7 +319,7 @@ function clearSearch() {
               />
               <button
                 type="button"
-                class="w-full px-3 py-1.5 rounded-lg border text-xs font-mono transition-colors"
+                class="w-full px-3 py-1.5 rounded-lg border text-xs font-mono transition-colors focus-ring"
                 :class="
                   item.cachedMediaId && trackedIds.has(item.cachedMediaId)
                     ? 'border-border text-fg-subtle cursor-default'
@@ -321,7 +348,10 @@ function clearSearch() {
     </section>
 
     <!-- Library entries -->
-    <section class="flex flex-col gap-5">
+    <section
+      class="flex flex-col gap-5 motion-safe:animate-slide-up animate-fill-both"
+      style="animation-delay: 0.1s"
+    >
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 class="text-sm font-mono text-fg-muted">
           tracked
@@ -335,7 +365,7 @@ function clearSearch() {
               v-for="opt in typeOptions"
               :key="opt.value"
               type="button"
-              class="px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors"
+              class="px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors focus-ring"
               :class="
                 filterType === opt.value
                   ? 'border-accent/40 bg-accent/10 text-accent'
@@ -353,7 +383,7 @@ function clearSearch() {
               v-for="opt in statusOptions"
               :key="opt.value"
               type="button"
-              class="px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors"
+              class="px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors focus-ring"
               :class="
                 filterStatus === opt.value
                   ? 'border-accent/40 bg-accent/10 text-accent'
@@ -375,7 +405,7 @@ function clearSearch() {
               v-for="opt in sortOptions"
               :key="opt.value"
               type="button"
-              class="px-2.5 py-1 text-xs font-mono transition-colors"
+              class="px-2.5 py-1 text-xs font-mono transition-colors focus-ring"
               :class="
                 sortKey === opt.value
                   ? 'bg-bg-elevated text-fg'
@@ -402,9 +432,11 @@ function clearSearch() {
         v-else
         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
       >
-        <MediaCard
+        <LibraryCard
           v-for="entry in filteredEntries"
           :key="entry.id"
+          :id="entry.id"
+          :media-id="entry.media.id"
           :title="entry.media.title"
           :media-type="entry.media.mediaType"
           :poster-path="entry.media.posterPath"
@@ -412,6 +444,9 @@ function clearSearch() {
           :vote-average="entry.media.voteAverage"
           :slug="entry.media.slug"
           :status="entry.status"
+          :score100="entry.score100"
+          :rating-system="ratingSystem"
+          @update="onEntryUpdate"
         />
       </div>
     </section>
