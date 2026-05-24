@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
+    "predev": "bun scripts/setup.ts",
     "build": "vp build",
     "preview": "vp preview",
     "check": "vp check",
