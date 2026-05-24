@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useShared } from "@void/vue";
 import type { Props } from "./index.server";
 import MediaCard from "../src/components/MediaCard.vue";
 
 const props = defineProps<Props>();
+const shared = useShared();
+const isGuest = !shared.user;
 
 const movies = computed(() => props.entries.filter((e) => e.mediaType === "movie"));
 const shows = computed(() => props.entries.filter((e) => e.mediaType === "show"));
@@ -11,8 +14,11 @@ const shows = computed(() => props.entries.filter((e) => e.mediaType === "show")
 
 <template>
   <div class="flex flex-col gap-16">
-    <!-- Hero -->
-    <section class="flex flex-col gap-5 pt-4 sm:pt-8">
+    <!-- Hero: guests only -->
+    <section
+      v-if="isGuest"
+      class="flex flex-col gap-5 pt-4 sm:pt-8 motion-safe:animate-slide-up animate-fill-both"
+    >
       <div class="flex items-center gap-3">
         <span
           class="text-xs font-mono px-2 py-0.5 rounded-full border border-accent/30 bg-accent/10 text-accent"
@@ -36,27 +42,22 @@ const shows = computed(() => props.entries.filter((e) => e.mediaType === "show")
         seen.
       </p>
 
-      <div class="flex flex-wrap gap-3 pt-1">
-        <a
-          href="/library"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-accent/40 bg-accent/10 text-fg text-sm font-mono hover:bg-accent/15 transition-colors"
-        >
-          <span class="i-lucide:library w-4 h-4" aria-hidden="true" />
-          open library
-        </a>
-        <a
-          href="/login"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-bg-subtle text-fg-muted text-sm font-mono hover:border-border-hover hover:text-fg transition-colors"
-        >
-          <span class="i-lucide:log-in w-4 h-4" aria-hidden="true" />
-          sign in
-        </a>
-      </div>
+      <a
+        href="/login"
+        class="self-start inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-accent/40 bg-accent/10 text-fg text-sm font-mono hover:bg-accent/15 transition-colors focus-ring"
+      >
+        <span class="i-lucide:log-in w-4 h-4" aria-hidden="true" />
+        sign in to track
+      </a>
     </section>
 
     <!-- Catalog grid -->
-    <section v-if="entries.length > 0" class="flex flex-col gap-6">
-      <div class="flex items-center justify-between">
+    <section
+      v-if="entries.length > 0"
+      class="flex flex-col gap-6 motion-safe:animate-slide-up animate-fill-both"
+      :style="isGuest ? 'animation-delay: 0.1s' : ''"
+    >
+      <div class="flex-split">
         <h2 class="text-base font-mono text-fg-muted">catalog</h2>
         <span class="text-xs font-mono text-fg-subtle">{{ entries.length }} titles</span>
       </div>
