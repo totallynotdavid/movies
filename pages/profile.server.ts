@@ -4,15 +4,22 @@ import { requireAuth } from "void/auth";
 import { eq } from "drizzle-orm";
 import { db } from "void/db";
 import { libraryEntries, media, userFavoriteActors, userFavoriteMedia } from "../db/schema";
+import { getUserSettings } from "../src/domain/library";
 
 export type Props = InferProps<typeof loader>;
 
 export const loader = defineHandler(async (c) => {
   const user = requireAuth(c);
 
-  const [library, favoriteMedia, favoriteActors] = await Promise.all([
+  const [library, favoriteMedia, favoriteActors, settings] = await Promise.all([
     db
-      .select({ id: libraryEntries.id, status: libraryEntries.status, media })
+      .select({
+        id: libraryEntries.id,
+        status: libraryEntries.status,
+        score100: libraryEntries.score100,
+        updatedAt: libraryEntries.updatedAt,
+        media,
+      })
       .from(libraryEntries)
       .innerJoin(media, eq(libraryEntries.mediaId, media.id))
       .where(eq(libraryEntries.userId, user.id)),
@@ -22,6 +29,7 @@ export const loader = defineHandler(async (c) => {
       .innerJoin(media, eq(userFavoriteMedia.mediaId, media.id))
       .where(eq(userFavoriteMedia.userId, user.id)),
     db.select().from(userFavoriteActors).where(eq(userFavoriteActors.userId, user.id)),
+    getUserSettings(user.id),
   ]);
 
   const stats = {
@@ -31,5 +39,12 @@ export const loader = defineHandler(async (c) => {
     planned: library.filter((e) => e.status === "planned").length,
   };
 
-  return { user, library, favoriteMedia, favoriteActors, stats };
+  return {
+    user,
+    library,
+    favoriteMedia,
+    favoriteActors,
+    stats,
+    ratingSystem: settings.ratingSystem,
+  };
 });
