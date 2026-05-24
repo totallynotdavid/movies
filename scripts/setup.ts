@@ -51,14 +51,14 @@ function main() {
   ];
 
   console.log("▶ applying migrations...");
-  run("pnpm run db:migrate");
+  run("bun run db:migrate");
 
   const sqlFile = join(tmpdir(), `track-seed-${now}.sql`);
   writeFileSync(sqlFile, lines.join("\n"));
 
   try {
     console.log(`▶ seeding catalog (${media.length} items)...`);
-    run(`pnpm exec void db execute --file "${sqlFile}"`);
+    run(`bunx void db execute --file "${sqlFile}"`);
   } finally {
     rmSync(sqlFile, { force: true });
   }
