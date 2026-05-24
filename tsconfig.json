@@ -3,6 +3,8 @@
   "files": ["./.void/db.d.ts"],
   "compilerOptions": {
     "types": ["void/env"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true
   },
   "include": [

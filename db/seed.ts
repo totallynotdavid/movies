@@ -1,7 +1,6 @@
 import { defineSeed } from "void/seed";
 import type * as schemaModule from "./schema";
 import type { MediaFixture } from "./fixtures/types";
-// @ts-ignore -- Void runtime requires import attributes for JSON; resolveJsonModule handles tsc
 import mediaJson from "./fixtures/media.json" with { type: "json" };
 
 type Schema = typeof schemaModule;
