@@ -1,10 +1,12 @@
-name: Deploy
+name: CI
 on:
   push:
+    branches-ignore: [master]
+  pull_request:
     branches: [master]
 
 jobs:
-  deploy:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,6 +16,3 @@ jobs:
           cache: true
       - run: vp install
       - run: vp check
-      - run: vp exec void deploy
-        env:
-          VOID_TOKEN: ${{ secrets.VOID_TOKEN }}
