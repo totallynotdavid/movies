@@ -1,0 +1,11 @@
+{
+  "fetchedAt": null,
+  "mode": "static",
+  "config": null,
+  "counts": {
+    "total": 5,
+    "movies": 3,
+    "shows": 2
+  },
+  "note": "Run 'tsx scripts/fetch-metadata.ts --all' to replace with live TMDB data"
+}

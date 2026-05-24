@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
+    "predev": "tsx scripts/setup.ts",
     "build": "vp build",
     "preview": "vp preview",
     "check": "vp check",
@@ -12,6 +13,8 @@
     "db:migrate": "vp exec void db migrate",
     "db:migrate:remote": "vp exec void db migrate --remote",
     "db:seed": "vp exec void db seed",
+    "fixtures:fetch": "tsx scripts/fetch-metadata.ts --all",
+    "fixtures:trending": "tsx scripts/fetch-metadata.ts --trending",
     "release:validate": "vp check",
     "release:db": "vp exec void db migrate --remote",
     "release:app": "vp exec void deploy",
