@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { Props } from "./library.server";
+import MediaCard from "../src/components/MediaCard.vue";
+import SkeletonCard from "../src/components/SkeletonCard.vue";
 
 const props = defineProps<Props>();
 
@@ -24,41 +26,64 @@ type RemoteCandidate = {
 const query = ref("");
 const loading = ref(false);
 const searchError = ref("");
-const searchLocal = ref<Array<{ id: string; title: string; mediaType: string }>>([]);
+const searchLocal = ref<
+  Array<{
+    id: string;
+    title: string;
+    mediaType: string;
+    posterPath?: string | null;
+    releaseDate?: string | null;
+    voteAverage?: number | null;
+    slug?: string;
+  }>
+>([]);
 const searchRemote = ref<RemoteCandidate[]>([]);
 const remoteEnabled = ref(false);
+const hasSearched = ref(false);
 
-const trackedIds = computed(() => new Set(props.entries.map((entry) => entry.media.id)));
+const trackedIds = computed(() => new Set(props.entries.map((e) => e.media.id)));
+
+const filterStatus = ref<string>("all");
+const filteredEntries = computed(() => {
+  if (filterStatus.value === "all") return props.entries;
+  return props.entries.filter((e) => e.status === filterStatus.value);
+});
+
+const statusOptions = [
+  { value: "all", label: "all" },
+  { value: "watching", label: "watching" },
+  { value: "completed", label: "completed" },
+  { value: "planned", label: "planned" },
+  { value: "paused", label: "paused" },
+  { value: "dropped", label: "dropped" },
+];
 
 async function runSearch() {
-  searchError.value = "";
   const q = query.value.trim();
+  if (!q) return;
 
-  if (!q) {
-    searchLocal.value = [];
-    searchRemote.value = [];
-    return;
-  }
-
+  searchError.value = "";
+  hasSearched.value = true;
   loading.value = true;
+  searchLocal.value = [];
+  searchRemote.value = [];
+
   try {
     const res = await fetch(`/api/media/search?q=${encodeURIComponent(q)}&limit=12`);
     const payload = (await res.json()) as {
       error?: string;
       remoteEnabled?: boolean;
-      local?: Array<{ id: string; title: string; mediaType: string }>;
+      local?: typeof searchLocal.value;
       remote?: RemoteCandidate[];
     };
 
-    if (!res.ok) {
-      throw new Error(payload.error || "Search failed");
-    }
+    if (!res.ok) throw new Error(payload.error ?? "search failed");
 
     remoteEnabled.value = Boolean(payload.remoteEnabled);
     searchLocal.value = payload.local ?? [];
     searchRemote.value = payload.remote ?? [];
-  } catch (error) {
-    searchError.value = error instanceof Error ? error.message : "Search failed";
+  } catch (err) {
+    searchError.value = err instanceof Error ? err.message : "search failed";
   } finally {
     loading.value = false;
   }
@@ -66,145 +91,240 @@ async function runSearch() {
 
 async function addFromRemote(item: RemoteCandidate) {
   searchError.value = "";
-
   try {
-    const cacheResponse = await fetch("/api/media/cache", {
+    const cacheRes = await fetch("/api/media/cache", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(item),
     });
-    const cachePayload = (await cacheResponse.json()) as { error?: string; mediaId?: string };
+    const cachePayload = (await cacheRes.json()) as { error?: string; mediaId?: string };
+    if (!cacheRes.ok || !cachePayload.mediaId)
+      throw new Error(cachePayload.error ?? "cache failed");
 
-    if (!cacheResponse.ok || !cachePayload.mediaId) {
-      throw new Error(cachePayload.error || "Failed to cache media");
-    }
-
-    const trackResponse = await fetch("/api/tracking/library", {
+    const trackRes = await fetch("/api/tracking/library", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ mediaId: cachePayload.mediaId, status: "planned" }),
     });
-
-    if (!trackResponse.ok) {
-      const trackPayload = (await trackResponse.json()) as { error?: string };
-      throw new Error(trackPayload.error || "Failed to add to library");
+    if (!trackRes.ok) {
+      const p = (await trackRes.json()) as { error?: string };
+      throw new Error(p.error ?? "add failed");
     }
-
     window.location.reload();
-  } catch (error) {
-    searchError.value = error instanceof Error ? error.message : "Failed to add media";
+  } catch (err) {
+    searchError.value = err instanceof Error ? err.message : "failed to add";
   }
 }
 
 async function addFromLocal(mediaId: string) {
   searchError.value = "";
-
   try {
-    const response = await fetch("/api/tracking/library", {
+    const res = await fetch("/api/tracking/library", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ mediaId, status: "planned" }),
     });
-
-    if (!response.ok) {
-      const payload = (await response.json()) as { error?: string };
-      throw new Error(payload.error || "Failed to add to library");
+    if (!res.ok) {
+      const p = (await res.json()) as { error?: string };
+      throw new Error(p.error ?? "add failed");
     }
-
     window.location.reload();
-  } catch (error) {
-    searchError.value = error instanceof Error ? error.message : "Failed to add media";
+  } catch (err) {
+    searchError.value = err instanceof Error ? err.message : "failed to add";
   }
+}
+
+function clearSearch() {
+  query.value = "";
+  searchLocal.value = [];
+  searchRemote.value = [];
+  hasSearched.value = false;
+  searchError.value = "";
 }
 </script>
 
 <template>
-  <section class="stack">
-    <div class="section-head">
-      <h1>{{ user.name }}'s library</h1>
-      <span class="badge">{{ entries.length }} tracked</span>
+  <div class="flex flex-col gap-10">
+    <!-- Header -->
+    <div class="flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-mono font-bold">{{ user.name }}'s library</h1>
+        <span
+          class="text-xs font-mono px-2 py-0.5 rounded-full border border-border bg-bg-subtle text-fg-muted"
+        >
+          {{ entries.length }} tracked
+        </span>
+      </div>
+      <p class="text-fg-muted text-sm">track what you watch, plan what's next.</p>
     </div>
-    <p class="subtle">authenticated tracking list from redesigned tables.</p>
 
-    <div class="card stack">
-      <h2>add media</h2>
-      <div class="search-row">
-        <input v-model="query" type="search" placeholder="Search TMDB or local catalog" />
-        <button class="btn btn-primary" type="button" :disabled="loading" @click="runSearch">
-          {{ loading ? "Searching..." : "Search" }}
+    <!-- Search -->
+    <section class="flex flex-col gap-4 p-5 rounded-2xl border border-border bg-bg-subtle">
+      <h2 class="text-sm font-mono text-fg-muted">add to library</h2>
+
+      <div class="flex gap-2">
+        <input
+          v-model="query"
+          type="search"
+          placeholder="search tmdb or catalog..."
+          class="flex-1 bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-accent/50 transition-colors font-mono"
+          @keyup.enter="runSearch"
+        />
+        <button
+          type="button"
+          class="px-4 py-2 rounded-lg border border-accent/40 bg-accent/10 text-fg text-sm font-mono hover:bg-accent/15 transition-colors disabled:opacity-40"
+          :disabled="loading || !query.trim()"
+          @click="runSearch"
+        >
+          {{ loading ? "searching..." : "search" }}
+        </button>
+        <button
+          v-if="hasSearched"
+          type="button"
+          class="px-3 py-2 rounded-lg border border-border bg-bg-subtle text-fg-muted text-sm font-mono hover:border-border-hover hover:text-fg transition-colors"
+          @click="clearSearch"
+        >
+          clear
         </button>
       </div>
-      <p v-if="!remoteEnabled" class="card-muted">
-        TMDB token is missing. Showing local matches only.
+
+      <p v-if="!remoteEnabled && hasSearched" class="text-xs text-fg-subtle font-mono">
+        tmdb token missing — showing local matches only
       </p>
-      <p v-if="searchError" class="error-text">{{ searchError }}</p>
 
-      <div v-if="searchLocal.length > 0" class="stack">
-        <h3 class="section-title">local matches</h3>
-        <div class="list-grid">
-          <article v-for="item in searchLocal" :key="item.id" class="card">
-            <div class="card-head">
-              <p>{{ item.title }}</p>
-              <span class="badge">{{ item.mediaType }}</span>
+      <p v-if="searchError" class="text-sm text-red-400 font-mono">{{ searchError }}</p>
+
+      <!-- Skeleton -->
+      <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <SkeletonCard v-for="n in 8" :key="n" />
+      </div>
+
+      <!-- Search results -->
+      <div
+        v-else-if="searchLocal.length > 0 || searchRemote.length > 0"
+        class="flex flex-col gap-5"
+      >
+        <div v-if="searchLocal.length > 0">
+          <p class="text-xs font-mono text-fg-subtle mb-3">local matches</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div v-for="item in searchLocal" :key="item.id" class="flex flex-col gap-2">
+              <MediaCard
+                :title="item.title"
+                :media-type="item.mediaType as 'movie' | 'show'"
+                :poster-path="item.posterPath"
+                :release-date="item.releaseDate"
+                :vote-average="item.voteAverage"
+              />
+              <button
+                type="button"
+                class="w-full px-3 py-1.5 rounded-lg border text-xs font-mono transition-colors"
+                :class="
+                  trackedIds.has(item.id)
+                    ? 'border-border text-fg-subtle cursor-default'
+                    : 'border-border bg-bg-subtle text-fg-muted hover:border-border-hover hover:text-fg'
+                "
+                :disabled="trackedIds.has(item.id)"
+                @click="addFromLocal(item.id)"
+              >
+                {{ trackedIds.has(item.id) ? "already tracked" : "add to library" }}
+              </button>
             </div>
-            <button
-              class="btn btn-secondary"
-              type="button"
-              :disabled="trackedIds.has(item.id)"
-              @click="addFromLocal(item.id)"
+          </div>
+        </div>
+
+        <div v-if="searchRemote.length > 0">
+          <p class="text-xs font-mono text-fg-subtle mb-3">tmdb matches</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div
+              v-for="item in searchRemote"
+              :key="`${item.mediaType}:${item.providerId}`"
+              class="flex flex-col gap-2"
             >
-              {{ trackedIds.has(item.id) ? "Already tracked" : "Add" }}
-            </button>
-          </article>
+              <MediaCard
+                :title="item.title"
+                :media-type="item.mediaType"
+                :poster-path="item.posterPath"
+                :release-date="item.releaseDate"
+                :vote-average="item.voteAverage"
+              />
+              <button
+                type="button"
+                class="w-full px-3 py-1.5 rounded-lg border text-xs font-mono transition-colors"
+                :class="
+                  item.cachedMediaId && trackedIds.has(item.cachedMediaId)
+                    ? 'border-border text-fg-subtle cursor-default'
+                    : 'border-border bg-bg-subtle text-fg-muted hover:border-border-hover hover:text-fg'
+                "
+                :disabled="Boolean(item.cachedMediaId && trackedIds.has(item.cachedMediaId))"
+                @click="addFromRemote(item)"
+              >
+                {{
+                  item.cachedMediaId && trackedIds.has(item.cachedMediaId)
+                    ? "already tracked"
+                    : "cache + add"
+                }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div v-if="searchRemote.length > 0" class="stack">
-        <h3 class="section-title">tmdb matches</h3>
-        <div class="list-grid">
-          <article
-            v-for="item in searchRemote"
-            :key="`${item.mediaType}:${item.providerId}`"
-            class="card"
+      <div
+        v-else-if="hasSearched && !loading"
+        class="text-center py-6 text-fg-subtle text-sm font-mono"
+      >
+        no results found
+      </div>
+    </section>
+
+    <!-- Library entries -->
+    <section class="flex flex-col gap-5">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <h2 class="text-sm font-mono text-fg-muted">tracked</h2>
+
+        <div class="flex gap-1.5 flex-wrap">
+          <button
+            v-for="opt in statusOptions"
+            :key="opt.value"
+            type="button"
+            class="px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors"
+            :class="
+              filterStatus === opt.value
+                ? 'border-accent/40 bg-accent/10 text-accent'
+                : 'border-border bg-bg-subtle text-fg-muted hover:border-border-hover hover:text-fg'
+            "
+            @click="filterStatus = opt.value"
           >
-            <div class="card-head">
-              <p>{{ item.title }}</p>
-              <span class="badge">{{ item.mediaType }}</span>
-            </div>
-            <p class="card-muted">
-              {{ item.releaseDate || "n/a" }} · score {{ item.voteAverage ?? "?" }}
-            </p>
-            <button
-              class="btn btn-secondary"
-              type="button"
-              :disabled="Boolean(item.cachedMediaId && trackedIds.has(item.cachedMediaId))"
-              @click="addFromRemote(item)"
-            >
-              {{
-                item.cachedMediaId && trackedIds.has(item.cachedMediaId)
-                  ? "Already tracked"
-                  : "Cache + add"
-              }}
-            </button>
-          </article>
+            {{ opt.label }}
+          </button>
         </div>
       </div>
-    </div>
 
-    <div v-if="entries.length === 0" class="empty-card">
-      No entries yet. Search above and add a title to start tracking.
-    </div>
+      <div
+        v-if="filteredEntries.length === 0"
+        class="flex flex-col items-center gap-3 py-14 text-center"
+      >
+        <span class="i-lucide:inbox w-10 h-10 text-fg-subtle" aria-hidden="true" />
+        <p class="font-mono text-fg-muted text-sm">nothing here yet</p>
+        <p class="text-xs text-fg-subtle">search above to add titles to your library</p>
+      </div>
 
-    <div v-else class="list-grid">
-      <article v-for="entry in entries" :key="entry.id" class="card">
-        <div class="card-head">
-          <p>{{ entry.media.title }}</p>
-          <span class="badge">{{ entry.status }}</span>
-        </div>
-        <p class="card-muted">
-          Progress: {{ entry.progressCurrent }}/{{ entry.progressTotal ?? "?" }}
-        </p>
-      </article>
-    </div>
-  </section>
+      <div
+        v-else
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+      >
+        <MediaCard
+          v-for="entry in filteredEntries"
+          :key="entry.id"
+          :title="entry.media.title"
+          :media-type="entry.media.mediaType"
+          :poster-path="entry.media.posterPath"
+          :release-date="entry.media.releaseDate"
+          :vote-average="entry.media.voteAverage"
+          :slug="entry.media.slug"
+          :status="entry.status"
+        />
+      </div>
+    </section>
+  </div>
 </template>
