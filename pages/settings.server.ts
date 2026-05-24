@@ -1,10 +1,12 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { requireAuth } from "void/auth";
+import { getUserSettings } from "../src/domain/library";
 
 export type Props = InferProps<typeof loader>;
 
-export const loader = defineHandler((c) => {
+export const loader = defineHandler(async (c) => {
   const user = requireAuth(c);
-  return { user, role: c.get("role") };
+  const settings = await getUserSettings(user.id);
+  return { user, role: c.get("role"), ratingSystem: settings.ratingSystem };
 });

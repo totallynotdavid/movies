@@ -5,6 +5,10 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   role: text("role").notNull().default("member"),
+  ratingSystem: text("rating_system")
+    .$type<"score5" | "score10" | "score100">()
+    .notNull()
+    .default("score100"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });

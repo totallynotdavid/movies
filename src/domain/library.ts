@@ -93,3 +93,39 @@ export async function getUserRole(userId: string) {
   const role = rows[0]?.role;
   return role === "admin" ? "admin" : "member";
 }
+
+export type RatingSystem = "score5" | "score10" | "score100";
+const ratingSystems: RatingSystem[] = ["score5", "score10", "score100"];
+
+export function parseRatingSystem(value: unknown): RatingSystem {
+  if (typeof value === "string" && ratingSystems.includes(value as RatingSystem)) {
+    return value as RatingSystem;
+  }
+  return "score100";
+}
+
+export function displayScore(score100: number, system: RatingSystem): number {
+  if (system === "score5") return Math.round(score100 / 20);
+  if (system === "score10") return Math.round(score100 / 10);
+  return score100;
+}
+
+export function toScore100(value: number, system: RatingSystem): number {
+  if (system === "score5") return Math.min(100, Math.max(0, value * 20));
+  if (system === "score10") return Math.min(100, Math.max(0, value * 10));
+  return Math.min(100, Math.max(0, value));
+}
+
+export async function getUserSettings(userId: string) {
+  const rows = await db
+    .select({ ratingSystem: users.ratingSystem })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return { ratingSystem: parseRatingSystem(rows[0]?.ratingSystem) };
+}
+
+export async function updateUserSettings(userId: string, input: { ratingSystem: RatingSystem }) {
+  await db.update(users).set({ ratingSystem: input.ratingSystem }).where(eq(users.id, userId));
+  return { ratingSystem: input.ratingSystem };
+}
