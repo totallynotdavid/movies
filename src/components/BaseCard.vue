@@ -7,9 +7,9 @@ defineProps<{
 
 <template>
   <article
-    class="group bg-bg-subtle border border-border rounded-lg transition-[border-color,background-color] duration-200 hover:(border-border-hover bg-bg-muted) cursor-pointer relative focus-within:(outline-none ring-2 ring-fg/50 ring-offset-2 bg-bg-muted border-border-hover)"
+    class="group bg-bg-subtle border border-border rounded-lg transition-[border-color,background-color] duration-200 hover:(border-border-hover bg-bg-muted) cursor-pointer relative focus-within:(outline-none ring-2 ring-fg/50 ring-offset-2 ring-offset-bg bg-bg-muted border-border-hover)"
     :class="{
-      'border-accent/30 bg-accent/5': isExactMatch,
+      'border-accent/30 contrast-more:border-accent/90 bg-accent/5': isExactMatch,
       'bg-fg-subtle/15!': selected,
     }"
   >
