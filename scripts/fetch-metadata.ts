@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { MediaFixture } from "../fixtures/types";
+import type { MediaFixture } from "../db/fixtures/types";
 
 const CONFIG = {
   trending: { movies: 30, shows: 20 },
@@ -116,8 +116,8 @@ async function main() {
 
   const mode = process.argv.includes("--trending") ? "trending" : "all";
   const root = process.cwd();
-  const mediaPath = join(root, "fixtures/media.json");
-  const metaPath = join(root, "fixtures/meta.json");
+  const mediaPath = join(root, "db/fixtures/media.json");
+  const metaPath = join(root, "db/fixtures/meta.json");
 
   // In trending mode, preserve existing items not covered by the trending fetch
   let existing: MediaFixture[] = [];
@@ -171,9 +171,9 @@ async function main() {
     ) + "\n",
   );
 
-  console.log(`\n✓ ${merged.length} items written to fixtures/media.json`);
+  console.log(`\n✓ ${merged.length} items written to db/fixtures/media.json`);
   console.log(`  ${movieCount} movies · ${showCount} shows`);
-  console.log(`\nNext: git add fixtures/ && git commit -m "chore: refresh media fixtures"`);
+  console.log(`\nNext: git add db/fixtures/ && git commit -m "chore: refresh media fixtures"`);
 }
 
 main().catch((err: unknown) => {

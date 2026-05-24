@@ -38,7 +38,7 @@ type MediaFixture = {
 function main() {
   const now = Date.now();
   const media = JSON.parse(
-    readFileSync(join(root, "fixtures/media.json"), "utf8"),
+    readFileSync(join(root, "db/fixtures/media.json"), "utf8"),
   ) as MediaFixture[];
 
   const lines = [

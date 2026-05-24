@@ -1,7 +1,7 @@
 import { defineSeed } from "void/seed";
 import type * as schemaModule from "./schema";
-import type { MediaFixture } from "../fixtures/types";
-import mediaJson from "../fixtures/media.json";
+import type { MediaFixture } from "./fixtures/types";
+import mediaJson from "./fixtures/media.json";
 
 type Schema = typeof schemaModule;
 
