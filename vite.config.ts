@@ -1,9 +1,13 @@
 import { voidVue } from "@void/vue/plugin";
 import { defineConfig } from "vite-plus";
 import { voidPlugin } from "void";
+import UnoCSS from "unocss/vite";
 
 export default defineConfig({
-  plugins: [voidPlugin(), ...voidVue()],
+  fmt: {
+    ignorePatterns: [],
+  },
+  plugins: [voidPlugin(), UnoCSS(), ...voidVue()],
   staged: {
     "*": "vp check --fix",
   },

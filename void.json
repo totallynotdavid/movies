@@ -4,7 +4,13 @@
     "providers": ["email"]
   },
   "inference": {
-    "appType": "void"
+    "appType": "void",
+    "bindings": {
+      "db": true,
+      "kv": false,
+      "storage": false,
+      "ai": false
+    }
   },
   "worker": {
     "compatibility_date": "2026-02-24",
