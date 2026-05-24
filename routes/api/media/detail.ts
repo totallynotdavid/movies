@@ -11,5 +11,6 @@ export const GET = defineHandler(async (c) => {
   const item = rows[0];
   if (!item) return c.json({ error: "not found" }, 404);
 
+  c.header("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
   return c.json(item);
 });

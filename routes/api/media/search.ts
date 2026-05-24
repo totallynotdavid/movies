@@ -11,6 +11,7 @@ export const GET = defineHandler(async (c) => {
   }
 
   try {
+    c.header("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     return await searchCatalog({ query: q, limit });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Search failed";

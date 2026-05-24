@@ -10,6 +10,7 @@ export const GET = defineHandler(async (c) => {
 
   const entries = await listMedia({ type, limit: Number.isFinite(limit) ? limit : 20 });
 
+  c.header("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
   return {
     seeded: entries.length > 0,
     counts: {
