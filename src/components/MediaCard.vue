@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import BaseCard from "./BaseCard.vue";
 
 const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
 
@@ -27,11 +28,9 @@ const statusClass: Record<string, string> = {
 </script>
 
 <template>
-  <article
-    class="group flex flex-col rounded-xl border border-border bg-bg-subtle overflow-hidden transition-all duration-200 hover:border-border-hover hover:shadow-lg"
-  >
-    <a :href="slug ? `/media/${slug}` : undefined" class="block">
-      <div class="poster-wrap">
+  <BaseCard>
+    <a :href="slug ? `/media/${slug}` : undefined" class="block -mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
+      <div class="poster-wrap rounded-b-none">
         <img
           v-if="posterPath"
           :src="`${TMDB_IMG}${posterPath}`"
@@ -47,7 +46,7 @@ const statusClass: Record<string, string> = {
       </div>
     </a>
 
-    <div class="flex flex-col gap-1.5 p-3 flex-1">
+    <div class="flex flex-col gap-1.5 pt-3">
       <div class="flex items-start justify-between gap-2">
         <a
           :href="slug ? `/media/${slug}` : undefined"
@@ -73,5 +72,5 @@ const statusClass: Record<string, string> = {
         </span>
       </div>
     </div>
-  </article>
+  </BaseCard>
 </template>

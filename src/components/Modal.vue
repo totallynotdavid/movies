@@ -45,6 +45,7 @@ defineExpose({ open, close });
 <template>
   <dialog
     ref="dialogRef"
+    closedby="any"
     class="w-full rounded-2xl border border-border bg-bg-subtle shadow-2xl text-fg outline-none"
     :class="noScroll ? '' : 'overflow-y-auto'"
     @close="onClose"
