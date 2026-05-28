@@ -27,7 +27,7 @@
     "@unocss/preset-wind4": "^66.7.0",
     "@unocss/transformer-directives": "^66.7.0",
     "@unocss/transformer-variant-group": "^66.7.0",
-    "@void/vue": "^0.8.11",
+    "@void/vue": "^0.9.0",
     "drizzle-orm": "^0.45.2",
     "unocss": "^66.7.0",
     "valibot": "^1.4.0",
