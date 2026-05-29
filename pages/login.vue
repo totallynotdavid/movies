@@ -24,7 +24,7 @@ async function submit() {
     } else {
       await auth.signIn.email({ email: email.value, password: password.value });
     }
-    await router.navigate("/library");
+    await router.visit("/library");
   } catch (err) {
     error.value = err instanceof Error ? err.message : "authentication failed";
   } finally {
