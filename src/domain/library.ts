@@ -1,5 +1,5 @@
 import { db } from "void/db";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { libraryEntries, media, users } from "../../db/schema";
 
 export type LibraryStatus = "planned" | "watching" | "completed" | "paused" | "dropped";
@@ -24,44 +24,13 @@ export async function listLibraryForUser(userId: string) {
     .orderBy(desc(libraryEntries.updatedAt));
 }
 
-export async function upsertLibraryEntry(input: {
-  userId: string;
-  mediaId: string;
-  status: LibraryStatus;
-  score100?: number | null;
-  progressCurrent?: number;
-  progressTotal?: number | null;
-  notes?: string | null;
-}) {
-  const now = Date.now();
-  const id = `${input.userId}:${input.mediaId}`;
-
-  await db
-    .insert(libraryEntries)
-    .values({
-      id,
-      userId: input.userId,
-      mediaId: input.mediaId,
-      status: input.status,
-      score100: input.score100 ?? null,
-      progressCurrent: input.progressCurrent ?? 0,
-      progressTotal: input.progressTotal ?? null,
-      notes: input.notes ?? null,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [libraryEntries.userId, libraryEntries.mediaId],
-      set: {
-        status: input.status,
-        score100: input.score100 ?? null,
-        progressCurrent: input.progressCurrent ?? 0,
-        progressTotal: input.progressTotal ?? null,
-        notes: input.notes ?? null,
-        updatedAt: now,
-      },
-    });
-
-  return { ok: true };
+export async function getLibraryEntryForUser(userId: string, mediaId: string) {
+  const rows = await db
+    .select()
+    .from(libraryEntries)
+    .where(and(eq(libraryEntries.userId, userId), eq(libraryEntries.mediaId, mediaId)))
+    .limit(1);
+  return rows[0] ?? null;
 }
 
 export function parseLibraryStatus(value: unknown): LibraryStatus | null {

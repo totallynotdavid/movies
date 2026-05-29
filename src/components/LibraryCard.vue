@@ -4,6 +4,18 @@ import BaseCard from "./BaseCard.vue";
 
 type Status = "planned" | "watching" | "completed" | "paused" | "dropped";
 type RatingSystem = "score5" | "score10" | "score100";
+type EntryState = {
+  id: string;
+  status: Status;
+  score100: number | null;
+  progressCurrent: number;
+  progressTotal: number | null;
+  updatedAt: number;
+};
+type TrackingResponse = {
+  error?: string;
+  entry?: Omit<EntryState, "updatedAt"> & { updatedAt?: number };
+};
 
 const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
 
@@ -18,15 +30,19 @@ const props = defineProps<{
   slug?: string | null;
   status: Status;
   score100?: number | null;
+  progressCurrent: number;
+  progressTotal: number | null;
   ratingSystem: RatingSystem;
 }>();
 
 const emit = defineEmits<{
-  update: [id: string, status: Status, score100: number | null];
+  update: [entry: EntryState];
 }>();
 
 const localStatus = ref<Status>(props.status);
 const localScore100 = ref<number | null>(props.score100 ?? null);
+const localProgressCurrent = ref(props.progressCurrent);
+const localProgressTotal = ref(props.progressTotal);
 const saving = ref(false);
 
 const year = computed(() => (props.releaseDate ? new Date(props.releaseDate).getFullYear() : null));
@@ -52,6 +68,43 @@ const displayScore = computed(() => {
   return localScore100.value;
 });
 
+const progressText = computed(() => {
+  if (props.mediaType !== "show") return null;
+  if (localProgressTotal.value !== null) {
+    return `${localProgressCurrent.value} / ${localProgressTotal.value} episodes`;
+  }
+  return `${localProgressCurrent.value} episodes`;
+});
+
+const canLogEpisode = computed(() => {
+  if (props.mediaType !== "show") return false;
+  return localProgressTotal.value === null || localProgressCurrent.value < localProgressTotal.value;
+});
+
+function createOccurrencePayload() {
+  const occurredAt = Date.now();
+  const localDate = new Date(occurredAt - new Date().getTimezoneOffset() * 60_000);
+  return {
+    occurredAt,
+    occurredOn: localDate.toISOString().slice(0, 10),
+  };
+}
+
+function syncEntry(entry: Omit<EntryState, "updatedAt"> & { updatedAt?: number }) {
+  localStatus.value = entry.status;
+  localScore100.value = entry.score100;
+  localProgressCurrent.value = entry.progressCurrent;
+  localProgressTotal.value = entry.progressTotal;
+  emit("update", {
+    id: props.id,
+    status: entry.status,
+    score100: entry.score100,
+    progressCurrent: entry.progressCurrent,
+    progressTotal: entry.progressTotal,
+    updatedAt: entry.updatedAt ?? Date.now(),
+  });
+}
+
 async function saveUpdate(newStatus: Status, newScore100: number | null) {
   saving.value = true;
   try {
@@ -60,20 +113,27 @@ async function saveUpdate(newStatus: Status, newScore100: number | null) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ mediaId: props.mediaId, status: newStatus, score100: newScore100 }),
     });
-    if (!res.ok) return;
-    emit("update", props.id, newStatus, newScore100);
+    const payload = (await res.json()) as TrackingResponse;
+    if (!res.ok || !payload.entry) return false;
+    syncEntry(payload.entry);
+    return true;
   } finally {
     saving.value = false;
   }
 }
 
 async function onStatusChange(e: Event) {
+  const previousStatus = localStatus.value;
   const val = (e.target as HTMLSelectElement).value as Status;
   localStatus.value = val;
-  await saveUpdate(val, localScore100.value);
+  const saved = await saveUpdate(val, localScore100.value);
+  if (!saved) {
+    localStatus.value = previousStatus;
+  }
 }
 
 async function onScoreInput(e: Event) {
+  const previousScore = localScore100.value;
   const raw = Number((e.target as HTMLInputElement).value);
   let score100: number | null = null;
   if (!Number.isNaN(raw) && raw > 0) {
@@ -82,7 +142,48 @@ async function onScoreInput(e: Event) {
     else score100 = Math.min(100, Math.max(0, raw));
   }
   localScore100.value = score100;
-  await saveUpdate(localStatus.value, score100);
+  const saved = await saveUpdate(localStatus.value, score100);
+  if (!saved) {
+    localScore100.value = previousScore;
+  }
+}
+
+async function logMovieWatch() {
+  saving.value = true;
+  try {
+    const res = await fetch("/api/tracking/movie-watch", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        mediaId: props.mediaId,
+        ...createOccurrencePayload(),
+      }),
+    });
+    const payload = (await res.json()) as TrackingResponse;
+    if (!res.ok || !payload.entry) return;
+    syncEntry(payload.entry);
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function logShowEpisode() {
+  saving.value = true;
+  try {
+    const res = await fetch("/api/tracking/show-episode", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        mediaId: props.mediaId,
+        ...createOccurrencePayload(),
+      }),
+    });
+    const payload = (await res.json()) as TrackingResponse;
+    if (!res.ok || !payload.entry) return;
+    syncEntry(payload.entry);
+  } finally {
+    saving.value = false;
+  }
 }
 </script>
 
@@ -151,6 +252,38 @@ async function onScoreInput(e: Event) {
           @change="onScoreInput"
         />
         <span class="text-xs font-mono text-fg-subtle shrink-0">/ {{ scoreMax }}</span>
+      </div>
+
+      <div
+        v-if="mediaType === 'movie'"
+        class="flex items-center justify-between gap-2 rounded-lg border border-border bg-bg-elevated px-2 py-1.5"
+      >
+        <span class="text-[0.7rem] font-mono text-fg-subtle">watch activity</span>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-lg border border-accent/40 bg-accent/10 px-2 py-1 text-[0.7rem] font-mono text-fg transition-colors hover:bg-accent/15 disabled:opacity-60 focus-ring"
+          :disabled="saving"
+          @click="logMovieWatch"
+        >
+          <span class="i-lucide:check w-3 h-3" aria-hidden="true" />
+          watched
+        </button>
+      </div>
+
+      <div
+        v-else
+        class="flex items-center justify-between gap-2 rounded-lg border border-border bg-bg-elevated px-2 py-1.5"
+      >
+        <span class="min-w-0 text-[0.7rem] font-mono text-fg-subtle">{{ progressText }}</span>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-lg border border-accent/40 bg-accent/10 px-2 py-1 text-[0.7rem] font-mono text-fg transition-colors hover:bg-accent/15 disabled:opacity-60 focus-ring"
+          :disabled="saving || !canLogEpisode"
+          @click="logShowEpisode"
+        >
+          <span class="i-lucide:plus w-3 h-3" aria-hidden="true" />
+          +1 ep
+        </button>
       </div>
     </div>
   </BaseCard>

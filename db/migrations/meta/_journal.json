@@ -22,6 +22,13 @@
       "when": 1779607642542,
       "tag": "20260524072722_open_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1780036953594,
+      "tag": "20260529064233_powerful_doctor_doom",
+      "breakpoints": true
     }
   ]
 }

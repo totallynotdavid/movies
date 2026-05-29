@@ -14,6 +14,8 @@ export type UpsertMediaInput = {
   posterPath?: string | null;
   backdropPath?: string | null;
   releaseDate?: string | null;
+  seasonCount?: number | null;
+  episodeCount?: number | null;
   voteAverage?: number | null;
   voteCount?: number | null;
   popularity?: number | null;
@@ -90,6 +92,8 @@ export async function upsertMediaFromTmdb(input: UpsertMediaInput) {
       posterPath: input.posterPath ?? null,
       backdropPath: input.backdropPath ?? null,
       releaseDate: input.releaseDate ?? null,
+      seasonCount: input.seasonCount ?? null,
+      episodeCount: input.episodeCount ?? null,
       voteAverage: input.voteAverage ?? null,
       voteCount: input.voteCount ?? null,
       popularity: input.popularity ?? null,
@@ -107,6 +111,8 @@ export async function upsertMediaFromTmdb(input: UpsertMediaInput) {
         posterPath: input.posterPath ?? null,
         backdropPath: input.backdropPath ?? null,
         releaseDate: input.releaseDate ?? null,
+        seasonCount: input.seasonCount ?? null,
+        episodeCount: input.episodeCount ?? null,
         voteAverage: input.voteAverage ?? null,
         voteCount: input.voteCount ?? null,
         popularity: input.popularity ?? null,

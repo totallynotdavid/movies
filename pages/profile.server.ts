@@ -3,26 +3,29 @@ import type { InferProps } from "void";
 import { requireAuth } from "void/auth";
 import { eq } from "drizzle-orm";
 import { db } from "void/db";
-import { libraryEntries, media, userFavoriteActors, userFavoriteMedia } from "../db/schema";
-import { getUserSettings } from "../src/domain/library";
+import { media, userFavoriteActors, userFavoriteMedia } from "../db/schema";
+import {
+  getProfileActivityCalendar,
+  getProfileFormatStats,
+  listProfileActivity,
+} from "../src/domain/activity";
+import { getUserSettings, listLibraryForUser } from "../src/domain/library";
 
 export type Props = InferProps<typeof loader>;
 
 export const loader = defineHandler(async (c) => {
   const user = requireAuth(c);
 
-  const [library, favoriteMedia, favoriteActors, settings] = await Promise.all([
-    db
-      .select({
-        id: libraryEntries.id,
-        status: libraryEntries.status,
-        score100: libraryEntries.score100,
-        updatedAt: libraryEntries.updatedAt,
-        media,
-      })
-      .from(libraryEntries)
-      .innerJoin(media, eq(libraryEntries.mediaId, media.id))
-      .where(eq(libraryEntries.userId, user.id)),
+  const [
+    library,
+    favoriteMedia,
+    favoriteActors,
+    settings,
+    formatStats,
+    activityCalendar,
+    recentActivity,
+  ] = await Promise.all([
+    listLibraryForUser(user.id),
     db
       .select({ mediaId: userFavoriteMedia.mediaId, media })
       .from(userFavoriteMedia)
@@ -30,21 +33,19 @@ export const loader = defineHandler(async (c) => {
       .where(eq(userFavoriteMedia.userId, user.id)),
     db.select().from(userFavoriteActors).where(eq(userFavoriteActors.userId, user.id)),
     getUserSettings(user.id),
+    getProfileFormatStats(user.id),
+    getProfileActivityCalendar(user.id),
+    listProfileActivity(user.id),
   ]);
-
-  const stats = {
-    total: library.length,
-    watching: library.filter((e) => e.status === "watching").length,
-    completed: library.filter((e) => e.status === "completed").length,
-    planned: library.filter((e) => e.status === "planned").length,
-  };
 
   return {
     user,
     library,
     favoriteMedia,
     favoriteActors,
-    stats,
+    formatStats,
+    activityCalendar,
+    recentActivity,
     ratingSystem: settings.ratingSystem,
   };
 });

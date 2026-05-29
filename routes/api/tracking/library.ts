@@ -1,10 +1,11 @@
 import { defineHandler } from "void";
 import { requireAuth } from "void/auth";
-import {
-  listLibraryForUser,
-  parseLibraryStatus,
-  upsertLibraryEntry,
-} from "../../../src/domain/library";
+import { saveLibraryEntrySnapshot } from "../../../src/domain/activity";
+import { listLibraryForUser, parseLibraryStatus } from "../../../src/domain/library";
+
+function hasOwn(body: Record<string, unknown>, key: string) {
+  return Object.prototype.hasOwnProperty.call(body, key);
+}
 
 export const GET = defineHandler(async (c) => {
   const user = requireAuth(c);
@@ -14,26 +15,29 @@ export const GET = defineHandler(async (c) => {
 
 export const POST = defineHandler(async (c) => {
   const user = requireAuth(c);
-  const body = await c.req.json<{
-    mediaId?: string;
-    status?: unknown;
-    score100?: unknown;
-    progressCurrent?: unknown;
-    progressTotal?: unknown;
-    notes?: unknown;
-  }>();
+  const body = await c.req.json<Record<string, unknown>>();
   const status = parseLibraryStatus(body.status);
-  const score100 = typeof body.score100 === "number" ? body.score100 : undefined;
+  const score100 =
+    hasOwn(body, "score100") && (typeof body.score100 === "number" || body.score100 === null)
+      ? (body.score100 as number | null)
+      : undefined;
   const progressCurrent =
     typeof body.progressCurrent === "number" ? body.progressCurrent : undefined;
-  const progressTotal = typeof body.progressTotal === "number" ? body.progressTotal : undefined;
-  const notes = typeof body.notes === "string" ? body.notes : undefined;
+  const progressTotal =
+    hasOwn(body, "progressTotal") &&
+    (typeof body.progressTotal === "number" || body.progressTotal === null)
+      ? (body.progressTotal as number | null)
+      : undefined;
+  const notes =
+    hasOwn(body, "notes") && (typeof body.notes === "string" || body.notes === null)
+      ? (body.notes as string | null)
+      : undefined;
 
-  if (!body.mediaId || !status) {
+  if (typeof body.mediaId !== "string" || !status) {
     return c.json({ error: "Invalid payload" }, 400);
   }
 
-  await upsertLibraryEntry({
+  const entry = await saveLibraryEntrySnapshot({
     userId: user.id,
     mediaId: body.mediaId,
     status,
@@ -43,5 +47,5 @@ export const POST = defineHandler(async (c) => {
     notes,
   });
 
-  return c.json({ ok: true });
+  return c.json({ ok: true, entry });
 });

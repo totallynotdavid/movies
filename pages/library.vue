@@ -110,12 +110,21 @@ const filteredEntries = computed(() => {
   });
 });
 
-function onEntryUpdate(id: string, status: Status, score100: number | null) {
-  const entry = localEntries.value.find((e) => e.id === id);
+function onEntryUpdate(update: {
+  id: string;
+  status: Status;
+  score100: number | null;
+  progressCurrent: number;
+  progressTotal: number | null;
+  updatedAt: number;
+}) {
+  const entry = localEntries.value.find((item) => item.id === update.id);
   if (entry) {
-    entry.status = status;
-    entry.score100 = score100;
-    entry.updatedAt = Date.now();
+    entry.status = update.status;
+    entry.score100 = update.score100;
+    entry.progressCurrent = update.progressCurrent;
+    entry.progressTotal = update.progressTotal;
+    entry.updatedAt = update.updatedAt;
   }
 }
 
@@ -445,6 +454,8 @@ function clearSearch() {
           :slug="entry.media.slug"
           :status="entry.status"
           :score100="entry.score100"
+          :progress-current="entry.progressCurrent"
+          :progress-total="entry.progressTotal"
           :rating-system="ratingSystem"
           @update="onEntryUpdate"
         />

@@ -27,6 +27,8 @@ export const media = sqliteTable(
     posterPath: text("poster_path"),
     backdropPath: text("backdrop_path"),
     releaseDate: text("release_date"),
+    seasonCount: integer("season_count"),
+    episodeCount: integer("episode_count"),
     voteAverage: real("vote_average"),
     voteCount: integer("vote_count"),
     popularity: real("popularity"),
@@ -37,6 +39,31 @@ export const media = sqliteTable(
     uniqueIndex("uq_media_provider_provider_id").on(t.provider, t.providerId),
     index("idx_media_type_popularity").on(t.mediaType, t.popularity),
     index("idx_media_title").on(t.title),
+  ],
+);
+
+export const activityEvents = sqliteTable(
+  "activity_events",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    mediaId: text("media_id")
+      .notNull()
+      .references(() => media.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<"movie_watched" | "episode_watched" | "media_completed">().notNull(),
+    mediaType: text("media_type").$type<"movie" | "show">().notNull(),
+    occurredAt: integer("occurred_at").notNull(),
+    occurredOn: text("occurred_on").notNull(),
+    episodeNumber: integer("episode_number"),
+    progressCurrent: integer("progress_current"),
+    progressTotal: integer("progress_total"),
+  },
+  (t) => [
+    index("idx_activity_user_occurred_at").on(t.userId, t.occurredAt),
+    index("idx_activity_user_occurred_on").on(t.userId, t.occurredOn),
+    index("idx_activity_user_media_occurred_at").on(t.userId, t.mediaId, t.occurredAt),
   ],
 );
 

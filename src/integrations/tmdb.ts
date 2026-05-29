@@ -9,6 +9,8 @@ export type TmdbMediaResult = {
   posterPath: string | null;
   backdropPath: string | null;
   releaseDate: string | null;
+  seasonCount: number | null;
+  episodeCount: number | null;
   voteAverage: number | null;
   voteCount: number | null;
   popularity: number | null;
@@ -62,6 +64,8 @@ function mapTmdbItem(item: TmdbMultiItem): TmdbMediaResult | null {
     posterPath: item.poster_path ?? null,
     backdropPath: item.backdrop_path ?? null,
     releaseDate: item.release_date ?? item.first_air_date ?? null,
+    seasonCount: null,
+    episodeCount: null,
     voteAverage: item.vote_average ?? null,
     voteCount: item.vote_count ?? null,
     popularity: item.popularity ?? null,
@@ -96,4 +100,31 @@ export async function searchTmdbMedia(input: { token: string; query: string; lim
     .map(mapTmdbItem)
     .filter((item) => item !== null)
     .slice(0, pageSize);
+}
+
+export async function fetchTmdbShowTotals(input: { token: string; providerId: number }) {
+  const url = new URL(`https://api.themoviedb.org/3/tv/${input.providerId}`);
+  url.searchParams.set("language", "en-US");
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${input.token}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`TMDB show detail failed (${response.status})`);
+  }
+
+  const payload = (await response.json()) as {
+    number_of_episodes?: number;
+    number_of_seasons?: number;
+  };
+
+  return {
+    seasonCount: typeof payload.number_of_seasons === "number" ? payload.number_of_seasons : null,
+    episodeCount:
+      typeof payload.number_of_episodes === "number" ? payload.number_of_episodes : null,
+  };
 }

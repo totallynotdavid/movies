@@ -69,15 +69,26 @@ function mapMovie(raw: Raw): MediaFixture {
     posterPath: str(raw["poster_path"]),
     backdropPath: str(raw["backdrop_path"]),
     releaseDate: str(raw["release_date"]),
+    seasonCount: null,
+    episodeCount: null,
     voteAverage: num(raw["vote_average"]),
     voteCount: num(raw["vote_count"]),
     popularity: num(raw["popularity"]),
   };
 }
 
-function mapShow(raw: Raw): MediaFixture {
+async function fetchShowTotals(token: string, providerId: number) {
+  const raw = (await tmdbGet(token, `/tv/${providerId}`)) as Raw;
+  return {
+    seasonCount: num(raw["number_of_seasons"]),
+    episodeCount: num(raw["number_of_episodes"]),
+  };
+}
+
+async function mapShow(token: string, raw: Raw): Promise<MediaFixture> {
   const title = str(raw["name"]) ?? str(raw["title"]) ?? "Unknown";
   const id = Number(raw["id"]);
+  const totals = await fetchShowTotals(token, id);
   return {
     id: `tmdb:show:${id}`,
     mediaType: "show",
@@ -90,6 +101,8 @@ function mapShow(raw: Raw): MediaFixture {
     posterPath: str(raw["poster_path"]),
     backdropPath: str(raw["backdrop_path"]),
     releaseDate: str(raw["first_air_date"]),
+    seasonCount: totals.seasonCount,
+    episodeCount: totals.episodeCount,
     voteAverage: num(raw["vote_average"]),
     voteCount: num(raw["vote_count"]),
     popularity: num(raw["popularity"]),
@@ -136,7 +149,7 @@ async function main() {
 
     console.log(`  top-rated shows (${CONFIG.topRated.shows})...`);
     const tvData = await fetchPaged(token, "/tv/top_rated", CONFIG.topRated.shows);
-    fetched.push(...(tvData as Raw[]).map(mapShow));
+    fetched.push(...(await Promise.all((tvData as Raw[]).map((raw) => mapShow(token, raw)))));
   }
 
   console.log(`  trending movies (${CONFIG.trending.movies})...`);
@@ -145,7 +158,7 @@ async function main() {
 
   console.log(`  trending shows (${CONFIG.trending.shows})...`);
   const trendShows = await fetchPaged(token, "/trending/tv/week", CONFIG.trending.shows);
-  fetched.push(...(trendShows as Raw[]).map(mapShow));
+  fetched.push(...(await Promise.all((trendShows as Raw[]).map((raw) => mapShow(token, raw)))));
 
   // Merge: fetched items take precedence; in trending mode, non-fetched existing items are kept
   const fetchedIds = new Set(fetched.map((i) => i.id));
