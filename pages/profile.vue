@@ -9,13 +9,6 @@ const TMDB_IMG = "https://image.tmdb.org/t/p/w185";
 
 const props = defineProps<Props>();
 
-function formatScore(score100: number | null): string | null {
-  if (score100 === null) return null;
-  if (props.ratingSystem === "score5") return `${Math.round(score100 / 20)}/5`;
-  if (props.ratingSystem === "score10") return `${Math.round(score100 / 10)}/10`;
-  return `${score100}/100`;
-}
-
 function formatAverageScore(score100: number | null) {
   if (score100 === null) return "—";
 
@@ -31,10 +24,6 @@ function formatAverageScore(score100: number | null) {
 
   return `${Number.isInteger(score100) ? score100 : score100.toFixed(1)}/100`;
 }
-
-const recentLibrary = computed(() =>
-  [...props.library].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 10),
-);
 
 const formatStatPanels = computed(() => [
   {
@@ -174,46 +163,6 @@ const formatStatPanels = computed(() => [
             <span class="i-lucide:user w-4 h-4 text-fg-subtle" />
           </div>
           <span class="text-sm font-mono text-fg">{{ actor.actorName }}</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Recent library -->
-    <section
-      class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
-      style="animation-delay: 0.3s"
-    >
-      <div class="flex-split">
-        <h2 class="text-sm font-mono text-fg-muted">library</h2>
-        <a
-          href="/library"
-          class="text-xs font-mono text-accent hover:text-accent/80 transition-colors focus-ring rounded"
-        >
-          manage →
-        </a>
-      </div>
-
-      <div v-if="library.length === 0" class="text-fg-subtle text-sm font-mono py-4">
-        nothing tracked yet
-      </div>
-
-      <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <div v-for="entry in recentLibrary" :key="entry.id" class="relative">
-          <MediaCard
-            :title="entry.media.title"
-            :media-type="entry.media.mediaType"
-            :poster-path="entry.media.posterPath"
-            :release-date="entry.media.releaseDate"
-            :vote-average="entry.media.voteAverage"
-            :slug="entry.media.slug"
-            :status="entry.status"
-          />
-          <div
-            v-if="entry.score100 !== null"
-            class="absolute top-2 left-2 text-[0.6rem] font-mono px-1.5 py-0.5 rounded-full bg-bg/80 backdrop-blur-sm border border-border text-fg-muted"
-          >
-            {{ formatScore(entry.score100) }}
-          </div>
         </div>
       </div>
     </section>

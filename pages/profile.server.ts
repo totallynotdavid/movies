@@ -9,38 +9,29 @@ import {
   getProfileFormatStats,
   listProfileActivity,
 } from "../src/domain/activity";
-import { getUserSettings, listLibraryForUser } from "../src/domain/library";
+import { getUserSettings } from "../src/domain/library";
 
 export type Props = InferProps<typeof loader>;
 
 export const loader = defineHandler(async (c) => {
   const user = requireAuth(c);
 
-  const [
-    library,
-    favoriteMedia,
-    favoriteActors,
-    settings,
-    formatStats,
-    activityCalendar,
-    recentActivity,
-  ] = await Promise.all([
-    listLibraryForUser(user.id),
-    db
-      .select({ mediaId: userFavoriteMedia.mediaId, media })
-      .from(userFavoriteMedia)
-      .innerJoin(media, eq(userFavoriteMedia.mediaId, media.id))
-      .where(eq(userFavoriteMedia.userId, user.id)),
-    db.select().from(userFavoriteActors).where(eq(userFavoriteActors.userId, user.id)),
-    getUserSettings(user.id),
-    getProfileFormatStats(user.id),
-    getProfileActivityCalendar(user.id),
-    listProfileActivity(user.id),
-  ]);
+  const [favoriteMedia, favoriteActors, settings, formatStats, activityCalendar, recentActivity] =
+    await Promise.all([
+      db
+        .select({ mediaId: userFavoriteMedia.mediaId, media })
+        .from(userFavoriteMedia)
+        .innerJoin(media, eq(userFavoriteMedia.mediaId, media.id))
+        .where(eq(userFavoriteMedia.userId, user.id)),
+      db.select().from(userFavoriteActors).where(eq(userFavoriteActors.userId, user.id)),
+      getUserSettings(user.id),
+      getProfileFormatStats(user.id),
+      getProfileActivityCalendar(user.id),
+      listProfileActivity(user.id),
+    ]);
 
   return {
     user,
-    library,
     favoriteMedia,
     favoriteActors,
     formatStats,
