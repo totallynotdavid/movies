@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import BaseCard from "./BaseCard.vue";
-
-type Status = "planned" | "watching" | "completed" | "paused" | "dropped";
-type RatingSystem = "score5" | "score10" | "score100";
+import type { LibraryStatus } from "../domain/library";
+import type { RatingSystem } from "../domain/rating";
+import { useTracking, type TrackedEntry } from "../composables/useTracking";
 
 const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
 
@@ -16,22 +16,46 @@ const props = defineProps<{
   releaseDate?: string | null;
   voteAverage?: number | null;
   slug?: string | null;
-  status: Status;
+  status: LibraryStatus;
   score100?: number | null;
+  episodesWatched: number;
+  episodeTotal: number | null;
   ratingSystem: RatingSystem;
 }>();
 
 const emit = defineEmits<{
-  update: [id: string, status: Status, score100: number | null];
+  update: [entry: TrackedEntry];
 }>();
 
-const localStatus = ref<Status>(props.status);
-const localScore100 = ref<number | null>(props.score100 ?? null);
-const saving = ref(false);
+const {
+  entry,
+  saving,
+  displayScore,
+  scoreMax,
+  progressText,
+  canLogEpisode,
+  setStatus,
+  setScore,
+  logWatch,
+} = useTracking({
+  mediaId: props.mediaId,
+  mediaType: props.mediaType,
+  episodeTotal: props.episodeTotal,
+  ratingSystem: props.ratingSystem,
+  initialEntry: {
+    id: props.id,
+    status: props.status,
+    score100: props.score100 ?? null,
+    episodesWatched: props.episodesWatched,
+    updatedAt: Date.now(),
+  },
+  onUpdate: (next) => emit("update", { ...next, id: props.id }),
+});
 
+const status = computed(() => entry.value?.status ?? props.status);
 const year = computed(() => (props.releaseDate ? new Date(props.releaseDate).getFullYear() : null));
 
-const statusClass: Record<Status, string> = {
+const statusClass: Record<LibraryStatus, string> = {
   planned: "badge-planned",
   watching: "badge-watching",
   completed: "badge-completed",
@@ -39,50 +63,16 @@ const statusClass: Record<Status, string> = {
   dropped: "badge-dropped",
 };
 
-const scoreMax = computed(() => {
-  if (props.ratingSystem === "score5") return 5;
-  if (props.ratingSystem === "score10") return 10;
-  return 100;
-});
-
-const displayScore = computed(() => {
-  if (localScore100.value === null) return null;
-  if (props.ratingSystem === "score5") return Math.round(localScore100.value / 20);
-  if (props.ratingSystem === "score10") return Math.round(localScore100.value / 10);
-  return localScore100.value;
-});
-
-async function saveUpdate(newStatus: Status, newScore100: number | null) {
-  saving.value = true;
-  try {
-    const res = await fetch("/api/tracking/library", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mediaId: props.mediaId, status: newStatus, score100: newScore100 }),
-    });
-    if (!res.ok) return;
-    emit("update", props.id, newStatus, newScore100);
-  } finally {
-    saving.value = false;
-  }
-}
-
 async function onStatusChange(e: Event) {
-  const val = (e.target as HTMLSelectElement).value as Status;
-  localStatus.value = val;
-  await saveUpdate(val, localScore100.value);
+  const target = e.target as HTMLSelectElement;
+  const saved = await setStatus(target.value as LibraryStatus);
+  if (!saved) target.value = status.value;
 }
 
 async function onScoreInput(e: Event) {
-  const raw = Number((e.target as HTMLInputElement).value);
-  let score100: number | null = null;
-  if (!Number.isNaN(raw) && raw > 0) {
-    if (props.ratingSystem === "score5") score100 = Math.min(100, raw * 20);
-    else if (props.ratingSystem === "score10") score100 = Math.min(100, raw * 10);
-    else score100 = Math.min(100, Math.max(0, raw));
-  }
-  localScore100.value = score100;
-  await saveUpdate(localStatus.value, score100);
+  const target = e.target as HTMLInputElement;
+  const saved = await setScore(Number(target.value));
+  if (!saved) target.value = displayScore.value === null ? "" : String(displayScore.value);
 }
 </script>
 
@@ -123,10 +113,10 @@ async function onScoreInput(e: Event) {
 
       <!-- Status select -->
       <select
-        :value="localStatus"
+        :value="status"
         :disabled="saving"
         class="w-full rounded-lg border text-xs font-mono px-2 py-1.5 outline-none transition-colors disabled:opacity-60 cursor-pointer bg-bg-elevated text-fg-muted"
-        :class="statusClass[localStatus]"
+        :class="statusClass[status]"
         aria-label="status"
         @change="onStatusChange"
       >
@@ -151,6 +141,38 @@ async function onScoreInput(e: Event) {
           @change="onScoreInput"
         />
         <span class="text-xs font-mono text-fg-subtle shrink-0">/ {{ scoreMax }}</span>
+      </div>
+
+      <div
+        v-if="mediaType === 'movie'"
+        class="flex items-center justify-between gap-2 rounded-lg border border-border bg-bg-elevated px-2 py-1.5"
+      >
+        <span class="text-[0.7rem] font-mono text-fg-subtle">watch activity</span>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-lg border border-accent/40 bg-accent/10 px-2 py-1 text-[0.7rem] font-mono text-fg transition-colors hover:bg-accent/15 disabled:opacity-60 focus-ring"
+          :disabled="saving"
+          @click="logWatch"
+        >
+          <span class="i-lucide:check w-3 h-3" aria-hidden="true" />
+          watched
+        </button>
+      </div>
+
+      <div
+        v-else
+        class="flex items-center justify-between gap-2 rounded-lg border border-border bg-bg-elevated px-2 py-1.5"
+      >
+        <span class="min-w-0 text-[0.7rem] font-mono text-fg-subtle">{{ progressText }}</span>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-lg border border-accent/40 bg-accent/10 px-2 py-1 text-[0.7rem] font-mono text-fg transition-colors hover:bg-accent/15 disabled:opacity-60 focus-ring"
+          :disabled="saving || !canLogEpisode"
+          @click="logWatch"
+        >
+          <span class="i-lucide:plus w-3 h-3" aria-hidden="true" />
+          +1 ep
+        </button>
       </div>
     </div>
   </BaseCard>

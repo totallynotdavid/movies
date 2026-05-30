@@ -2,21 +2,26 @@
 import { computed } from "vue";
 import type { Props } from "./profile.server";
 import MediaCard from "../src/components/MediaCard.vue";
+import ProfileActivityFeed from "../src/components/profile/ProfileActivityFeed.vue";
+import ProfileActivityHeatmap from "../src/components/profile/ProfileActivityHeatmap.vue";
+import { formatScore } from "../src/domain/rating";
 
 const TMDB_IMG = "https://image.tmdb.org/t/p/w185";
 
 const props = defineProps<Props>();
 
-function formatScore(score100: number | null): string | null {
-  if (score100 === null) return null;
-  if (props.ratingSystem === "score5") return `${Math.round(score100 / 20)}/5`;
-  if (props.ratingSystem === "score10") return `${Math.round(score100 / 10)}/10`;
-  return `${score100}/100`;
-}
-
-const recentLibrary = computed(() =>
-  [...props.library].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 10),
-);
+const formatStatPanels = computed(() => [
+  {
+    key: "movie",
+    label: "Movies",
+    stats: props.formatStats.movie,
+  },
+  {
+    key: "show",
+    label: "Shows",
+    stats: props.formatStats.show,
+  },
+]);
 </script>
 
 <template>
@@ -35,31 +40,70 @@ const recentLibrary = computed(() =>
       </div>
     </section>
 
-    <!-- Stats -->
+    <!-- Format stats -->
     <section
-      class="grid grid-cols-2 sm:grid-cols-4 gap-3 motion-safe:animate-slide-up animate-fill-both"
+      class="grid gap-4 md:grid-cols-2 motion-safe:animate-slide-up animate-fill-both"
       style="animation-delay: 0.05s"
     >
       <div
-        v-for="(value, key) in {
-          total: stats.total,
-          watching: stats.watching,
-          completed: stats.completed,
-          planned: stats.planned,
-        }"
-        :key="key"
-        class="flex flex-col gap-1 p-4 rounded-xl border border-border bg-bg-subtle"
+        v-for="panel in formatStatPanels"
+        :key="panel.key"
+        class="flex flex-col gap-4 rounded-xl border border-border bg-bg-subtle p-5"
       >
-        <span class="text-2xl font-mono font-bold">{{ value }}</span>
-        <span class="text-xs font-mono text-fg-muted">{{ key }}</span>
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-sm font-mono text-fg-muted">{{ panel.label }}</h2>
+          <span
+            class="rounded-full border border-border bg-bg-elevated px-2 py-0.5 text-[0.65rem] font-mono text-fg-subtle"
+          >
+            {{ panel.stats.tracked }} tracked
+          </span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div class="flex flex-col gap-1">
+            <span class="text-lg font-mono font-bold">{{ panel.stats.tracked }}</span>
+            <span class="text-[0.7rem] font-mono text-fg-subtle">tracked</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-lg font-mono font-bold">{{ panel.stats.watchDays }}</span>
+            <span class="text-[0.7rem] font-mono text-fg-subtle">watch days</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-lg font-mono font-bold">
+              {{ formatScore(panel.stats.averageScore100, props.ratingSystem) }}
+            </span>
+            <span class="text-[0.7rem] font-mono text-fg-subtle">average score</span>
+          </div>
+        </div>
       </div>
+    </section>
+
+    <!-- Activity heatmap -->
+    <section
+      class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
+      style="animation-delay: 0.1s"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-sm font-mono text-fg-muted">activity</h2>
+        <span class="text-[0.7rem] font-mono text-fg-subtle">last 365 days</span>
+      </div>
+      <ProfileActivityHeatmap :days="activityCalendar" />
+    </section>
+
+    <!-- Activity feed -->
+    <section
+      class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
+      style="animation-delay: 0.15s"
+    >
+      <h2 class="text-sm font-mono text-fg-muted">recent activity</h2>
+      <ProfileActivityFeed :items="recentActivity" />
     </section>
 
     <!-- Favorite media -->
     <section
       v-if="favoriteMedia.length > 0"
       class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
-      style="animation-delay: 0.1s"
+      style="animation-delay: 0.2s"
     >
       <h2 class="text-sm font-mono text-fg-muted">favorite media</h2>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -80,7 +124,7 @@ const recentLibrary = computed(() =>
     <section
       v-if="favoriteActors.length > 0"
       class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
-      style="animation-delay: 0.15s"
+      style="animation-delay: 0.25s"
     >
       <h2 class="text-sm font-mono text-fg-muted">favorite actors</h2>
       <div class="flex flex-wrap gap-3">
@@ -104,46 +148,6 @@ const recentLibrary = computed(() =>
             <span class="i-lucide:user w-4 h-4 text-fg-subtle" />
           </div>
           <span class="text-sm font-mono text-fg">{{ actor.actorName }}</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Recent library -->
-    <section
-      class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
-      style="animation-delay: 0.2s"
-    >
-      <div class="flex-split">
-        <h2 class="text-sm font-mono text-fg-muted">library</h2>
-        <a
-          href="/library"
-          class="text-xs font-mono text-accent hover:text-accent/80 transition-colors focus-ring rounded"
-        >
-          manage →
-        </a>
-      </div>
-
-      <div v-if="library.length === 0" class="text-fg-subtle text-sm font-mono py-4">
-        nothing tracked yet
-      </div>
-
-      <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <div v-for="entry in recentLibrary" :key="entry.id" class="relative">
-          <MediaCard
-            :title="entry.media.title"
-            :media-type="entry.media.mediaType"
-            :poster-path="entry.media.posterPath"
-            :release-date="entry.media.releaseDate"
-            :vote-average="entry.media.voteAverage"
-            :slug="entry.media.slug"
-            :status="entry.status"
-          />
-          <div
-            v-if="entry.score100 !== null"
-            class="absolute top-2 left-2 text-[0.6rem] font-mono px-1.5 py-0.5 rounded-full bg-bg/80 backdrop-blur-sm border border-border text-fg-muted"
-          >
-            {{ formatScore(entry.score100) }}
-          </div>
         </div>
       </div>
     </section>

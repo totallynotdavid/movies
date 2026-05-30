@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import type { Props } from "./settings.server";
+import type { RatingSystem } from "../src/domain/rating";
 import { useColorTheme } from "../src/composables/useColorTheme";
 
 const props = defineProps<Props>();
 const { theme, toggle } = useColorTheme();
 
-type RatingSystem = "score5" | "score10" | "score100";
 const ratingSystem = ref<RatingSystem>(props.ratingSystem);
 
 const ratingOptions: { value: RatingSystem; label: string }[] = [

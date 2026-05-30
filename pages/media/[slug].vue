@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { Props } from "./[slug].server";
+import type { LibraryStatus } from "../../src/domain/library";
+import { useTracking } from "../../src/composables/useTracking";
 
 const TMDB_IMG_W500 = "https://image.tmdb.org/t/p/w500";
 const TMDB_IMG_ORIG = "https://image.tmdb.org/t/p/original";
-
-type Status = "planned" | "watching" | "completed" | "paused" | "dropped";
 
 const props = defineProps<Props>();
 
@@ -13,27 +13,37 @@ const favorited = ref(props.isFavorited);
 const addingFav = ref(false);
 const favError = ref("");
 
-const localEntry = ref(props.libraryEntry ? { ...props.libraryEntry } : null);
-const statusSaving = ref(false);
-const scoreSaving = ref(false);
+const {
+  entry,
+  saving,
+  error: trackingError,
+  displayScore,
+  scoreMax,
+  progressText,
+  canLogEpisode,
+  addToLibrary: addToLibraryEntry,
+  setStatus,
+  setScore,
+  logWatch,
+} = useTracking({
+  mediaId: props.media.id,
+  mediaType: props.media.mediaType,
+  episodeTotal: props.media.episodeCount,
+  ratingSystem: props.ratingSystem,
+  initialEntry: props.libraryEntry
+    ? {
+        id: props.libraryEntry.id,
+        status: props.libraryEntry.status,
+        score100: props.libraryEntry.score100,
+        episodesWatched: props.libraryEntry.episodesWatched,
+        updatedAt: Date.now(),
+      }
+    : null,
+});
 
 const year = props.media.releaseDate ? new Date(props.media.releaseDate).getFullYear() : null;
 
-const scoreMax = computed(() => {
-  if (props.ratingSystem === "score5") return 5;
-  if (props.ratingSystem === "score10") return 10;
-  return 100;
-});
-
-const displayScore = computed(() => {
-  const s = localEntry.value?.score100;
-  if (s === null || s === undefined) return null;
-  if (props.ratingSystem === "score5") return Math.round(s / 20);
-  if (props.ratingSystem === "score10") return Math.round(s / 10);
-  return s;
-});
-
-const statusClass: Record<Status, string> = {
+const statusClass: Record<LibraryStatus, string> = {
   planned: "badge-planned border",
   watching: "badge-watching border",
   completed: "badge-completed border",
@@ -68,70 +78,24 @@ async function toggleFavorite() {
   }
 }
 
-async function addToLibrary() {
+function addToLibrary() {
   if (!props.user) {
     window.location.href = "/login";
     return;
   }
-
-  const res = await fetch("/api/tracking/library", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ mediaId: props.media.id, status: "planned" }),
-  });
-
-  if (res.ok) {
-    localEntry.value = {
-      id: `${props.user.id}:${props.media.id}`,
-      status: "planned",
-      score100: null,
-      progressCurrent: 0,
-      progressTotal: null,
-      notes: null,
-    };
-  }
+  return addToLibraryEntry();
 }
 
 async function onStatusChange(e: Event) {
-  if (!localEntry.value) return;
-  const val = (e.target as HTMLSelectElement).value as Status;
-  statusSaving.value = true;
-  try {
-    const res = await fetch("/api/tracking/library", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        mediaId: props.media.id,
-        status: val,
-        score100: localEntry.value.score100,
-      }),
-    });
-    if (res.ok) localEntry.value.status = val;
-  } finally {
-    statusSaving.value = false;
-  }
+  const target = e.target as HTMLSelectElement;
+  const saved = await setStatus(target.value as LibraryStatus);
+  if (!saved && entry.value) target.value = entry.value.status;
 }
 
 async function onScoreChange(e: Event) {
-  if (!localEntry.value) return;
-  const raw = Number((e.target as HTMLInputElement).value);
-  let score100: number | null = null;
-  if (!Number.isNaN(raw) && raw > 0) {
-    if (props.ratingSystem === "score5") score100 = Math.min(100, raw * 20);
-    else if (props.ratingSystem === "score10") score100 = Math.min(100, raw * 10);
-    else score100 = Math.min(100, Math.max(0, raw));
-  }
-  scoreSaving.value = true;
-  try {
-    const res = await fetch("/api/tracking/library", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mediaId: props.media.id, status: localEntry.value.status, score100 }),
-    });
-    if (res.ok) localEntry.value.score100 = score100;
-  } finally {
-    scoreSaving.value = false;
-  }
+  const target = e.target as HTMLInputElement;
+  const saved = await setScore(Number(target.value));
+  if (!saved) target.value = displayScore.value === null ? "" : String(displayScore.value);
 }
 </script>
 
@@ -198,7 +162,7 @@ async function onScoreChange(e: Event) {
 
         <!-- Library controls -->
         <div
-          v-if="localEntry"
+          v-if="entry"
           class="flex flex-col gap-3 p-4 rounded-xl border border-border bg-bg-subtle"
         >
           <div class="flex items-center gap-2 text-xs font-mono text-fg-subtle">
@@ -211,10 +175,10 @@ async function onScoreChange(e: Event) {
             <div class="flex flex-col gap-1">
               <label class="text-xs font-mono text-fg-subtle">status</label>
               <select
-                :value="localEntry.status"
-                :disabled="statusSaving"
+                :value="entry.status"
+                :disabled="saving"
                 class="rounded-lg border text-xs font-mono px-2.5 py-1.5 outline-none transition-colors disabled:opacity-60 cursor-pointer bg-bg-elevated text-fg"
-                :class="statusClass[localEntry.status]"
+                :class="statusClass[entry.status]"
                 aria-label="status"
                 @change="onStatusChange"
               >
@@ -236,7 +200,7 @@ async function onScoreChange(e: Event) {
                   :max="scoreMax"
                   :value="displayScore ?? ''"
                   :placeholder="`0`"
-                  :disabled="scoreSaving"
+                  :disabled="saving"
                   class="w-16 bg-bg-elevated border border-border rounded-lg px-2 py-1.5 text-xs font-mono text-fg placeholder:text-fg-subtle outline-none focus:border-accent/50 transition-colors disabled:opacity-60"
                   aria-label="rating"
                   @change="onScoreChange"
@@ -244,6 +208,44 @@ async function onScoreChange(e: Event) {
                 <span class="text-xs font-mono text-fg-subtle">/ {{ scoreMax }}</span>
               </div>
             </div>
+          </div>
+
+          <div
+            v-if="media.mediaType === 'movie'"
+            class="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-elevated px-3 py-2"
+          >
+            <div class="flex items-center gap-2 text-xs font-mono text-fg-subtle">
+              <span class="i-lucide:circle-play w-3.5 h-3.5" aria-hidden="true" />
+              watch activity
+            </div>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-mono text-fg transition-colors hover:bg-accent/15 disabled:opacity-60 focus-ring"
+              :disabled="saving"
+              @click="logWatch"
+            >
+              <span class="i-lucide:check w-3.5 h-3.5" aria-hidden="true" />
+              {{ saving ? "..." : "log watch" }}
+            </button>
+          </div>
+
+          <div
+            v-else
+            class="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-elevated px-3 py-2"
+          >
+            <div class="flex flex-col gap-1 min-w-0">
+              <span class="text-xs font-mono text-fg-subtle">episode progress</span>
+              <span class="text-sm font-mono text-fg">{{ progressText }}</span>
+            </div>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-mono text-fg transition-colors hover:bg-accent/15 disabled:opacity-60 focus-ring"
+              :disabled="saving || !canLogEpisode"
+              @click="logWatch"
+            >
+              <span class="i-lucide:plus w-3.5 h-3.5" aria-hidden="true" />
+              {{ saving ? "..." : "+1 episode" }}
+            </button>
           </div>
 
           <a
@@ -287,7 +289,9 @@ async function onScoreChange(e: Event) {
           {{ favorited ? "unfavorite" : "favorite" }}
         </button>
 
-        <p v-if="favError" class="text-sm text-red-400 font-mono">{{ favError }}</p>
+        <p v-if="favError || trackingError" class="text-sm text-red-400 font-mono">
+          {{ trackingError || favError }}
+        </p>
       </div>
     </div>
   </div>

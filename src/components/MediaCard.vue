@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import BaseCard from "./BaseCard.vue";
+import type { LibraryStatus } from "../domain/library";
+import type { MediaType } from "../domain/media";
 
 const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
 
 const props = defineProps<{
   title: string;
-  mediaType: "movie" | "show";
+  mediaType: MediaType;
   posterPath?: string | null;
   releaseDate?: string | null;
   voteAverage?: number | null;
   slug?: string | null;
-  status?: "planned" | "watching" | "completed" | "paused" | "dropped" | null;
+  status?: LibraryStatus | null;
 }>();
 
 const year = computed(() => (props.releaseDate ? new Date(props.releaseDate).getFullYear() : null));

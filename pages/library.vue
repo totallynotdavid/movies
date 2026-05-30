@@ -4,9 +4,7 @@ import type { Props } from "./library.server";
 import LibraryCard from "../src/components/LibraryCard.vue";
 import MediaCard from "../src/components/MediaCard.vue";
 import SkeletonCard from "../src/components/SkeletonCard.vue";
-
-type Status = "planned" | "watching" | "completed" | "paused" | "dropped";
-type RatingSystem = "score5" | "score10" | "score100";
+import type { LibraryStatus } from "../src/domain/library";
 
 type RemoteCandidate = {
   mediaType: "movie" | "show";
@@ -110,12 +108,19 @@ const filteredEntries = computed(() => {
   });
 });
 
-function onEntryUpdate(id: string, status: Status, score100: number | null) {
-  const entry = localEntries.value.find((e) => e.id === id);
+function onEntryUpdate(update: {
+  id: string;
+  status: LibraryStatus;
+  score100: number | null;
+  episodesWatched: number;
+  updatedAt: number;
+}) {
+  const entry = localEntries.value.find((item) => item.id === update.id);
   if (entry) {
-    entry.status = status;
-    entry.score100 = score100;
-    entry.updatedAt = Date.now();
+    entry.status = update.status;
+    entry.score100 = update.score100;
+    entry.episodesWatched = update.episodesWatched;
+    entry.updatedAt = update.updatedAt;
   }
 }
 
@@ -445,6 +450,8 @@ function clearSearch() {
           :slug="entry.media.slug"
           :status="entry.status"
           :score100="entry.score100"
+          :episodes-watched="entry.episodesWatched"
+          :episode-total="entry.media.episodeCount"
           :rating-system="ratingSystem"
           @update="onEntryUpdate"
         />
