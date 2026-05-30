@@ -1,8 +1,7 @@
 export type MediaFixture = {
   id: string;
   mediaType: "movie" | "show";
-  provider: string;
-  providerId: number;
+  tmdbId: number;
   slug: string;
   title: string;
   originalTitle: string | null;
