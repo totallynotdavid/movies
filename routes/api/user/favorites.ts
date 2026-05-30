@@ -1,31 +1,29 @@
 import { defineHandler } from "void";
 import { requireAuth } from "void/auth";
 import {
-  addFavoriteActor,
   addFavoriteMedia,
-  listFavoriteActors,
+  addFavoritePerson,
   listFavoriteMedia,
-  removeFavoriteActor,
+  listFavoritePeople,
   removeFavoriteMedia,
+  removeFavoritePerson,
 } from "../../../src/domain/favorites";
 
 export const GET = defineHandler(async (c) => {
   const user = requireAuth(c);
-  const [media, actors] = await Promise.all([
+  const [media, people] = await Promise.all([
     listFavoriteMedia(user.id),
-    listFavoriteActors(user.id),
+    listFavoritePeople(user.id),
   ]);
-  return c.json({ media, actors });
+  return c.json({ media, people });
 });
 
 export const POST = defineHandler(async (c) => {
   const user = requireAuth(c);
   const body = (await c.req.json()) as {
-    type: "media" | "actor";
+    type: "media" | "person";
     mediaId?: string;
-    actorTmdbId?: number;
-    actorName?: string;
-    actorProfilePath?: string | null;
+    personId?: string;
   };
 
   if (body.type === "media") {
@@ -34,15 +32,9 @@ export const POST = defineHandler(async (c) => {
     return c.json({ ok: true });
   }
 
-  if (body.type === "actor") {
-    if (!body.actorTmdbId || !body.actorName) {
-      return c.json({ error: "actorTmdbId and actorName required" }, 400);
-    }
-    await addFavoriteActor(user.id, {
-      actorTmdbId: body.actorTmdbId,
-      actorName: body.actorName,
-      actorProfilePath: body.actorProfilePath,
-    });
+  if (body.type === "person") {
+    if (!body.personId) return c.json({ error: "personId required" }, 400);
+    await addFavoritePerson(user.id, body.personId);
     return c.json({ ok: true });
   }
 
@@ -52,9 +44,9 @@ export const POST = defineHandler(async (c) => {
 export const DELETE = defineHandler(async (c) => {
   const user = requireAuth(c);
   const body = (await c.req.json()) as {
-    type: "media" | "actor";
+    type: "media" | "person";
     mediaId?: string;
-    actorTmdbId?: number;
+    personId?: string;
   };
 
   if (body.type === "media") {
@@ -63,9 +55,9 @@ export const DELETE = defineHandler(async (c) => {
     return c.json({ ok: true });
   }
 
-  if (body.type === "actor") {
-    if (!body.actorTmdbId) return c.json({ error: "actorTmdbId required" }, 400);
-    await removeFavoriteActor(user.id, body.actorTmdbId);
+  if (body.type === "person") {
+    if (!body.personId) return c.json({ error: "personId required" }, 400);
+    await removeFavoritePerson(user.id, body.personId);
     return c.json({ ok: true });
   }
 
