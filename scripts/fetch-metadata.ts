@@ -60,8 +60,7 @@ function mapMovie(raw: Raw): MediaFixture {
   return {
     id: `tmdb:movie:${id}`,
     mediaType: "movie",
-    provider: "tmdb",
-    providerId: id,
+    tmdbId: id,
     slug: toSlug(title, id),
     title,
     originalTitle: str(raw["original_title"]),
@@ -77,8 +76,8 @@ function mapMovie(raw: Raw): MediaFixture {
   };
 }
 
-async function fetchShowTotals(token: string, providerId: number) {
-  const raw = (await tmdbGet(token, `/tv/${providerId}`)) as Raw;
+async function fetchShowTotals(token: string, tmdbId: number) {
+  const raw = (await tmdbGet(token, `/tv/${tmdbId}`)) as Raw;
   return {
     seasonCount: num(raw["number_of_seasons"]),
     episodeCount: num(raw["number_of_episodes"]),
@@ -92,8 +91,7 @@ async function mapShow(token: string, raw: Raw): Promise<MediaFixture> {
   return {
     id: `tmdb:show:${id}`,
     mediaType: "show",
-    provider: "tmdb",
-    providerId: id,
+    tmdbId: id,
     slug: toSlug(title, id),
     title,
     originalTitle: str(raw["original_name"]),
