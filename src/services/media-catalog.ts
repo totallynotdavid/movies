@@ -1,22 +1,24 @@
-import { env } from "void/env";
 import {
   findMediaByTmdbIds,
   searchLocalMedia,
   type MediaType,
   upsertMediaFromTmdb,
 } from "../domain/media";
-import { fetchTmdbShowTotals, searchTmdbMedia, type TmdbMediaResult } from "../integrations/tmdb";
+import {
+  fetchTmdbShowTotals,
+  searchTmdbMedia,
+  tmdbToken,
+  type TmdbMediaResult,
+} from "../integrations/tmdb";
 
 export type MediaSearchResult = TmdbMediaResult & {
-  cached: boolean;
   cachedMediaId: string | null;
 };
 
 export async function searchCatalog(input: { query: string; limit?: number }) {
   const local = await searchLocalMedia(input.query, input.limit ?? 20);
-  const token = env.TMDB_READ_ACCESS_TOKEN;
 
-  if (typeof token !== "string" || token.trim() === "") {
+  if (!tmdbToken()) {
     return {
       remoteEnabled: false,
       local,
@@ -24,24 +26,20 @@ export async function searchCatalog(input: { query: string; limit?: number }) {
     };
   }
 
-  const remote = await searchTmdbMedia({ token, query: input.query, limit: input.limit ?? 20 });
+  const remote = await searchTmdbMedia({ query: input.query, limit: input.limit ?? 20 });
   const cachedRows = await findMediaByTmdbIds(
-    remote.map((item) => ({ mediaType: item.mediaType, providerId: item.providerId })),
+    remote.map((item) => ({ mediaType: item.mediaType, tmdbId: item.tmdbId })),
   );
-  const cachedMap = new Map(
-    cachedRows.map((row) => [`${row.mediaType}:${row.providerId}`, row.id]),
-  );
+  const cachedMap = new Map(cachedRows.map((row) => [`${row.mediaType}:${row.tmdbId}`, row.id]));
 
   return {
     remoteEnabled: true,
     local,
     remote: remote.map((item) => {
-      const cacheKey = `${item.mediaType}:${item.providerId}`;
-      const cachedMediaId = cachedMap.get(cacheKey) ?? null;
+      const cacheKey = `${item.mediaType}:${item.tmdbId}`;
       return {
         ...item,
-        cached: cachedMediaId !== null,
-        cachedMediaId,
+        cachedMediaId: cachedMap.get(cacheKey) ?? null,
       };
     }),
   };
@@ -57,12 +55,8 @@ export function validateCacheInput(input: unknown) {
   if (body.mediaType !== "movie" && body.mediaType !== "show") {
     throw new Error("mediaType must be movie or show");
   }
-  if (
-    typeof body.providerId !== "number" ||
-    !Number.isInteger(body.providerId) ||
-    body.providerId <= 0
-  ) {
-    throw new Error("providerId must be a positive integer");
+  if (typeof body.tmdbId !== "number" || !Number.isInteger(body.tmdbId) || body.tmdbId <= 0) {
+    throw new Error("tmdbId must be a positive integer");
   }
   if (typeof body.title !== "string" || body.title.trim() === "") {
     throw new Error("title is required");
@@ -73,7 +67,7 @@ export function validateCacheInput(input: unknown) {
 
   return {
     mediaType: body.mediaType as MediaType,
-    providerId: body.providerId,
+    tmdbId: body.tmdbId,
     title: body.title.trim(),
     slug: body.slug.trim(),
     originalTitle: typeof body.originalTitle === "string" ? body.originalTitle : null,
@@ -91,10 +85,9 @@ export function validateCacheInput(input: unknown) {
 
 export async function cacheMediaSelection(input: unknown) {
   const validInput = validateCacheInput(input);
-  const token = env.TMDB_READ_ACCESS_TOKEN;
   const showTotals =
-    validInput.mediaType === "show" && typeof token === "string" && token.trim() !== ""
-      ? await fetchTmdbShowTotals({ token, providerId: validInput.providerId })
+    validInput.mediaType === "show" && tmdbToken()
+      ? await fetchTmdbShowTotals({ tmdbId: validInput.tmdbId })
       : { seasonCount: validInput.seasonCount, episodeCount: validInput.episodeCount };
 
   const mediaId = await upsertMediaFromTmdb({
