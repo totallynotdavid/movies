@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1780131110828,
+      "tag": "20260530085150_daffy_warbird",
+      "breakpoints": true
+    }
+  ]
+}
