@@ -28,11 +28,17 @@ bun run fixtures:trending   # replace with current trending titles
 
 ## Deploying
 
+Normal release:
+
 ```sh
-bun run release:validate  # type-check and lint
-bun run release:db        # run pending migrations on remote D1
-bun run release:app       # deploy the worker
-bun run release:data      # seed remote D1 with fixture data
+bun run release
 ```
 
-Run in order. `release:data` uses `onConflictDoNothing` so it is safe to re-run.
+Destructive recovery (after you manually reset/recreate the remote project/DB):
+
+```sh
+bun run recover
+```
+
+Use the first command for day-to-day releases. Use the recovery command only
+when you intentionally need a clean remote database.
