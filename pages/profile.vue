@@ -9,6 +9,7 @@ import { formatScore } from "../src/domain/rating";
 const TMDB_PROFILE = "https://image.tmdb.org/t/p/w185";
 
 const props = defineProps<Props>();
+const wrappedYear = new Date().getUTCFullYear();
 
 const formatStatPanels = computed(() => [
   {
@@ -37,6 +38,27 @@ const formatStatPanels = computed(() => [
       <div class="flex flex-col gap-1">
         <h1 class="text-2xl font-mono font-bold">{{ user.name }}</h1>
         <p class="text-fg-muted text-sm font-mono">{{ user.email }}</p>
+      </div>
+    </section>
+
+    <section
+      class="flex flex-col gap-3 border-y border-border py-4 motion-safe:animate-slide-up animate-fill-both"
+      style="animation-delay: 0.025s"
+    >
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-1">
+          <h2 class="text-sm font-mono text-fg-muted">{{ wrappedYear }} wrapped</h2>
+          <p class="text-sm text-fg-subtle">
+            See the time, genres, and people behind what you watched most this year.
+          </p>
+        </div>
+        <a
+          href="/wrapped"
+          class="inline-flex items-center gap-2 self-start rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm font-mono text-fg transition-colors hover:bg-accent/15"
+        >
+          <span class="i-lucide:sparkles h-4 w-4" aria-hidden="true" />
+          open wrapped
+        </a>
       </div>
     </section>
 

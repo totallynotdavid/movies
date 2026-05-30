@@ -17,6 +17,7 @@ const shortcutsOpen = ref(false);
 
 const navLinks = [
   { href: "/library", label: "library", auth: true },
+  { href: "/wrapped", label: "wrapped", auth: true },
   { href: "/profile", label: "profile", auth: true },
 ];
 
@@ -194,6 +195,14 @@ onUnmounted(() => {
               >
                 <span class="i-lucide:library w-4 h-4" aria-hidden="true" />
                 library
+              </Link>
+              <Link
+                href="/wrapped"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                @click="mobileMenuOpen = false"
+              >
+                <span class="i-lucide:sparkles w-4 h-4" aria-hidden="true" />
+                wrapped
               </Link>
               <Link
                 href="/profile"
