@@ -1,8 +1,12 @@
 import { and, desc, eq, inArray, like, or } from "drizzle-orm";
 import { db } from "void/db";
 import { media } from "../../db/schema";
+import { attempt, err, ok, type Result } from "../result";
+import type { TrackingError } from "./errors";
 
 export type MediaType = "movie" | "show";
+
+export type MediaRecord = typeof media.$inferSelect;
 
 export type UpsertMediaInput = {
   mediaType: MediaType;
@@ -14,6 +18,8 @@ export type UpsertMediaInput = {
   posterPath?: string | null;
   backdropPath?: string | null;
   releaseDate?: string | null;
+  seasonCount?: number | null;
+  episodeCount?: number | null;
   voteAverage?: number | null;
   voteCount?: number | null;
   popularity?: number | null;
@@ -36,6 +42,16 @@ export async function listMedia(input: { type?: MediaType; limit?: number } = {}
   }
 
   return db.select().from(media).orderBy(desc(media.popularity)).limit(limit);
+}
+
+export async function findMedia(mediaId: string): Promise<Result<MediaRecord, TrackingError>> {
+  const rows = await attempt(
+    db.select().from(media).where(eq(media.id, mediaId)).limit(1),
+    (cause): TrackingError => ({ kind: "persistence_failed", cause }),
+  );
+  if (!rows.ok) return rows;
+  const record = rows.value[0];
+  return record ? ok(record) : err({ kind: "media_not_found", mediaId });
 }
 
 export async function searchLocalMedia(query: string, limit = 20) {
@@ -90,6 +106,8 @@ export async function upsertMediaFromTmdb(input: UpsertMediaInput) {
       posterPath: input.posterPath ?? null,
       backdropPath: input.backdropPath ?? null,
       releaseDate: input.releaseDate ?? null,
+      seasonCount: input.seasonCount ?? null,
+      episodeCount: input.episodeCount ?? null,
       voteAverage: input.voteAverage ?? null,
       voteCount: input.voteCount ?? null,
       popularity: input.popularity ?? null,
@@ -107,6 +125,8 @@ export async function upsertMediaFromTmdb(input: UpsertMediaInput) {
         posterPath: input.posterPath ?? null,
         backdropPath: input.backdropPath ?? null,
         releaseDate: input.releaseDate ?? null,
+        seasonCount: input.seasonCount ?? null,
+        episodeCount: input.episodeCount ?? null,
         voteAverage: input.voteAverage ?? null,
         voteCount: input.voteCount ?? null,
         popularity: input.popularity ?? null,

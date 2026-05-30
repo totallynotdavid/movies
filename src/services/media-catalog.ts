@@ -5,7 +5,7 @@ import {
   type MediaType,
   upsertMediaFromTmdb,
 } from "../domain/media";
-import { searchTmdbMedia, type TmdbMediaResult } from "../integrations/tmdb";
+import { fetchTmdbShowTotals, searchTmdbMedia, type TmdbMediaResult } from "../integrations/tmdb";
 
 export type MediaSearchResult = TmdbMediaResult & {
   cached: boolean;
@@ -81,6 +81,8 @@ export function validateCacheInput(input: unknown) {
     posterPath: typeof body.posterPath === "string" ? body.posterPath : null,
     backdropPath: typeof body.backdropPath === "string" ? body.backdropPath : null,
     releaseDate: typeof body.releaseDate === "string" ? body.releaseDate : null,
+    seasonCount: typeof body.seasonCount === "number" ? body.seasonCount : null,
+    episodeCount: typeof body.episodeCount === "number" ? body.episodeCount : null,
     voteAverage: typeof body.voteAverage === "number" ? body.voteAverage : null,
     voteCount: typeof body.voteCount === "number" ? body.voteCount : null,
     popularity: typeof body.popularity === "number" ? body.popularity : null,
@@ -89,6 +91,15 @@ export function validateCacheInput(input: unknown) {
 
 export async function cacheMediaSelection(input: unknown) {
   const validInput = validateCacheInput(input);
-  const mediaId = await upsertMediaFromTmdb(validInput);
+  const token = env.TMDB_READ_ACCESS_TOKEN;
+  const showTotals =
+    validInput.mediaType === "show" && typeof token === "string" && token.trim() !== ""
+      ? await fetchTmdbShowTotals({ token, providerId: validInput.providerId })
+      : { seasonCount: validInput.seasonCount, episodeCount: validInput.episodeCount };
+
+  const mediaId = await upsertMediaFromTmdb({
+    ...validInput,
+    ...showTotals,
+  });
   return { mediaId };
 }

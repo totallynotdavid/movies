@@ -1,10 +1,18 @@
 import { db } from "void/db";
-import { desc, eq } from "drizzle-orm";
-import { libraryEntries, media, users } from "../../db/schema";
+import { and, desc, eq } from "drizzle-orm";
+import { libraryEntries, media } from "../../db/schema";
+import { attempt, ok, type Result } from "../result";
+import type { TrackingError } from "./errors";
 
 export type LibraryStatus = "planned" | "watching" | "completed" | "paused" | "dropped";
-export type UserRole = "anonymous" | "member" | "admin";
 const libraryStatuses = ["planned", "watching", "completed", "paused", "dropped"] as const;
+
+export type LibraryEntryRecord = typeof libraryEntries.$inferSelect;
+
+export function parseLibraryStatus(value: unknown): LibraryStatus | null {
+  if (typeof value !== "string") return null;
+  return libraryStatuses.find((status) => status === value) ?? null;
+}
 
 export async function listLibraryForUser(userId: string) {
   return db
@@ -12,9 +20,9 @@ export async function listLibraryForUser(userId: string) {
       id: libraryEntries.id,
       status: libraryEntries.status,
       score100: libraryEntries.score100,
-      progressCurrent: libraryEntries.progressCurrent,
-      progressTotal: libraryEntries.progressTotal,
       notes: libraryEntries.notes,
+      episodesWatched: libraryEntries.episodesWatched,
+      lastWatchedAt: libraryEntries.lastWatchedAt,
       updatedAt: libraryEntries.updatedAt,
       media,
     })
@@ -24,108 +32,70 @@ export async function listLibraryForUser(userId: string) {
     .orderBy(desc(libraryEntries.updatedAt));
 }
 
-export async function upsertLibraryEntry(input: {
+export async function findEntry(
+  userId: string,
+  mediaId: string,
+): Promise<Result<LibraryEntryRecord | null, TrackingError>> {
+  const rows = await attempt(
+    db
+      .select()
+      .from(libraryEntries)
+      .where(and(eq(libraryEntries.userId, userId), eq(libraryEntries.mediaId, mediaId)))
+      .limit(1),
+    (cause): TrackingError => ({ kind: "persistence_failed", cause }),
+  );
+  if (!rows.ok) return rows;
+  return ok(rows.value[0] ?? null);
+}
+
+type LibraryEntryInput = {
   userId: string;
   mediaId: string;
   status: LibraryStatus;
   score100?: number | null;
-  progressCurrent?: number;
-  progressTotal?: number | null;
   notes?: string | null;
-}) {
+};
+
+/**
+ * Create or update the user-editable fields of a library entry (status, score, notes).
+ * The progress cache (episodesWatched/lastWatchedAt) is owned by watch logging and left untouched.
+ */
+export async function upsertLibraryEntry(
+  input: LibraryEntryInput,
+): Promise<Result<LibraryEntryRecord, TrackingError>> {
+  const existing = await findEntry(input.userId, input.mediaId);
+  if (!existing.ok) return existing;
+
   const now = Date.now();
-  const id = `${input.userId}:${input.mediaId}`;
+  const prev = existing.value;
+  const row: LibraryEntryRecord = {
+    id: prev?.id ?? crypto.randomUUID(),
+    userId: input.userId,
+    mediaId: input.mediaId,
+    status: input.status,
+    score100: input.score100 !== undefined ? input.score100 : (prev?.score100 ?? null),
+    notes: input.notes !== undefined ? input.notes : (prev?.notes ?? null),
+    episodesWatched: prev?.episodesWatched ?? 0,
+    lastWatchedAt: prev?.lastWatchedAt ?? null,
+    createdAt: prev?.createdAt ?? now,
+    updatedAt: now,
+  };
 
-  await db
-    .insert(libraryEntries)
-    .values({
-      id,
-      userId: input.userId,
-      mediaId: input.mediaId,
-      status: input.status,
-      score100: input.score100 ?? null,
-      progressCurrent: input.progressCurrent ?? 0,
-      progressTotal: input.progressTotal ?? null,
-      notes: input.notes ?? null,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [libraryEntries.userId, libraryEntries.mediaId],
-      set: {
-        status: input.status,
-        score100: input.score100 ?? null,
-        progressCurrent: input.progressCurrent ?? 0,
-        progressTotal: input.progressTotal ?? null,
-        notes: input.notes ?? null,
-        updatedAt: now,
-      },
-    });
-
-  return { ok: true };
-}
-
-export function parseLibraryStatus(value: unknown): LibraryStatus | null {
-  if (typeof value !== "string") return null;
-  return libraryStatuses.find((status) => status === value) ?? null;
-}
-
-export async function ensureProfileForAuthUser(input: { id: string; email: string; name: string }) {
-  const now = Date.now();
-  await db
-    .insert(users)
-    .values({
-      id: input.id,
-      email: input.email,
-      name: input.name || input.email,
-      role: "member",
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoNothing();
-}
-
-export async function getUserRole(userId: string) {
-  const rows = await db
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  const role = rows[0]?.role;
-  return role === "admin" ? "admin" : "member";
-}
-
-export type RatingSystem = "score5" | "score10" | "score100";
-const ratingSystems: RatingSystem[] = ["score5", "score10", "score100"];
-
-export function parseRatingSystem(value: unknown): RatingSystem {
-  if (typeof value === "string" && ratingSystems.includes(value as RatingSystem)) {
-    return value as RatingSystem;
-  }
-  return "score100";
-}
-
-export function displayScore(score100: number, system: RatingSystem): number {
-  if (system === "score5") return Math.round(score100 / 20);
-  if (system === "score10") return Math.round(score100 / 10);
-  return score100;
-}
-
-export function toScore100(value: number, system: RatingSystem): number {
-  if (system === "score5") return Math.min(100, Math.max(0, value * 20));
-  if (system === "score10") return Math.min(100, Math.max(0, value * 10));
-  return Math.min(100, Math.max(0, value));
-}
-
-export async function getUserSettings(userId: string) {
-  const rows = await db
-    .select({ ratingSystem: users.ratingSystem })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  return { ratingSystem: parseRatingSystem(rows[0]?.ratingSystem) };
-}
-
-export async function updateUserSettings(userId: string, input: { ratingSystem: RatingSystem }) {
-  await db.update(users).set({ ratingSystem: input.ratingSystem }).where(eq(users.id, userId));
-  return { ratingSystem: input.ratingSystem };
+  const result = await attempt(
+    db
+      .insert(libraryEntries)
+      .values(row)
+      .onConflictDoUpdate({
+        target: [libraryEntries.userId, libraryEntries.mediaId],
+        set: {
+          status: row.status,
+          score100: row.score100,
+          notes: row.notes,
+          updatedAt: row.updatedAt,
+        },
+      }),
+    (cause): TrackingError => ({ kind: "persistence_failed", cause }),
+  );
+  if (!result.ok) return result;
+  return ok(row);
 }
