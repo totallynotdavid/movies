@@ -1,1 +1,0 @@
-ALTER TABLE `users` ADD `rating_system` text DEFAULT 'score100' NOT NULL;
