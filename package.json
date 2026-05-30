@@ -42,5 +42,8 @@
     "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.23",
     "wrangler": "^4.95.0"
   },
-  "packageManager": "bun@1.3.14"
+  "packageManager": "bun@1.3.14",
+  "patchedDependencies": {
+    "@cloudflare/vite-plugin@1.39.0": "patches/@cloudflare%2Fvite-plugin@1.39.0.patch"
+  }
 }
