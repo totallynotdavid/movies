@@ -8,7 +8,7 @@ import type { LibraryStatus } from "../src/domain/library";
 
 type RemoteCandidate = {
   mediaType: "movie" | "show";
-  providerId: number;
+  tmdbId: number;
   title: string;
   originalTitle: string | null;
   overview: string | null;
@@ -19,13 +19,12 @@ type RemoteCandidate = {
   voteCount: number | null;
   popularity: number | null;
   slug: string;
-  cached: boolean;
   cachedMediaId: string | null;
 };
 
 const props = defineProps<Props>();
 
-// Reactive local copy — no page reload needed
+// Reactive local copy, no page reload needed.
 const localEntries = ref([...props.entries]);
 
 const query = ref("");
@@ -266,7 +265,7 @@ function clearSearch() {
       </div>
 
       <p v-if="!remoteEnabled && hasSearched" class="text-xs text-fg-subtle font-mono">
-        tmdb token missing — showing local matches only
+        tmdb token missing, showing local matches only
       </p>
 
       <p v-if="searchError" class="text-sm text-red-400 font-mono">{{ searchError }}</p>
@@ -312,7 +311,7 @@ function clearSearch() {
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             <div
               v-for="item in searchRemote"
-              :key="`${item.mediaType}:${item.providerId}`"
+              :key="`${item.mediaType}:${item.tmdbId}`"
               class="flex flex-col gap-2"
             >
               <MediaCard

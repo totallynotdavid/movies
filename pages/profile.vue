@@ -6,7 +6,7 @@ import ProfileActivityFeed from "../src/components/profile/ProfileActivityFeed.v
 import ProfileActivityHeatmap from "../src/components/profile/ProfileActivityHeatmap.vue";
 import { formatScore } from "../src/domain/rating";
 
-const TMDB_IMG = "https://image.tmdb.org/t/p/w185";
+const TMDB_PROFILE = "https://image.tmdb.org/t/p/w185";
 
 const props = defineProps<Props>();
 
@@ -120,23 +120,24 @@ const formatStatPanels = computed(() => [
       </div>
     </section>
 
-    <!-- Favorite actors -->
+    <!-- Favorite people -->
     <section
-      v-if="favoriteActors.length > 0"
+      v-if="favoritePeople.length > 0"
       class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
       style="animation-delay: 0.25s"
     >
-      <h2 class="text-sm font-mono text-fg-muted">favorite actors</h2>
+      <h2 class="text-sm font-mono text-fg-muted">favorite people</h2>
       <div class="flex flex-wrap gap-3">
-        <div
-          v-for="actor in favoriteActors"
-          :key="actor.id"
-          class="flex items-center gap-3 px-3 py-2 rounded-xl border border-border bg-bg-subtle"
+        <a
+          v-for="person in favoritePeople"
+          :key="person.personId"
+          :href="`/person/${person.slug}`"
+          class="group flex items-center gap-3 px-3 py-2 rounded-xl border border-border bg-bg-subtle hover:border-border-hover transition-colors"
         >
           <img
-            v-if="actor.actorProfilePath"
-            :src="`${TMDB_IMG}${actor.actorProfilePath}`"
-            :alt="actor.actorName"
+            v-if="person.profilePath"
+            :src="`${TMDB_PROFILE}${person.profilePath}`"
+            :alt="person.name"
             class="w-8 h-8 rounded-full object-cover"
             loading="lazy"
           />
@@ -147,8 +148,10 @@ const formatStatPanels = computed(() => [
           >
             <span class="i-lucide:user w-4 h-4 text-fg-subtle" />
           </div>
-          <span class="text-sm font-mono text-fg">{{ actor.actorName }}</span>
-        </div>
+          <span class="text-sm font-mono text-fg group-hover:text-accent transition-colors">
+            {{ person.name }}
+          </span>
+        </a>
       </div>
     </section>
   </div>
