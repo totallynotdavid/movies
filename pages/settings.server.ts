@@ -1,7 +1,7 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { requireAuth } from "void/auth";
-import { getUserSettings } from "../src/domain/library";
+import { getUserSettings } from "../src/domain/user";
 
 export type Props = InferProps<typeof loader>;
 

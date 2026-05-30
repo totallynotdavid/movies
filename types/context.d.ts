@@ -1,5 +1,5 @@
 import "void";
-import type { UserRole } from "../src/domain/library";
+import type { UserRole } from "../src/domain/user";
 
 declare module "void" {
   interface CloudContextVariables {

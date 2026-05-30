@@ -3,8 +3,10 @@ import type { InferProps } from "void";
 import { getUser } from "void/auth";
 import { and, eq } from "drizzle-orm";
 import { db } from "void/db";
-import { libraryEntries, media, userFavoriteMedia } from "../../db/schema";
-import { getUserSettings } from "../../src/domain/library";
+import { userFavoriteMedia, media } from "../../db/schema";
+import { findEntry, type LibraryEntryRecord } from "../../src/domain/library";
+import { getUserSettings } from "../../src/domain/user";
+import type { RatingSystem } from "../../src/domain/rating";
 
 export type Props = InferProps<typeof loader>;
 
@@ -19,32 +21,13 @@ export const loader = defineHandler(async (c) => {
     return c.notFound();
   }
 
-  let libraryEntry: {
-    id: string;
-    status: "planned" | "watching" | "completed" | "paused" | "dropped";
-    score100: number | null;
-    progressCurrent: number;
-    progressTotal: number | null;
-    notes: string | null;
-  } | null = null;
-
+  let libraryEntry: LibraryEntryRecord | null = null;
   let isFavorited = false;
-  let ratingSystem: "score5" | "score10" | "score100" = "score100";
+  let ratingSystem: RatingSystem = "score100";
 
   if (user) {
-    const [entryRows, favRows, settings] = await Promise.all([
-      db
-        .select({
-          id: libraryEntries.id,
-          status: libraryEntries.status,
-          score100: libraryEntries.score100,
-          progressCurrent: libraryEntries.progressCurrent,
-          progressTotal: libraryEntries.progressTotal,
-          notes: libraryEntries.notes,
-        })
-        .from(libraryEntries)
-        .where(and(eq(libraryEntries.userId, user.id), eq(libraryEntries.mediaId, item.id)))
-        .limit(1),
+    const [entry, favRows, settings] = await Promise.all([
+      findEntry(user.id, item.id),
       db
         .select()
         .from(userFavoriteMedia)
@@ -52,7 +35,8 @@ export const loader = defineHandler(async (c) => {
         .limit(1),
       getUserSettings(user.id),
     ]);
-    libraryEntry = entryRows[0] ?? null;
+    if (!entry.ok) throw new Error("failed to load library entry", { cause: entry.error });
+    libraryEntry = entry.value;
     isFavorited = favRows.length > 0;
     ratingSystem = settings.ratingSystem;
   }

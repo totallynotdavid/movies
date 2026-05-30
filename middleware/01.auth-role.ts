@@ -1,6 +1,6 @@
 import { defineMiddleware } from "void";
 import { getUser } from "void/auth";
-import { ensureProfileForAuthUser, getUserRole, type UserRole } from "../src/domain/library";
+import { ensureProfileForAuthUser, getUserRole, type UserRole } from "../src/domain/user";
 
 export default defineMiddleware(async (c, next) => {
   const user = getUser();

@@ -1,10 +1,7 @@
 import { defineHandler } from "void";
 import { requireAuth } from "void/auth";
-import {
-  getUserSettings,
-  updateUserSettings,
-  parseRatingSystem,
-} from "../../../src/domain/library";
+import { getUserSettings, updateUserSettings } from "../../../src/domain/user";
+import { parseRatingSystem } from "../../../src/domain/rating";
 
 export const GET = defineHandler(async (c) => {
   const user = requireAuth(c);
