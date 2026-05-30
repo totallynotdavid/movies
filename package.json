@@ -13,10 +13,8 @@
     "db:seed": "vp exec void db seed",
     "fixtures:fetch": "bun --env-file .env.local scripts/fetch-metadata.ts --all",
     "fixtures:trending": "bun --env-file .env.local scripts/fetch-metadata.ts --trending",
-    "release:validate": "vp check",
-    "release:db": "vp exec void db migrate --remote",
-    "release:app": "vp exec void deploy",
-    "release:data": "vp exec void db seed",
+    "release": "vp check && vp exec void db migrate --remote && vp exec void deploy",
+    "recover": "vp exec void db migrate --remote && vp exec void db seed && vp exec void deploy",
     "postinstall": "vp config"
   },
   "dependencies": {
