@@ -10,6 +10,8 @@ export type MediaFixture = {
   posterPath: string | null;
   backdropPath: string | null;
   releaseDate: string | null;
+  seasonCount?: number | null;
+  episodeCount?: number | null;
   voteAverage: number | null;
   voteCount: number | null;
   popularity: number | null;
