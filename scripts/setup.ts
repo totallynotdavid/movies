@@ -14,8 +14,8 @@ function esc(v: string | null): string {
   return `'${v.replace(/'/g, "''")}'`;
 }
 
-function num(v: number | null): string {
-  return v === null ? "NULL" : String(v);
+function num(v: number | null | undefined): string {
+  return v == null ? "NULL" : String(v);
 }
 
 type MediaFixture = {
@@ -30,6 +30,8 @@ type MediaFixture = {
   posterPath: string | null;
   backdropPath: string | null;
   releaseDate: string | null;
+  seasonCount?: number | null;
+  episodeCount?: number | null;
   voteAverage: number | null;
   voteCount: number | null;
   popularity: number | null;
@@ -45,8 +47,8 @@ function main() {
     `INSERT OR IGNORE INTO users (id, email, name, role, created_at, updated_at) VALUES ('bootstrap-admin', 'admin@example.com', 'Bootstrap Admin', 'admin', ${now}, ${now});`,
     ...media.map(
       (m) =>
-        `INSERT OR IGNORE INTO media (id, media_type, provider, provider_id, slug, title, original_title, overview, poster_path, backdrop_path, release_date, vote_average, vote_count, popularity, created_at, updated_at) ` +
-        `VALUES (${esc(m.id)}, ${esc(m.mediaType)}, ${esc(m.provider)}, ${m.providerId}, ${esc(m.slug)}, ${esc(m.title)}, ${esc(m.originalTitle)}, ${esc(m.overview)}, ${esc(m.posterPath)}, ${esc(m.backdropPath)}, ${esc(m.releaseDate)}, ${num(m.voteAverage)}, ${num(m.voteCount)}, ${num(m.popularity)}, ${now}, ${now});`,
+        `INSERT OR IGNORE INTO media (id, media_type, provider, provider_id, slug, title, original_title, overview, poster_path, backdrop_path, release_date, season_count, episode_count, vote_average, vote_count, popularity, created_at, updated_at) ` +
+        `VALUES (${esc(m.id)}, ${esc(m.mediaType)}, ${esc(m.provider)}, ${m.providerId}, ${esc(m.slug)}, ${esc(m.title)}, ${esc(m.originalTitle)}, ${esc(m.overview)}, ${esc(m.posterPath)}, ${esc(m.backdropPath)}, ${esc(m.releaseDate)}, ${num(m.seasonCount)}, ${num(m.episodeCount)}, ${num(m.voteAverage)}, ${num(m.voteCount)}, ${num(m.popularity)}, ${now}, ${now});`,
     ),
   ];
 
