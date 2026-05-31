@@ -1,8 +1,8 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "void/db";
-import { castCredits, crewCredits, people } from "../../db/schema";
-import { insertChunks, type Statement } from "../db/kernel";
-import type { CastInput, CrewInput } from "../../shared/types/metadata";
+import { castCredits, crewCredits, people } from "../../../db/schema";
+import { insertChunks, selectByIds, type Statement } from "../../db/kernel";
+import type { CastInput, CrewInput } from "../../../shared/types/metadata";
 import type { MediaType } from "./media";
 import { toPersonId } from "./people";
 
@@ -49,18 +49,25 @@ export function mediaCreditsWrite(
   ];
 }
 
-export type CastView = {
+// One row shape per credit kind, carrying every column a reader needs: the media
+// page reads character/ordering, the wrapped recap reads billingOrder/mediaId.
+// Single-media and bulk-by-ids reads share these columns, so there is one source
+// of truth for "what a credit row looks like".
+export type CastRow = {
   id: string;
+  mediaId: string;
   personId: string;
   name: string;
   slug: string;
   profilePath: string | null;
   character: string | null;
+  billingOrder: number | null;
   episodeCount: number | null;
 };
 
-export type CrewView = {
+export type CrewRow = {
   id: string;
+  mediaId: string;
   personId: string;
   name: string;
   slug: string;
@@ -87,16 +94,19 @@ const KEY_CREW_JOBS = [
 
 const castColumns = {
   id: castCredits.id,
+  mediaId: castCredits.mediaId,
   personId: castCredits.personId,
   name: people.name,
   slug: people.slug,
   profilePath: people.profilePath,
   character: castCredits.character,
+  billingOrder: castCredits.billingOrder,
   episodeCount: castCredits.episodeCount,
 };
 
 const crewColumns = {
   id: crewCredits.id,
+  mediaId: crewCredits.mediaId,
   personId: crewCredits.personId,
   name: people.name,
   slug: people.slug,
@@ -111,7 +121,7 @@ export async function listCast(
   mediaId: string,
   mediaType: MediaType,
   limit?: number,
-): Promise<CastView[]> {
+): Promise<CastRow[]> {
   const order =
     mediaType === "show"
       ? [desc(castCredits.episodeCount), asc(castCredits.billingOrder)]
@@ -130,7 +140,7 @@ export async function listCast(
 
 const KEY_CREW_PREVIEW = 8;
 
-export async function listKeyCrew(mediaId: string): Promise<CrewView[]> {
+export async function listKeyCrew(mediaId: string): Promise<CrewRow[]> {
   return db
     .select(crewColumns)
     .from(crewCredits)
@@ -140,13 +150,35 @@ export async function listKeyCrew(mediaId: string): Promise<CrewView[]> {
     .limit(KEY_CREW_PREVIEW);
 }
 
-export async function listAllCrew(mediaId: string): Promise<CrewView[]> {
+export async function listAllCrew(mediaId: string): Promise<CrewRow[]> {
   return db
     .select(crewColumns)
     .from(crewCredits)
     .innerJoin(people, eq(crewCredits.personId, people.id))
     .where(eq(crewCredits.mediaId, mediaId))
     .orderBy(asc(crewCredits.department), desc(crewCredits.episodeCount), asc(crewCredits.job));
+}
+
+// Bulk reads for aggregation across a set of titles (the wrapped recap). Raw and
+// unordered; the caller ranks and limits per title.
+export async function castByMedia(mediaIds: readonly string[]): Promise<CastRow[]> {
+  return selectByIds(mediaIds, (batch) =>
+    db
+      .select(castColumns)
+      .from(castCredits)
+      .innerJoin(people, eq(castCredits.personId, people.id))
+      .where(inArray(castCredits.mediaId, batch)),
+  );
+}
+
+export async function crewByMedia(mediaIds: readonly string[]): Promise<CrewRow[]> {
+  return selectByIds(mediaIds, (batch) =>
+    db
+      .select(crewColumns)
+      .from(crewCredits)
+      .innerJoin(people, eq(crewCredits.personId, people.id))
+      .where(inArray(crewCredits.mediaId, batch)),
+  );
 }
 
 export function groupByDepartment<T extends { department: string }>(items: T[]): CrewGroup<T>[] {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildActivityCalendar, buildProfileFormatStats, calendarStartDate } from "./profile-stats";
+import { buildActivityCalendar, buildProfileFormatStats, calendarStartDate } from "./profile";
 
 describe("buildProfileFormatStats", () => {
   it("aggregates by media type with distinct watch days and average score", () => {

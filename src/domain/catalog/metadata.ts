@@ -1,8 +1,8 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "void/db";
-import { companies, genres, mediaCompanies, mediaGenres, mediaTitles } from "../../db/schema";
-import { insertChunks, type Statement } from "../db/kernel";
-import type { AltTitleInput, CompanyInput, GenreInput } from "../../shared/types/metadata";
+import { companies, genres, mediaCompanies, mediaGenres, mediaTitles } from "../../../db/schema";
+import { insertChunks, selectByIds, type Statement } from "../../db/kernel";
+import type { AltTitleInput, CompanyInput, GenreInput } from "../../../shared/types/metadata";
 
 export type GenreView = { name: string };
 export type CompanyView = { kind: "company" | "network"; name: string };
@@ -14,6 +14,26 @@ export function listMediaGenres(mediaId: string): Promise<GenreView[]> {
     .from(mediaGenres)
     .innerJoin(genres, eq(mediaGenres.genreId, genres.id))
     .where(eq(mediaGenres.mediaId, mediaId));
+}
+
+// Bulk genre names grouped per title, for aggregation across a set of media
+// (wrapped recap, mirror). Single source for the mediaGenres⋈genres join.
+export async function genresByMedia(mediaIds: readonly string[]): Promise<Map<string, string[]>> {
+  const rows = await selectByIds(mediaIds, (batch) =>
+    db
+      .select({ mediaId: mediaGenres.mediaId, genreName: genres.name })
+      .from(mediaGenres)
+      .innerJoin(genres, eq(mediaGenres.genreId, genres.id))
+      .where(inArray(mediaGenres.mediaId, batch)),
+  );
+
+  const byMedia = new Map<string, string[]>();
+  for (const row of rows) {
+    const list = byMedia.get(row.mediaId) ?? [];
+    list.push(row.genreName);
+    byMedia.set(row.mediaId, list);
+  }
+  return byMedia;
 }
 
 export function listMediaCompanies(mediaId: string): Promise<CompanyView[]> {

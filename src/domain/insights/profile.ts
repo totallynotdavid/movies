@@ -1,7 +1,8 @@
-import { and, desc, eq, gte } from "drizzle-orm";
-import { db } from "void/db";
-import { libraryEntries, media, watchEvents } from "../../db/schema";
-import type { MediaType } from "./media";
+import type { MediaType } from "../catalog/media";
+import { genresByMedia } from "../catalog/metadata";
+import { entriesWithProgress } from "../tracking/library";
+import { listWatchHistory, type WatchHistoryRow } from "../tracking/watch-history";
+import { buildMirror, type Mirror } from "./mirror";
 
 type FormatStatsSource = {
   mediaType: MediaType;
@@ -39,7 +40,15 @@ export type ProfileActivityItem = {
   slug: string;
   watchedAt: number;
   watchedOn: string;
-  episodeOrdinal: number | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+};
+
+export type ProfileOverview = {
+  formatStats: ProfileFormatStats;
+  activityCalendar: ProfileCalendarDay[];
+  recentActivity: ProfileActivityItem[];
+  mirror: Mirror;
 };
 
 export function buildProfileFormatStats(
@@ -106,61 +115,47 @@ export function buildActivityCalendar(
   });
 }
 
-export async function getProfileFormatStats(userId: string) {
-  const [libraryRows, watchRows] = await Promise.all([
-    db
-      .select({
-        mediaType: media.mediaType,
-        score100: libraryEntries.score100,
-      })
-      .from(libraryEntries)
-      .innerJoin(media, eq(libraryEntries.mediaId, media.id))
-      .where(eq(libraryEntries.userId, userId)),
-    db
-      .select({
-        mediaType: watchEvents.mediaType,
-        watchedOn: watchEvents.watchedOn,
-      })
-      .from(watchEvents)
-      .where(eq(watchEvents.userId, userId)),
+// The recent activity feed is the latest N watches — a pure slice of the shared
+// history, no separate query.
+export function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileActivityItem[] {
+  return [...history]
+    .sort((a, b) => b.watchedAt - a.watchedAt)
+    .slice(0, limit)
+    .map((row) => ({
+      id: row.id,
+      mediaId: row.mediaId,
+      mediaType: row.mediaType,
+      title: row.title,
+      slug: row.slug,
+      watchedAt: row.watchedAt,
+      watchedOn: row.watchedOn,
+      seasonNumber: row.seasonNumber,
+      episodeNumber: row.episodeNumber,
+    }));
+}
+
+// The whole profile read model from a single behavior-log gather: history is read
+// once, the library entries (with derived progress) once, the genre map once —
+// then every projection is a pure function of those. Tracked counts come from the
+// intent side (titles with no watch yet count), watch days from the history.
+export async function getProfileOverview(userId: string): Promise<ProfileOverview> {
+  const history = await listWatchHistory(userId);
+  const mediaIds = [...new Set(history.map((row) => row.mediaId))];
+
+  const [entries, genres] = await Promise.all([
+    entriesWithProgress(userId),
+    genresByMedia(mediaIds),
   ]);
 
-  return buildProfileFormatStats(libraryRows, watchRows);
-}
+  const formatSource: FormatStatsSource[] = entries.map((entry) => ({
+    mediaType: entry.media.mediaType,
+    score100: entry.score100,
+  }));
 
-export async function getProfileActivityCalendar(userId: string, days = 365) {
-  const today = new Date();
-  const rows = await db
-    .select({ watchedOn: watchEvents.watchedOn })
-    .from(watchEvents)
-    .where(
-      and(
-        eq(watchEvents.userId, userId),
-        gte(watchEvents.watchedOn, calendarStartDate(days, today)),
-      ),
-    );
-
-  return buildActivityCalendar(rows, days, today);
-}
-
-export async function listProfileActivity(
-  userId: string,
-  limit = 20,
-): Promise<ProfileActivityItem[]> {
-  return db
-    .select({
-      id: watchEvents.id,
-      mediaId: watchEvents.mediaId,
-      mediaType: watchEvents.mediaType,
-      title: media.title,
-      slug: media.slug,
-      watchedAt: watchEvents.watchedAt,
-      watchedOn: watchEvents.watchedOn,
-      episodeOrdinal: watchEvents.episodeOrdinal,
-    })
-    .from(watchEvents)
-    .innerJoin(media, eq(watchEvents.mediaId, media.id))
-    .where(eq(watchEvents.userId, userId))
-    .orderBy(desc(watchEvents.watchedAt))
-    .limit(limit);
+  return {
+    formatStats: buildProfileFormatStats(formatSource, history),
+    activityCalendar: buildActivityCalendar(history),
+    recentActivity: recentWatches(history),
+    mirror: buildMirror(history, genres, entries, Date.now()),
+  };
 }
