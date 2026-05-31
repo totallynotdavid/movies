@@ -1,6 +1,6 @@
 import { index, integer, real, sqliteTable, text, uniqueIndex } from "void/schema-d1";
-import type { MediaStatus, MediaType } from "../src/domain/media";
-import type { LibraryStatus } from "../src/domain/library";
+import type { MediaStatus, MediaType } from "../src/domain/catalog/media";
+import type { LibraryStatus } from "../src/domain/tracking/library";
 import type { RatingSystem } from "../src/domain/rating";
 
 export const users = sqliteTable("users", {
@@ -9,6 +9,8 @@ export const users = sqliteTable("users", {
   name: text("name").notNull(),
   role: text("role").notNull().default("member"),
   ratingSystem: text("rating_system").$type<RatingSystem>().notNull().default("score100"),
+  // IANA timezone (example: "America/Lima"). Null falls back to UTC.
+  timeZone: text("time_zone"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
@@ -209,6 +211,8 @@ export const mediaTitles = sqliteTable(
   (t) => [uniqueIndex("uq_media_title_lang").on(t.mediaId, t.languageCode)],
 );
 
+// Immutable behavior log. Movies store null season/episode. Shows store episode
+// identity by [seasonNumber, episodeNumber]. Progress is derived from this log.
 export const watchEvents = sqliteTable(
   "watch_events",
   {
@@ -220,15 +224,19 @@ export const watchEvents = sqliteTable(
       .notNull()
       .references(() => media.id, { onDelete: "cascade" }),
     mediaType: text("media_type").$type<MediaType>().notNull(),
+    seasonNumber: integer("season_number"),
+    episodeNumber: integer("episode_number"),
+    // UTC watch instant, distinct from createdAt (log time). `watchedOn` and
+    // `utcOffsetMinutes` are stamped at write time for stable local day/hour.
     watchedAt: integer("watched_at").notNull(),
     watchedOn: text("watched_on").notNull(),
-    episodeOrdinal: integer("episode_ordinal"),
+    utcOffsetMinutes: integer("utc_offset_minutes").notNull(),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [
     index("idx_watch_user_watched_at").on(t.userId, t.watchedAt),
     index("idx_watch_user_watched_on").on(t.userId, t.watchedOn),
-    index("idx_watch_user_media_watched_at").on(t.userId, t.mediaId, t.watchedAt),
+    index("idx_watch_user_media_episode").on(t.userId, t.mediaId, t.seasonNumber, t.episodeNumber),
   ],
 );
 
@@ -245,7 +253,8 @@ export const libraryEntries = sqliteTable(
     status: text("status").$type<LibraryStatus>().notNull(),
     score100: integer("score100"),
     notes: text("notes"),
-    episodesWatched: integer("episodes_watched").notNull().default(0),
+    // Mutable intent fields only. Episode progress is derived from watch_events.
+    // `lastWatchedAt` is a rebuildable recency cache.
     lastWatchedAt: integer("last_watched_at"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
