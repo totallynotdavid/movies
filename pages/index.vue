@@ -14,7 +14,6 @@ const shows = computed(() => props.entries.filter((e) => e.mediaType === "show")
 
 <template>
   <div class="flex flex-col gap-16">
-    <!-- Hero: guests only -->
     <section
       v-if="isGuest"
       class="flex flex-col gap-5 pt-4 sm:pt-8 motion-safe:animate-slide-up animate-fill-both"
@@ -51,7 +50,6 @@ const shows = computed(() => props.entries.filter((e) => e.mediaType === "show")
       </a>
     </section>
 
-    <!-- Catalog grid -->
     <section
       v-if="entries.length > 0"
       class="flex flex-col gap-6 motion-safe:animate-slide-up animate-fill-both"

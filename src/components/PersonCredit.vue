@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const TMDB_PROFILE = "https://image.tmdb.org/t/p/w185";
+import { tmdbImage } from "./tmdb-image";
 
 defineProps<{
   name: string;
@@ -15,7 +15,7 @@ defineProps<{
     <div class="poster-wrap rounded-lg overflow-hidden bg-bg-elevated">
       <img
         v-if="profilePath"
-        :src="`${TMDB_PROFILE}${profilePath}`"
+        :src="tmdbImage(profilePath, 'w185')"
         :alt="name"
         loading="lazy"
         decoding="async"

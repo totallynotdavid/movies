@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const TMDB_POSTER = "https://image.tmdb.org/t/p/w342";
+import { tmdbImage } from "./tmdb-image";
 
 defineProps<{
   title: string;
@@ -20,7 +20,7 @@ defineProps<{
     <div class="poster-wrap rounded-lg overflow-hidden bg-bg-elevated">
       <img
         v-if="posterPath"
-        :src="`${TMDB_POSTER}${posterPath}`"
+        :src="tmdbImage(posterPath, 'w342')"
         :alt="title"
         loading="lazy"
         decoding="async"

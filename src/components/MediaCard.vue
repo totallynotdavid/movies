@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import BaseCard from "./BaseCard.vue";
-import type { LibraryStatus } from "../domain/library";
-import type { MediaType } from "../domain/media";
-
-const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
+import type { LibraryStatus } from "../domain/tracking/library";
+import type { MediaType } from "../domain/catalog/media";
+import { tmdbImage } from "./tmdb-image";
 
 const props = defineProps<{
   title: string;
@@ -36,7 +35,7 @@ const statusClass: Record<string, string> = {
       <div class="poster-wrap rounded-b-none">
         <img
           v-if="posterPath"
-          :src="`${TMDB_IMG}${posterPath}`"
+          :src="tmdbImage(posterPath, 'w342')"
           :alt="`${title} poster`"
           loading="lazy"
           decoding="async"

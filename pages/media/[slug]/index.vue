@@ -1,20 +1,31 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { Props } from "./index.server";
-import type { LibraryStatus } from "../../../src/domain/library";
-import { mediaStatusLabel } from "../../../src/domain/media";
-import { STATS_MIN_SCORES, STATS_MIN_TRACKED } from "../../../src/domain/media-stats";
+import type { LibraryStatus } from "../../../src/domain/tracking/library";
+import { mediaStatusLabel } from "../../../src/domain/catalog/media";
+import { STATS_MIN_SCORES, STATS_MIN_TRACKED } from "../../../src/domain/insights/title-stats";
 import { useTracking } from "../../../src/composables/useTracking";
 import PersonCredit from "../../../src/components/PersonCredit.vue";
-
-const TMDB_IMG_W500 = "https://image.tmdb.org/t/p/w500";
-const TMDB_IMG_ORIG = "https://image.tmdb.org/t/p/original";
+import EpisodeList from "../../../src/components/EpisodeList.vue";
+import { tmdbImage } from "../../../src/components/tmdb-image";
 
 const props = defineProps<Props>();
 
 const favorited = ref(props.isFavorited);
 const addingFav = ref(false);
 const favError = ref("");
+
+// Episode picker state. Watched keys are seeded from the loader and updated
+// optimistically as the user logs episodes.
+const watchedKeys = ref<string[]>([...props.watchedEpisodeKeys]);
+const canLogEpisodes = computed(() => !!props.user);
+
+async function onLogEpisode(seasonNumber: number, episodeNumber: number) {
+  const ok = await logEpisode(seasonNumber, episodeNumber);
+  if (!ok) return;
+  const k = `${seasonNumber}:${episodeNumber}`;
+  if (!watchedKeys.value.includes(k)) watchedKeys.value = [...watchedKeys.value, k];
+}
 
 const {
   entry,
@@ -28,6 +39,7 @@ const {
   setStatus,
   setScore,
   logWatch,
+  logEpisode,
 } = useTracking({
   mediaId: props.media.id,
   mediaType: props.media.mediaType,
@@ -38,7 +50,7 @@ const {
         id: props.libraryEntry.id,
         status: props.libraryEntry.status,
         score100: props.libraryEntry.score100,
-        episodesWatched: props.libraryEntry.episodesWatched,
+        watchedEpisodeCount: props.watchedEpisodeCount,
         updatedAt: Date.now(),
       }
     : null,
@@ -160,13 +172,12 @@ async function onScoreChange(e: Event) {
 
 <template>
   <div class="flex flex-col gap-10">
-    <!-- Backdrop -->
     <div
       v-if="media.backdropPath"
       class="relative -mx-4 sm:-mx-6 -mt-8 sm:-mt-12 h-52 sm:h-72 overflow-hidden rounded-b-2xl"
     >
       <img
-        :src="`${TMDB_IMG_ORIG}${media.backdropPath}`"
+        :src="tmdbImage(media.backdropPath, 'original')"
         :alt="`${media.title} backdrop`"
         class="w-full h-full object-cover object-top"
         loading="eager"
@@ -174,14 +185,12 @@ async function onScoreChange(e: Event) {
       <div class="absolute inset-0 bg-gradient-to-b from-transparent via-bg/40 to-bg" />
     </div>
 
-    <!-- Main content -->
     <div class="flex flex-col sm:flex-row gap-8 motion-safe:animate-slide-up animate-fill-both">
-      <!-- Poster -->
       <div class="shrink-0 w-40 sm:w-48">
         <div class="poster-wrap">
           <img
             v-if="media.posterPath"
-            :src="`${TMDB_IMG_W500}${media.posterPath}`"
+            :src="tmdbImage(media.posterPath, 'w500')"
             :alt="`${media.title} poster`"
             loading="eager"
           />
@@ -194,7 +203,6 @@ async function onScoreChange(e: Event) {
         </div>
       </div>
 
-      <!-- Info -->
       <div class="flex flex-col gap-5 flex-1 min-w-0">
         <div>
           <div class="flex items-start gap-3 flex-wrap mb-2">
@@ -227,7 +235,6 @@ async function onScoreChange(e: Event) {
           {{ media.overview }}
         </p>
 
-        <!-- Library controls -->
         <div
           v-if="entry"
           class="flex flex-col gap-3 p-4 rounded-xl border border-border bg-bg-subtle"
@@ -238,7 +245,6 @@ async function onScoreChange(e: Event) {
           </div>
 
           <div class="flex flex-wrap gap-3">
-            <!-- Status -->
             <div class="flex flex-col gap-1">
               <label class="text-xs font-mono text-fg-subtle">status</label>
               <select
@@ -257,7 +263,6 @@ async function onScoreChange(e: Event) {
               </select>
             </div>
 
-            <!-- Rating -->
             <div class="flex flex-col gap-1">
               <label class="text-xs font-mono text-fg-subtle">rating</label>
               <div class="flex items-center gap-1.5">
@@ -323,7 +328,6 @@ async function onScoreChange(e: Event) {
           </a>
         </div>
 
-        <!-- Actions when not in library -->
         <div v-else class="flex gap-3 flex-wrap">
           <button
             type="button"
@@ -335,7 +339,6 @@ async function onScoreChange(e: Event) {
           </button>
         </div>
 
-        <!-- Favorite -->
         <button
           v-if="user"
           type="button"
@@ -362,7 +365,6 @@ async function onScoreChange(e: Event) {
       </div>
     </div>
 
-    <!-- Details -->
     <section class="flex flex-col gap-4">
       <h2 class="text-sm font-mono text-fg-muted">details</h2>
       <dl class="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-3 text-sm font-mono items-baseline">
@@ -429,7 +431,17 @@ async function onScoreChange(e: Event) {
       </div>
     </section>
 
-    <!-- Cast -->
+    <section v-if="media.mediaType === 'show'" class="flex flex-col gap-4">
+      <h2 class="text-sm font-mono text-fg-muted">episodes</h2>
+      <EpisodeList
+        :seasons="seasons"
+        :watched-keys="watchedKeys"
+        :can-log="canLogEpisodes"
+        :saving="saving"
+        @log="onLogEpisode"
+      />
+    </section>
+
     <section v-if="cast.length" class="flex flex-col gap-4">
       <div class="flex items-center justify-between gap-3">
         <h2 class="text-sm font-mono text-fg-muted">cast</h2>
@@ -454,7 +466,6 @@ async function onScoreChange(e: Event) {
       </div>
     </section>
 
-    <!-- Crew -->
     <section v-if="keyCrew.length" class="flex flex-col gap-4">
       <div class="flex items-center justify-between gap-3">
         <h2 class="text-sm font-mono text-fg-muted">crew</h2>
@@ -476,7 +487,6 @@ async function onScoreChange(e: Event) {
       </div>
     </section>
 
-    <!-- On Track (platform stats, gated by participation) -->
     <section v-if="showStats" class="flex flex-col gap-4">
       <h2 class="text-sm font-mono text-fg-muted">on track</h2>
       <div class="flex flex-col gap-3">

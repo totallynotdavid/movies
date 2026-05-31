@@ -37,7 +37,6 @@ async function setRatingSystem(system: RatingSystem) {
       <div
         class="rounded-xl border border-border bg-bg-subtle overflow-hidden divide-y divide-border"
       >
-        <!-- Rating system -->
         <div class="flex items-center justify-between px-4 py-3 gap-4">
           <div>
             <span class="text-sm font-mono text-fg-muted">rating system</span>
@@ -65,7 +64,6 @@ async function setRatingSystem(system: RatingSystem) {
           </div>
         </div>
 
-        <!-- Theme toggle -->
         <div class="flex items-center justify-between px-4 py-3">
           <div>
             <span class="text-sm font-mono text-fg-muted">color theme</span>

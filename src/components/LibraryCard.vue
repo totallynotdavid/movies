@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import BaseCard from "./BaseCard.vue";
-import type { LibraryStatus } from "../domain/library";
+import type { LibraryStatus } from "../domain/tracking/library";
 import type { RatingSystem } from "../domain/rating";
 import { useTracking, type TrackedEntry } from "../composables/useTracking";
-
-const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
+import { tmdbImage } from "./tmdb-image";
 
 const props = defineProps<{
   id: string;
@@ -18,7 +17,7 @@ const props = defineProps<{
   slug?: string | null;
   status: LibraryStatus;
   score100?: number | null;
-  episodesWatched: number;
+  watchedEpisodeCount: number;
   episodeTotal: number | null;
   ratingSystem: RatingSystem;
 }>();
@@ -46,7 +45,7 @@ const {
     id: props.id,
     status: props.status,
     score100: props.score100 ?? null,
-    episodesWatched: props.episodesWatched,
+    watchedEpisodeCount: props.watchedEpisodeCount,
     updatedAt: Date.now(),
   },
   onUpdate: (next) => emit("update", { ...next, id: props.id }),
@@ -82,7 +81,7 @@ async function onScoreInput(e: Event) {
       <div class="poster-wrap rounded-b-none">
         <img
           v-if="posterPath"
-          :src="`${TMDB_IMG}${posterPath}`"
+          :src="tmdbImage(posterPath, 'w342')"
           :alt="`${title} poster`"
           loading="lazy"
           decoding="async"

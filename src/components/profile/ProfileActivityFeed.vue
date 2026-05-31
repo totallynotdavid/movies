@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProfileActivityItem } from "../../domain/profile-stats";
+import type { ProfileActivityItem } from "../../domain/insights/profile";
 
 defineProps<{
   items: ProfileActivityItem[];
@@ -15,6 +15,11 @@ const timeFormatter = new Intl.DateTimeFormat("en-US", {
 
 function activityIcon(item: ProfileActivityItem) {
   return item.mediaType === "show" ? "i-lucide:tv" : "i-lucide:circle-play";
+}
+
+function episodeLabel(item: ProfileActivityItem) {
+  if (item.seasonNumber === null || item.episodeNumber === null) return "an episode";
+  return `S${item.seasonNumber}·E${item.episodeNumber}`;
 }
 
 function formatTime(watchedAt: number) {
@@ -43,7 +48,7 @@ function formatTime(watchedAt: number) {
 
       <div class="flex min-w-0 flex-1 flex-col gap-1">
         <p class="text-sm font-mono text-fg leading-snug">
-          <template v-if="item.episodeOrdinal === null">
+          <template v-if="item.seasonNumber === null">
             Watched
             <a
               :href="`/media/${item.slug}`"
@@ -54,7 +59,7 @@ function formatTime(watchedAt: number) {
           </template>
 
           <template v-else>
-            Watched episode {{ item.episodeOrdinal }} of
+            Watched {{ episodeLabel(item) }} of
             <a
               :href="`/media/${item.slug}`"
               class="text-accent hover:text-accent/80 transition-colors"

@@ -4,7 +4,7 @@ import type { Props } from "./library.server";
 import LibraryCard from "../src/components/LibraryCard.vue";
 import MediaCard from "../src/components/MediaCard.vue";
 import SkeletonCard from "../src/components/SkeletonCard.vue";
-import type { LibraryStatus } from "../src/domain/library";
+import type { LibraryStatus } from "../src/domain/tracking/library";
 
 type RemoteCandidate = {
   mediaType: "movie" | "show";
@@ -111,14 +111,14 @@ function onEntryUpdate(update: {
   id: string;
   status: LibraryStatus;
   score100: number | null;
-  episodesWatched: number;
+  watchedEpisodeCount: number;
   updatedAt: number;
 }) {
   const entry = localEntries.value.find((item) => item.id === update.id);
   if (entry) {
     entry.status = update.status;
     entry.score100 = update.score100;
-    entry.episodesWatched = update.episodesWatched;
+    entry.watchedEpisodeCount = update.watchedEpisodeCount;
     entry.updatedAt = update.updatedAt;
   }
 }
@@ -218,7 +218,6 @@ function clearSearch() {
 
 <template>
   <div class="flex flex-col gap-10">
-    <!-- Header -->
     <div class="flex-split motion-safe:animate-slide-up animate-fill-both">
       <div class="flex flex-col gap-1">
         <h1 class="text-3xl font-mono font-bold">{{ user.name }}'s library</h1>
@@ -231,7 +230,6 @@ function clearSearch() {
       </span>
     </div>
 
-    <!-- Search / Add -->
     <section
       class="flex flex-col gap-4 p-5 rounded-2xl border border-border bg-bg-subtle motion-safe:animate-slide-up animate-fill-both"
       style="animation-delay: 0.05s"
@@ -351,7 +349,6 @@ function clearSearch() {
       </div>
     </section>
 
-    <!-- Library entries -->
     <section
       class="flex flex-col gap-5 motion-safe:animate-slide-up animate-fill-both"
       style="animation-delay: 0.1s"
@@ -363,7 +360,6 @@ function clearSearch() {
         </h2>
 
         <div class="flex flex-wrap gap-2">
-          <!-- Type filter -->
           <div class="flex gap-1">
             <button
               v-for="opt in typeOptions"
@@ -381,7 +377,6 @@ function clearSearch() {
             </button>
           </div>
 
-          <!-- Status filter -->
           <div class="flex gap-1 flex-wrap">
             <button
               v-for="opt in statusOptions"
@@ -399,7 +394,6 @@ function clearSearch() {
             </button>
           </div>
 
-          <!-- Sort -->
           <div
             class="flex rounded-lg border border-border overflow-hidden"
             role="group"
@@ -449,7 +443,7 @@ function clearSearch() {
           :slug="entry.media.slug"
           :status="entry.status"
           :score100="entry.score100"
-          :episodes-watched="entry.episodesWatched"
+          :watched-episode-count="entry.watchedEpisodeCount"
           :episode-total="entry.media.episodeCount"
           :rating-system="ratingSystem"
           @update="onEntryUpdate"

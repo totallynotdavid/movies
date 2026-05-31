@@ -4,11 +4,13 @@ import type { Props } from "./profile.server";
 import MediaCard from "../src/components/MediaCard.vue";
 import ProfileActivityFeed from "../src/components/profile/ProfileActivityFeed.vue";
 import ProfileActivityHeatmap from "../src/components/profile/ProfileActivityHeatmap.vue";
+import ProfilePatterns from "../src/components/profile/ProfilePatterns.vue";
+import ProfileLedger from "../src/components/profile/ProfileLedger.vue";
 import { formatScore } from "../src/domain/rating";
-
-const TMDB_PROFILE = "https://image.tmdb.org/t/p/w185";
+import { tmdbImage } from "../src/components/tmdb-image";
 
 const props = defineProps<Props>();
+const wrappedYear = new Date().getUTCFullYear();
 
 const formatStatPanels = computed(() => [
   {
@@ -26,7 +28,6 @@ const formatStatPanels = computed(() => [
 
 <template>
   <div class="flex flex-col gap-10">
-    <!-- Profile header -->
     <section class="flex items-center gap-5 motion-safe:animate-slide-up animate-fill-both">
       <div
         class="w-16 h-16 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center shrink-0"
@@ -40,7 +41,27 @@ const formatStatPanels = computed(() => [
       </div>
     </section>
 
-    <!-- Format stats -->
+    <section
+      class="flex flex-col gap-3 border-y border-border py-4 motion-safe:animate-slide-up animate-fill-both"
+      style="animation-delay: 0.025s"
+    >
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-1">
+          <h2 class="text-sm font-mono text-fg-muted">{{ wrappedYear }} wrapped</h2>
+          <p class="text-sm text-fg-subtle">
+            See the time, genres, and people behind what you watched most this year.
+          </p>
+        </div>
+        <a
+          href="/wrapped"
+          class="inline-flex items-center gap-2 self-start rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm font-mono text-fg transition-colors hover:bg-accent/15"
+        >
+          <span class="i-lucide:sparkles h-4 w-4" aria-hidden="true" />
+          open wrapped
+        </a>
+      </div>
+    </section>
+
     <section
       class="grid gap-4 md:grid-cols-2 motion-safe:animate-slide-up animate-fill-both"
       style="animation-delay: 0.05s"
@@ -78,7 +99,6 @@ const formatStatPanels = computed(() => [
       </div>
     </section>
 
-    <!-- Activity heatmap -->
     <section
       class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
       style="animation-delay: 0.1s"
@@ -90,7 +110,15 @@ const formatStatPanels = computed(() => [
       <ProfileActivityHeatmap :days="activityCalendar" />
     </section>
 
-    <!-- Activity feed -->
+    <ProfilePatterns
+      :weekday="mirror.weekday"
+      :day-part="mirror.dayPart"
+      :genre-timing="mirror.genreTiming"
+      :phase="mirror.phase"
+    />
+
+    <ProfileLedger :ledger="mirror.ledger" />
+
     <section
       class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
       style="animation-delay: 0.15s"
@@ -99,7 +127,6 @@ const formatStatPanels = computed(() => [
       <ProfileActivityFeed :items="recentActivity" />
     </section>
 
-    <!-- Favorite media -->
     <section
       v-if="favoriteMedia.length > 0"
       class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
@@ -120,7 +147,6 @@ const formatStatPanels = computed(() => [
       </div>
     </section>
 
-    <!-- Favorite people -->
     <section
       v-if="favoritePeople.length > 0"
       class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
@@ -136,7 +162,7 @@ const formatStatPanels = computed(() => [
         >
           <img
             v-if="person.profilePath"
-            :src="`${TMDB_PROFILE}${person.profilePath}`"
+            :src="tmdbImage(person.profilePath, 'w185')"
             :alt="person.name"
             class="w-8 h-8 rounded-full object-cover"
             loading="lazy"

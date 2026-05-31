@@ -17,6 +17,7 @@ const shortcutsOpen = ref(false);
 
 const navLinks = [
   { href: "/library", label: "library", auth: true },
+  { href: "/wrapped", label: "wrapped", auth: true },
   { href: "/profile", label: "profile", auth: true },
 ];
 
@@ -55,9 +56,28 @@ function onKeyup(e: KeyboardEvent) {
   }
 }
 
+// Capture the browser's timezone once per device so the server can render and
+// bucket watch activity in local time. Guarded by localStorage to avoid a POST
+// on every load; the server only fills it when unset, so this is safe to repeat.
+function captureTimeZone() {
+  if (!user || localStorage.getItem("tzCaptured")) return;
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (!timeZone) return;
+  void fetch("/api/user/timezone", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ timeZone }),
+  })
+    .then((res) => {
+      if (res.ok) localStorage.setItem("tzCaptured", "1");
+    })
+    .catch(() => {});
+}
+
 onMounted(() => {
   document.addEventListener("keydown", onKeydown);
   document.addEventListener("keyup", onKeyup);
+  captureTimeZone();
 });
 
 onUnmounted(() => {
@@ -83,7 +103,6 @@ onUnmounted(() => {
           track
         </Link>
 
-        <!-- Desktop nav links -->
         <div class="hidden sm:flex items-center gap-1 text-sm text-fg-muted flex-1">
           <template v-for="link in navLinks" :key="link.href">
             <Link
@@ -96,7 +115,6 @@ onUnmounted(() => {
           </template>
         </div>
 
-        <!-- Desktop right actions -->
         <div class="hidden sm:flex items-center gap-2 shrink-0">
           <button
             type="button"
@@ -141,7 +159,6 @@ onUnmounted(() => {
           </Link>
         </div>
 
-        <!-- Mobile: right side buttons -->
         <div class="ml-auto sm:hidden flex items-center gap-2">
           <button
             type="button"
@@ -172,7 +189,6 @@ onUnmounted(() => {
         </div>
       </nav>
 
-      <!-- Mobile menu -->
       <Transition
         enter-active-class="transition duration-150 ease-out"
         enter-from-class="opacity-0 -translate-y-2"
@@ -194,6 +210,14 @@ onUnmounted(() => {
               >
                 <span class="i-lucide:library w-4 h-4" aria-hidden="true" />
                 library
+              </Link>
+              <Link
+                href="/wrapped"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                @click="mobileMenuOpen = false"
+              >
+                <span class="i-lucide:sparkles w-4 h-4" aria-hidden="true" />
+                wrapped
               </Link>
               <Link
                 href="/profile"
@@ -248,7 +272,6 @@ onUnmounted(() => {
       </div>
     </footer>
 
-    <!-- Keyboard shortcuts modal -->
     <dialog
       :open="shortcutsOpen"
       class="fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4"

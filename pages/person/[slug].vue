@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { Props } from "./[slug].server";
-import { genderLabel } from "../../src/domain/people";
+import { genderLabel } from "../../src/domain/catalog/people";
 import FilmographyCard from "../../src/components/FilmographyCard.vue";
+import { tmdbImage } from "../../src/components/tmdb-image";
 
-const TMDB_PROFILE = "https://image.tmdb.org/t/p/w342";
 const BIO_PREVIEW = 500;
 
 const props = defineProps<Props>();
@@ -72,13 +72,12 @@ async function toggleFavorite() {
 
 <template>
   <div class="flex flex-col gap-10">
-    <!-- Header -->
     <section class="flex flex-col sm:flex-row gap-6 motion-safe:animate-slide-up animate-fill-both">
       <div class="shrink-0 w-32 sm:w-40">
         <div class="poster-wrap rounded-xl overflow-hidden bg-bg-elevated">
           <img
             v-if="person.profilePath"
-            :src="`${TMDB_PROFILE}${person.profilePath}`"
+            :src="tmdbImage(person.profilePath, 'w342')"
             :alt="person.name"
             loading="eager"
             class="w-full h-full object-cover"
@@ -134,7 +133,6 @@ async function toggleFavorite() {
       </div>
     </section>
 
-    <!-- Acting -->
     <section v-if="acting.length" class="flex flex-col gap-4">
       <h2 class="text-sm font-mono text-fg-muted">acting · {{ acting.length }}</h2>
       <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-5">
@@ -142,7 +140,6 @@ async function toggleFavorite() {
       </div>
     </section>
 
-    <!-- Crew by department -->
     <section v-for="group in crewGroups" :key="group.department" class="flex flex-col gap-4">
       <h2 class="text-sm font-mono text-fg-muted">
         {{ group.department.toLowerCase() }} · {{ group.items.length }}

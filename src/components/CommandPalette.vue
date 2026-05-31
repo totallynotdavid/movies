@@ -25,6 +25,7 @@ const commands = computed<Command[]>(() => {
   if (props.user) {
     return [
       { id: "library", label: "my library", icon: "i-lucide:library", href: "/library" },
+      { id: "wrapped", label: "wrapped", icon: "i-lucide:sparkles", href: "/wrapped" },
       { id: "profile", label: "profile", icon: "i-lucide:user", href: "/profile" },
       { id: "settings", label: "settings", icon: "i-lucide:settings", href: "/settings" },
       {
