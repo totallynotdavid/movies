@@ -5,7 +5,7 @@ import {
   markPersonDetailsFailedWrite,
   personScalarsWrite,
   type PersonRecord,
-} from "../domain/people";
+} from "../domain/catalog/people";
 import { runBatch } from "../db/kernel";
 import { summarizeCause } from "../domain/hydration";
 import { attempt } from "../result";

@@ -3,7 +3,7 @@ import {
   searchLocalMedia,
   type MediaType,
   upsertMediaFromTmdb,
-} from "../domain/media";
+} from "../domain/catalog/media";
 import {
   fetchTmdbShowTotals,
   searchTmdbMedia,

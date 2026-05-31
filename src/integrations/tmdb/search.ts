@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { slugify } from "../../../shared/slug";
 import { tmdbFetch } from "./client";
 import { Id, NullNum, NullStr, looseArray, parse } from "./parse";
-import type { MediaType } from "../../domain/media";
+import type { MediaType } from "../../domain/catalog/media";
 
 export type TmdbMediaResult = {
   mediaType: MediaType;

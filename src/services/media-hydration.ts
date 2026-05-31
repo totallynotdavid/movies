@@ -12,15 +12,19 @@ import {
   markDetailsFailedWrite,
   mediaScalarsWrite,
   type MediaRecord,
-} from "../domain/media";
-import { personStubsWrite } from "../domain/people";
-import { mediaCreditsWrite } from "../domain/credits";
-import { mediaCompaniesWrite, mediaGenresWrite, mediaTitlesWrite } from "../domain/media-metadata";
+} from "../domain/catalog/media";
+import { personStubsWrite } from "../domain/catalog/people";
+import { mediaCreditsWrite } from "../domain/catalog/credits";
+import {
+  mediaCompaniesWrite,
+  mediaGenresWrite,
+  mediaTitlesWrite,
+} from "../domain/catalog/metadata";
 import {
   markEpisodesFailedWrite,
   markEpisodesFreshWrite,
   mediaEpisodesWrite,
-} from "../domain/episodes";
+} from "../domain/catalog/episodes";
 import { runBatch, type Statement } from "../db/kernel";
 import {
   DETAILS_TTL_MS,
@@ -43,9 +47,8 @@ export type HydrationOutcome =
   | { ok: true; skipped: boolean }
   | { ok: false; error: HydrationError };
 
-// Tier-1: one TMDB detail call written as a single atomic batch (scalars +
-// credits + metadata + freshness marker). Idempotent; never throws to the
-// caller. Failure is returned as an outcome and recorded durably.
+// Tier-1 hydration. One TMDB detail call, one atomic batch write [scalars,
+// credits, metadata, freshness marker]. Returns outcomes instead of throwing.
 export async function hydrateMediaDetails(item: MediaRecord): Promise<HydrationOutcome> {
   if (!tmdbToken()) return { ok: true, skipped: true };
   if (hydrationState(item.detailsHydratedAt, item.detailsError, DETAILS_TTL_MS) === "fresh") {
@@ -90,8 +93,8 @@ export async function hydrateMediaDetails(item: MediaRecord): Promise<HydrationO
   return { ok: true, skipped: false };
 }
 
-// Tier-2: season-detail fan-out for episode runtimes/air dates. Runs in the
-// queue consumer.
+// Tier-2 hydration for season episode data [runtime, air date]. Runs in queue
+// consumers.
 export async function hydrateMediaEpisodes(
   msg: EpisodeHydrationMessage,
 ): Promise<HydrationOutcome> {
@@ -122,10 +125,9 @@ export async function hydrateMediaEpisodes(
   return written.ok ? { ok: true, skipped: false } : { ok: false, error: written.error };
 }
 
-// Single trigger used by the request loader. Block only when there is nothing to
-// show (a bare stub); fresh/stale/failed render what we already have. Refreshing
-// stale/failed is the reconcile cron's job, not the request path's, so a view
-// never enqueues, which is what removes the per-view refresh amplification.
+// Request path trigger. Block only for stub state with no data. Fresh, stale,
+// and failed states render existing data. Reconcile refreshes stale/failed rows
+// off-request.
 export async function ensureMediaDetails(item: MediaRecord): Promise<MediaRecord> {
   if (hydrationState(item.detailsHydratedAt, item.detailsError, DETAILS_TTL_MS) !== "stub") {
     return item;
@@ -141,9 +143,8 @@ export async function ensureMediaDetails(item: MediaRecord): Promise<MediaRecord
   return refreshed.ok ? refreshed.value : item;
 }
 
-// Drains the not-fresh media backlog off the request path (run by the reconcile
-// cron). Bounded per run; the queue + bounded retry absorb pacing and failures.
-// Most-popular first, so the titles users are likeliest to open warm soonest.
+// Reconcile backlog drain for not-fresh media. Bounded per run. Queue retry
+// absorbs pacing and failures. Uses popularity priority.
 const RECONCILE_BATCH = 50;
 
 export async function reconcileMediaDetails(): Promise<number> {
@@ -152,7 +153,7 @@ export async function reconcileMediaDetails(): Promise<number> {
   return due.length;
 }
 
-// Dispatches a queued hydration job to the matching operation.
+// Dispatch queued hydration jobs to the matching operation.
 export async function runHydrationMessage(message: HydrationMessage): Promise<HydrationOutcome> {
   if (message.kind === "media-episodes") return hydrateMediaEpisodes(message);
 
@@ -169,9 +170,7 @@ async function enqueue(message: HydrationMessage): Promise<void> {
   }
 }
 
-// Best-effort: recording a failure must not itself throw out of the operation,
-// or a DB hiccup on the error path would escape into a loader that has no
-// try/catch.
+// Best-effort failure recording. Error-path DB issues must not escape.
 async function recordFailure(statements: Statement[]): Promise<void> {
   try {
     await runBatch(statements);
