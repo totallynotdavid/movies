@@ -1,12 +1,10 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { getUser } from "void/auth";
-import { and, eq } from "drizzle-orm";
-import { db } from "void/db";
-import { favoritePeople } from "../../db/schema";
-import { findPersonBySlug } from "../../src/domain/people";
-import { findMediaByTmdbIds } from "../../src/domain/media";
-import { groupByDepartment } from "../../src/domain/credits";
+import { findPersonBySlug } from "../../src/domain/catalog/people";
+import { findMediaByTmdbIds } from "../../src/domain/catalog/media";
+import { groupByDepartment } from "../../src/domain/catalog/credits";
+import { isPersonFavorited } from "../../src/domain/tracking/favorites";
 import { ensurePersonDetails } from "../../src/services/person-hydration";
 import type { FilmographyEntry } from "../../shared/types/metadata";
 
@@ -54,15 +52,7 @@ export const loader = defineHandler(async (c) => {
     items: members.map(toView),
   }));
 
-  let isFavorited = false;
-  if (user) {
-    const favRows = await db
-      .select()
-      .from(favoritePeople)
-      .where(and(eq(favoritePeople.userId, user.id), eq(favoritePeople.personId, person.id)))
-      .limit(1);
-    isFavorited = favRows.length > 0;
-  }
+  const isFavorited = user ? await isPersonFavorited(user.id, person.id) : false;
 
   return {
     person: {

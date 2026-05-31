@@ -11,8 +11,23 @@ export const GET = defineHandler(async (c) => {
 
 export const PATCH = defineHandler(async (c) => {
   const user = requireAuth(c);
-  const body = await c.req.json<{ ratingSystem?: unknown }>();
-  const ratingSystem = parseRatingSystem(body.ratingSystem);
-  const updated = await updateUserSettings(user.id, { ratingSystem });
+  const body = await c.req.json<{ ratingSystem?: unknown; timeZone?: unknown }>();
+  const updated = await updateUserSettings(user.id, {
+    ratingSystem:
+      body.ratingSystem !== undefined ? parseRatingSystem(body.ratingSystem) : undefined,
+    timeZone: parseTimeZone(body.timeZone),
+  });
   return c.json(updated);
 });
+
+// Accept only a syntactically valid IANA zone; anything else is ignored so a
+// bad client payload can never null out a stored zone or break date math.
+function parseTimeZone(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.length === 0) return undefined;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return value;
+  } catch {
+    return undefined;
+  }
+}

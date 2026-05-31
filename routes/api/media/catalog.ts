@@ -1,5 +1,5 @@
 import { defineHandler } from "void";
-import { listMedia } from "../../../src/domain/media";
+import { listMedia } from "../../../src/domain/catalog/media";
 
 export const GET = defineHandler(async (c) => {
   const typeInput = c.req.query("type");

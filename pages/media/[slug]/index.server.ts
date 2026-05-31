@@ -1,20 +1,20 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { getUser } from "void/auth";
-import { and, eq } from "drizzle-orm";
-import { db } from "void/db";
-import { favoriteMedia } from "../../../db/schema";
-import { findMediaBySlug } from "../../../src/domain/media";
-import { findEntry, type LibraryEntryRecord } from "../../../src/domain/library";
+import { findMediaBySlug } from "../../../src/domain/catalog/media";
+import { isMediaFavorited } from "../../../src/domain/tracking/favorites";
+import { findEntry, type LibraryEntryRecord } from "../../../src/domain/tracking/library";
+import { getShowProgress, listWatchedEpisodes } from "../../../src/domain/tracking/watch-state";
+import { listEpisodesBySeason, type SeasonEpisodes } from "../../../src/domain/catalog/episodes";
 import { getUserSettings } from "../../../src/domain/user";
 import { ensureMediaDetails } from "../../../src/services/media-hydration";
-import { countCast, countCrew, listCast, listKeyCrew } from "../../../src/domain/credits";
+import { countCast, countCrew, listCast, listKeyCrew } from "../../../src/domain/catalog/credits";
 import {
   listMediaCompanies,
   listMediaGenres,
   listMediaTitles,
-} from "../../../src/domain/media-metadata";
-import { getMediaStats } from "../../../src/domain/media-stats";
+} from "../../../src/domain/catalog/metadata";
+import { getMediaStats } from "../../../src/domain/insights/title-stats";
 import type { RatingSystem } from "../../../src/domain/rating";
 
 const CAST_PREVIEW = 12;
@@ -48,23 +48,29 @@ export const loader = defineHandler(async (c) => {
       getMediaStats(item.id),
     ]);
 
+  // Episode picker data is public (seasons); watched marks are per-user.
+  const seasons: SeasonEpisodes[] =
+    item.mediaType === "show" ? await listEpisodesBySeason(item.id) : [];
+
   let libraryEntry: LibraryEntryRecord | null = null;
+  let watchedEpisodeCount = 0;
+  let watchedEpisodeKeys: string[] = [];
   let isFavorited = false;
   let ratingSystem: RatingSystem = "score100";
 
   if (user) {
-    const [entry, favRows, settings] = await Promise.all([
+    const [entry, favorited, settings, progress, watched] = await Promise.all([
       findEntry(user.id, item.id),
-      db
-        .select()
-        .from(favoriteMedia)
-        .where(and(eq(favoriteMedia.userId, user.id), eq(favoriteMedia.mediaId, item.id)))
-        .limit(1),
+      isMediaFavorited(user.id, item.id),
       getUserSettings(user.id),
+      item.mediaType === "show" ? getShowProgress(user.id, item.id) : null,
+      item.mediaType === "show" ? listWatchedEpisodes(user.id, item.id) : [],
     ]);
     if (!entry.ok) throw new Error("failed to load library entry", { cause: entry.error });
     libraryEntry = entry.value;
-    isFavorited = favRows.length > 0;
+    watchedEpisodeCount = progress?.watchedEpisodeCount ?? 0;
+    watchedEpisodeKeys = watched.map((e) => `${e.seasonNumber}:${e.episodeNumber}`);
+    isFavorited = favorited;
     ratingSystem = settings.ratingSystem;
   }
 
@@ -78,7 +84,10 @@ export const loader = defineHandler(async (c) => {
     keyCrew,
     crewTotal,
     stats,
+    seasons,
     libraryEntry,
+    watchedEpisodeCount,
+    watchedEpisodeKeys,
     isFavorited,
     user: user ?? null,
     ratingSystem,

@@ -7,7 +7,7 @@ import {
   listFavoritePeople,
   removeFavoriteMedia,
   removeFavoritePerson,
-} from "../../../src/domain/favorites";
+} from "../../../src/domain/tracking/favorites";
 
 export const GET = defineHandler(async (c) => {
   const user = requireAuth(c);

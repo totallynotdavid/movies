@@ -1,8 +1,8 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { ensureMediaDetails } from "../../../src/services/media-hydration";
-import { findMediaBySlug } from "../../../src/domain/media";
-import { groupByDepartment, listAllCrew, listCast } from "../../../src/domain/credits";
+import { findMediaBySlug } from "../../../src/domain/catalog/media";
+import { groupByDepartment, listAllCrew, listCast } from "../../../src/domain/catalog/credits";
 
 export type Props = InferProps<typeof loader>;
 

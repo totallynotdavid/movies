@@ -4,11 +4,11 @@ import { err, ok, type Result } from "../../../src/result";
 import type { TrackingError } from "../../../src/domain/errors";
 import { httpStatusFor } from "../../../src/domain/errors";
 import {
-  listLibraryForUser,
+  entriesWithProgress,
   parseLibraryStatus,
   upsertLibraryEntry,
-} from "../../../src/domain/library";
-import type { LibraryStatus } from "../../../src/domain/library";
+} from "../../../src/domain/tracking/library";
+import type { LibraryStatus } from "../../../src/domain/tracking/library";
 
 type LibraryBody = {
   mediaId: string;
@@ -50,7 +50,7 @@ function parseLibraryBody(body: Record<string, unknown>): Result<LibraryBody, Tr
 
 export const GET = defineHandler(async (c) => {
   const user = requireAuth(c);
-  const entries = await listLibraryForUser(user.id);
+  const entries = await entriesWithProgress(user.id);
   return { entries };
 });
 
