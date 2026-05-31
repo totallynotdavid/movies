@@ -1,18 +1,29 @@
 import { computed, ref, type Ref } from "vue";
-import type { LibraryStatus } from "../domain/library";
-import type { MediaType } from "../domain/media";
+import type { LibraryStatus } from "../domain/tracking/library";
+import type { MediaType } from "../domain/catalog/media";
 import { toDisplayScore, scoreMax, toScore100, type RatingSystem } from "../domain/rating";
 
 export type TrackedEntry = {
   id: string;
   status: LibraryStatus;
   score100: number | null;
-  episodesWatched: number;
+  watchedEpisodeCount: number;
   updatedAt: number;
 };
 
-type ServerEntry = Omit<TrackedEntry, "updatedAt"> & { updatedAt?: number };
-type TrackingResponse = { error?: { kind?: string }; entry?: ServerEntry };
+type ServerEntry = {
+  id: string;
+  status: LibraryStatus;
+  score100: number | null;
+  updatedAt?: number;
+};
+// Episode progress is derived server-side and returned alongside the entry only
+// when it changes (logging a watch); status/score posts omit it.
+type TrackingResponse = {
+  error?: { kind?: string };
+  entry?: ServerEntry;
+  watchedEpisodeCount?: number;
+};
 
 type Options = {
   mediaId: string;
@@ -23,12 +34,22 @@ type Options = {
   onUpdate?: (entry: TrackedEntry) => void;
 };
 
-function readEntry(entry: ServerEntry): TrackedEntry {
+const ERROR_MESSAGES: Record<string, string> = {
+  episodes_not_ready: "Episodes are still loading — try again in a moment.",
+  already_at_episode_total: "You've already logged every episode.",
+};
+
+function friendlyError(kind: string): string {
+  return ERROR_MESSAGES[kind] ?? kind;
+}
+
+function readEntry(payload: TrackingResponse, prevCount: number): TrackedEntry {
+  const entry = payload.entry!;
   return {
     id: entry.id,
     status: entry.status,
     score100: entry.score100,
-    episodesWatched: entry.episodesWatched,
+    watchedEpisodeCount: payload.watchedEpisodeCount ?? prevCount,
     updatedAt: entry.updatedAt ?? Date.now(),
   };
 }
@@ -51,14 +72,14 @@ export function useTracking(options: Options) {
   const progressText = computed(() => {
     if (!entry.value || options.mediaType !== "show") return null;
     if (options.episodeTotal !== null) {
-      return `${entry.value.episodesWatched} / ${options.episodeTotal} episodes`;
+      return `${entry.value.watchedEpisodeCount} / ${options.episodeTotal} episodes`;
     }
-    return `${entry.value.episodesWatched} episodes`;
+    return `${entry.value.watchedEpisodeCount} episodes`;
   });
 
   const canLogEpisode = computed(() => {
     if (!entry.value || options.mediaType !== "show") return false;
-    return options.episodeTotal === null || entry.value.episodesWatched < options.episodeTotal;
+    return options.episodeTotal === null || entry.value.watchedEpisodeCount < options.episodeTotal;
   });
 
   function sync(next: TrackedEntry) {
@@ -79,10 +100,11 @@ export function useTracking(options: Options) {
       if (!res.ok || !payload.entry) {
         throw new Error(payload.error?.kind ?? "request failed");
       }
-      sync(readEntry(payload.entry));
+      sync(readEntry(payload, entry.value?.watchedEpisodeCount ?? 0));
       return true;
     } catch (caught) {
-      error.value = caught instanceof Error ? caught.message : "request failed";
+      const kind = caught instanceof Error ? caught.message : "request failed";
+      error.value = friendlyError(kind);
       return false;
     } finally {
       saving.value = false;
@@ -117,6 +139,16 @@ export function useTracking(options: Options) {
     return post(url, { mediaId: options.mediaId });
   }
 
+  // Log a specific episode (the picker path), as opposed to quick-logging the
+  // next aired one. Updates the shared entry + derived episode count.
+  function logEpisode(seasonNumber: number, episodeNumber: number) {
+    return post("/api/tracking/show-episode", {
+      mediaId: options.mediaId,
+      seasonNumber,
+      episodeNumber,
+    });
+  }
+
   return {
     entry,
     saving,
@@ -129,5 +161,6 @@ export function useTracking(options: Options) {
     setStatus,
     setScore,
     logWatch,
+    logEpisode,
   };
 }
