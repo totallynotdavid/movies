@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.fallow.tools/schema.json",
+  "entry": [
+    "routes/**/*.ts",
+    "pages/**/*.server.ts",
+    "pages/**/*.vue",
+    "crons/**/*.ts",
+    "queues/**/*.ts",
+    "middleware/**/*.ts",
+    "scripts/*.ts",
+    "auth.ts",
+    "env.ts",
+    "db/schema.ts",
+    "db/seed.ts",
+    "vite.config.ts",
+    "uno.config.ts",
+    "**/*.test.ts"
+  ],
+  "ignorePatterns": [".void/**", "**/*.d.ts"],
+  "rules": {
+    "unused-exports": "warn",
+    "unused-files": "warn"
+  }
+}
