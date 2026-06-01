@@ -140,6 +140,26 @@ function statusForShowProgress(
   return "watching";
 }
 
+export function pickEpisodeToLog(
+  progress: ShowProgress,
+  fallbackEpisodeTotal: number | null,
+  requestedEpisode?: EpisodeRef,
+): Result<EpisodeRef | null, TrackingError> {
+  if (requestedEpisode) return ok(requestedEpisode);
+  if (progress.nextEpisode) return ok(progress.nextEpisode);
+  if (progress.airedEpisodeCount !== null) {
+    return err({ kind: "already_at_episode_total", total: progress.airedEpisodeCount });
+  }
+  if (fallbackEpisodeTotal !== null && progress.watchedEpisodeCount >= fallbackEpisodeTotal) {
+    return err({ kind: "already_at_episode_total", total: fallbackEpisodeTotal });
+  }
+
+  // While episode rows are still missing, provisional show watches stay valid.
+  // The watch-state seam later reconciles these null-episode events onto aired
+  // rows once hydration fills the catalog.
+  return ok(null);
+}
+
 export async function logEpisodeWatch(input: {
   userId: string;
   mediaId: string;
@@ -161,37 +181,21 @@ export async function logEpisodeWatch(input: {
   const progress = deriveShowProgress(watched, aired, provisionalCount);
   const fallbackEpisodeTotal = media.value.episodeCount;
 
-  let episode: EpisodeRef | null;
-  if (input.episode) {
-    episode = input.episode;
-  } else if (progress.nextEpisode) {
-    episode = progress.nextEpisode;
-  } else if (progress.airedEpisodeCount !== null) {
-    // Every aired episode is already watched.
-    return err({ kind: "already_at_episode_total", total: progress.airedEpisodeCount });
-  } else if (fallbackEpisodeTotal !== null) {
-    if (progress.watchedEpisodeCount >= fallbackEpisodeTotal) {
-      return err({ kind: "already_at_episode_total", total: fallbackEpisodeTotal });
-    }
-    episode = null;
-  } else {
-    // No catalog episodes yet. Caller must pass an explicit episode or wait for
-    // hydration.
-    return err({ kind: "episodes_not_ready", mediaId: input.mediaId });
-  }
+  const episode = pickEpisodeToLog(progress, fallbackEpisodeTotal, input.episode);
+  if (!episode.ok) return episode;
 
   // Re-derive progress after selecting the episode, using the same loaded refs.
   // Rewatches collapse in the watched set, so status must come from
   // `allAiredWatched`, not from `watchedCount + 1`.
-  const after = episode
-    ? deriveShowProgress([...watched, episode], aired, provisionalCount)
+  const after = episode.value
+    ? deriveShowProgress([...watched, episode.value], aired, provisionalCount)
     : deriveShowProgress(watched, aired, provisionalCount + 1);
   const status = statusForShowProgress(after, fallbackEpisodeTotal);
 
   const instant = await resolveInstant(input.userId, input.watchedAt);
   const committed = await commitWatch({
     entry: entryFor(entry.value, input.userId, media.value, status, instant),
-    event: eventFor(input.userId, media.value, instant, episode),
+    event: eventFor(input.userId, media.value, instant, episode.value),
   });
   if (!committed.ok) return committed;
 

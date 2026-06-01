@@ -16,6 +16,8 @@ const favorited = ref(props.isFavorited);
 const addingFav = ref(false);
 const favError = ref("");
 const seasons = ref<SeasonEpisodes[]>(props.seasons);
+const seasonCount = ref(props.media.seasonCount);
+const episodeTotal = ref(props.media.episodeCount);
 const episodeHydrationError = ref(props.media.episodesError);
 const refreshingEpisodes = ref(false);
 
@@ -28,10 +30,7 @@ const watchedKeys = ref<string[]>([...props.watchedEpisodeKeys]);
 const canLogEpisodes = computed(() => !!props.user);
 const shouldPollShowProgress = computed(
   () =>
-    props.media.mediaType === "show" &&
-    props.media.episodeCount !== null &&
-    seasons.value.length === 0 &&
-    !episodeHydrationError.value,
+    props.media.mediaType === "show" && seasons.value.length === 0 && !episodeHydrationError.value,
 );
 
 async function onLogEpisode(seasonNumber: number, episodeNumber: number) {
@@ -52,12 +51,16 @@ async function refreshShowProgress() {
     const payload = (await res.json()) as {
       error?: { kind?: string };
       seasons?: SeasonEpisodes[];
+      seasonCount?: number | null;
+      episodeCount?: number | null;
       watchedEpisodeKeys?: string[];
       episodesError?: string | null;
     };
     if (!res.ok) throw new Error(payload.error?.kind ?? "request failed");
 
     seasons.value = payload.seasons ?? [];
+    seasonCount.value = payload.seasonCount ?? null;
+    episodeTotal.value = payload.episodeCount ?? null;
     watchedKeys.value = payload.watchedEpisodeKeys ?? [];
     episodeHydrationError.value = payload.episodesError ?? null;
   } catch {
@@ -108,7 +111,7 @@ const {
 } = useTracking({
   mediaId: props.media.id,
   mediaType: props.media.mediaType,
-  episodeTotal: props.media.episodeCount,
+  episodeTotal,
   ratingSystem: props.ratingSystem,
   initialEntry: props.libraryEntry
     ? {
@@ -135,8 +138,8 @@ const language = computed(() => props.media.originalLanguage?.toUpperCase() ?? n
 const seasonsText = computed(() => {
   if (props.media.mediaType !== "show") return null;
   const parts: string[] = [];
-  if (props.media.seasonCount) parts.push(`${props.media.seasonCount} seasons`);
-  if (props.media.episodeCount) parts.push(`${props.media.episodeCount} episodes`);
+  if (seasonCount.value) parts.push(`${seasonCount.value} seasons`);
+  if (episodeTotal.value) parts.push(`${episodeTotal.value} episodes`);
   return parts.length > 0 ? parts.join(" · ") : null;
 });
 const airedText = computed(() => {

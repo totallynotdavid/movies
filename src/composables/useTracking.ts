@@ -1,4 +1,4 @@
-import { computed, ref, type Ref } from "vue";
+import { computed, ref, unref, type Ref } from "vue";
 import type { LibraryStatus } from "@/domain/tracking/library";
 import type { MediaType } from "@/domain/catalog/media";
 import { toDisplayScore, scoreMax, toScore100, type RatingSystem } from "@/domain/rating";
@@ -28,7 +28,7 @@ type TrackingResponse = {
 type Options = {
   mediaId: string;
   mediaType: MediaType;
-  episodeTotal: number | null;
+  episodeTotal: number | null | Ref<number | null>;
   ratingSystem: RatingSystem;
   initialEntry: TrackedEntry | null;
   onUpdate?: (entry: TrackedEntry) => void;
@@ -66,20 +66,21 @@ export function useTracking(options: Options) {
     if (score100 === null || score100 === undefined) return null;
     return toDisplayScore(score100, options.ratingSystem);
   });
+  const episodeTotal = computed(() => unref(options.episodeTotal));
 
   const max = scoreMax(options.ratingSystem);
 
   const progressText = computed(() => {
     if (!entry.value || options.mediaType !== "show") return null;
-    if (options.episodeTotal !== null) {
-      return `${entry.value.watchedEpisodeCount} / ${options.episodeTotal} episodes`;
+    if (episodeTotal.value !== null) {
+      return `${entry.value.watchedEpisodeCount} / ${episodeTotal.value} episodes`;
     }
     return `${entry.value.watchedEpisodeCount} episodes`;
   });
 
   const canLogEpisode = computed(() => {
     if (!entry.value || options.mediaType !== "show") return false;
-    return options.episodeTotal === null || entry.value.watchedEpisodeCount < options.episodeTotal;
+    return episodeTotal.value === null || entry.value.watchedEpisodeCount < episodeTotal.value;
   });
 
   function sync(next: TrackedEntry) {

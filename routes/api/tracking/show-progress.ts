@@ -41,6 +41,8 @@ export const GET = defineHandler(async (c) => {
 
   return {
     seasons,
+    seasonCount: media.value.seasonCount,
+    episodeCount: media.value.episodeCount,
     watchedEpisodeKeys: watchedEpisodes.map((episode) =>
       watchedEpisodeKey(episode.seasonNumber, episode.episodeNumber),
     ),
