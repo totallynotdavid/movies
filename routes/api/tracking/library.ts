@@ -1,14 +1,14 @@
 import { defineHandler } from "void";
 import { requireAuth } from "void/auth";
-import { err, ok, type Result } from "../../../src/result";
-import type { TrackingError } from "../../../src/domain/errors";
-import { httpStatusFor } from "../../../src/domain/errors";
+import { err, ok, type Result } from "@/result";
+import type { TrackingError } from "@/domain/errors";
+import { httpStatusFor } from "@/domain/errors";
 import {
   entriesWithProgress,
   parseLibraryStatus,
   upsertLibraryEntry,
-} from "../../../src/domain/tracking/library";
-import type { LibraryStatus } from "../../../src/domain/tracking/library";
+} from "@/domain/tracking/library";
+import type { LibraryStatus } from "@/domain/tracking/library";
 
 type LibraryBody = {
   mediaId: string;

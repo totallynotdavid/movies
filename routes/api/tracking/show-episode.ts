@@ -1,8 +1,8 @@
 import { defineHandler } from "void";
 import { requireAuth } from "void/auth";
-import { httpStatusFor, type TrackingError } from "../../../src/domain/errors";
-import { logEpisodeWatch } from "../../../src/domain/tracking/watch-log";
-import type { EpisodeRef } from "../../../src/domain/tracking/watch-state";
+import { httpStatusFor, type TrackingError } from "@/domain/errors";
+import { logEpisodeWatch } from "@/domain/tracking/watch-log";
+import type { EpisodeRef } from "@/domain/tracking/watch-state";
 
 type Body = {
   mediaId?: unknown;

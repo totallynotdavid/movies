@@ -1,5 +1,5 @@
 import { defineHandler } from "void";
-import { cacheMediaSelection } from "../../../src/services/media-catalog";
+import { cacheMediaSelection } from "@/services/media-catalog";
 
 export const POST = defineHandler(async (c) => {
   try {

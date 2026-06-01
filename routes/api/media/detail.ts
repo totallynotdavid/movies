@@ -1,5 +1,5 @@
 import { defineHandler } from "void";
-import { findMediaBySlug } from "../../../src/domain/catalog/media";
+import { findMediaBySlug } from "@/domain/catalog/media";
 
 export const GET = defineHandler(async (c) => {
   const slug = c.req.query("slug");

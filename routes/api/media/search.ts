@@ -1,5 +1,5 @@
 import { defineHandler } from "void";
-import { searchCatalog } from "../../../src/services/media-catalog";
+import { searchCatalog } from "@/services/media-catalog";
 
 export const GET = defineHandler(async (c) => {
   const q = c.req.query("q")?.trim() ?? "";

@@ -1,7 +1,7 @@
 import { defineHandler } from "void";
 import { requireAuth } from "void/auth";
-import { httpStatusFor, type TrackingError } from "../../../src/domain/errors";
-import { logMovieWatch } from "../../../src/domain/tracking/watch-log";
+import { httpStatusFor, type TrackingError } from "@/domain/errors";
+import { logMovieWatch } from "@/domain/tracking/watch-log";
 
 export const POST = defineHandler(async (c) => {
   const user = requireAuth(c);
