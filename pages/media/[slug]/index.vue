@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { Props } from "./index.server";
 import type { LibraryStatus } from "@/domain/tracking/library";
 import { mediaStatusLabel } from "@/domain/catalog/media";
@@ -8,23 +8,88 @@ import { useTracking } from "@/composables/useTracking";
 import PersonCredit from "@/components/PersonCredit.vue";
 import EpisodeList from "@/components/EpisodeList.vue";
 import { tmdbImage } from "@/components/tmdb-image";
+import type { SeasonEpisodes } from "@/domain/catalog/episodes";
 
 const props = defineProps<Props>();
 
 const favorited = ref(props.isFavorited);
 const addingFav = ref(false);
 const favError = ref("");
+const seasons = ref<SeasonEpisodes[]>(props.seasons);
+const episodeHydrationError = ref(props.media.episodesError);
+const refreshingEpisodes = ref(false);
+
+const SHOW_PROGRESS_POLL_MS = 2_000;
+let showProgressTimer: number | null = null;
 
 // Episode picker state. Watched keys are seeded from the loader and updated
 // optimistically as the user logs episodes.
 const watchedKeys = ref<string[]>([...props.watchedEpisodeKeys]);
 const canLogEpisodes = computed(() => !!props.user);
+const shouldPollShowProgress = computed(
+  () =>
+    props.media.mediaType === "show" &&
+    props.media.episodeCount !== null &&
+    seasons.value.length === 0 &&
+    !episodeHydrationError.value,
+);
 
 async function onLogEpisode(seasonNumber: number, episodeNumber: number) {
   const ok = await logEpisode(seasonNumber, episodeNumber);
   if (!ok) return;
   const k = `${seasonNumber}:${episodeNumber}`;
   if (!watchedKeys.value.includes(k)) watchedKeys.value = [...watchedKeys.value, k];
+}
+
+async function refreshShowProgress() {
+  if (props.media.mediaType !== "show") return;
+
+  refreshingEpisodes.value = true;
+  try {
+    const res = await fetch(
+      `/api/tracking/show-progress?mediaId=${encodeURIComponent(props.media.id)}`,
+    );
+    const payload = (await res.json()) as {
+      error?: { kind?: string };
+      seasons?: SeasonEpisodes[];
+      watchedEpisodeKeys?: string[];
+      episodesError?: string | null;
+    };
+    if (!res.ok) throw new Error(payload.error?.kind ?? "request failed");
+
+    seasons.value = payload.seasons ?? [];
+    watchedKeys.value = payload.watchedEpisodeKeys ?? [];
+    episodeHydrationError.value = payload.episodesError ?? null;
+  } catch {
+  } finally {
+    refreshingEpisodes.value = false;
+  }
+}
+
+function stopShowProgressPolling() {
+  if (showProgressTimer !== null) {
+    window.clearTimeout(showProgressTimer);
+    showProgressTimer = null;
+  }
+}
+
+function scheduleShowProgressPoll(delayMs = SHOW_PROGRESS_POLL_MS) {
+  stopShowProgressPolling();
+  if (!shouldPollShowProgress.value) return;
+  showProgressTimer = window.setTimeout(runShowProgressPoll, delayMs);
+}
+
+async function runShowProgressPoll() {
+  if (!shouldPollShowProgress.value || refreshingEpisodes.value) return;
+  await refreshShowProgress();
+  if (shouldPollShowProgress.value) scheduleShowProgressPoll();
+}
+
+async function onQuickLogEpisode() {
+  const ok = await logWatch();
+  if (!ok) return;
+  await refreshShowProgress();
+  if (shouldPollShowProgress.value) scheduleShowProgressPoll();
 }
 
 const {
@@ -168,6 +233,14 @@ async function onScoreChange(e: Event) {
   const saved = await setScore(Number(target.value));
   if (!saved) target.value = displayScore.value === null ? "" : String(displayScore.value);
 }
+
+onMounted(() => {
+  if (shouldPollShowProgress.value) void runShowProgressPoll();
+});
+
+onUnmounted(() => {
+  stopShowProgressPolling();
+});
 </script>
 
 <template>
@@ -313,7 +386,7 @@ async function onScoreChange(e: Event) {
               type="button"
               class="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-mono text-fg transition-colors hover:bg-accent/15 disabled:opacity-60 focus-ring"
               :disabled="saving || !canLogEpisode"
-              @click="logWatch"
+              @click="onQuickLogEpisode"
             >
               <span class="i-lucide:plus w-3.5 h-3.5" aria-hidden="true" />
               {{ saving ? "..." : "+1 episode" }}

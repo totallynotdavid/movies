@@ -20,6 +20,11 @@ type WatchWrite = {
   entry: LibraryEntryRecord;
 };
 
+type EntryOverrides = {
+  score100?: number | null;
+  notes?: string | null;
+};
+
 // Episode logs return derived progress so routes do not re-query projections.
 export type EpisodeWatch = {
   entry: LibraryEntryRecord;
@@ -34,6 +39,7 @@ function entryFor(
   media: MediaRecord,
   status: LibraryEntryRecord["status"],
   instant: WatchInstant,
+  overrides: EntryOverrides = {},
 ): LibraryEntryRecord {
   const now = Date.now();
   return {
@@ -41,8 +47,8 @@ function entryFor(
     userId,
     mediaId: media.id,
     status,
-    score100: prev?.score100 ?? null,
-    notes: prev?.notes ?? null,
+    score100: overrides.score100 !== undefined ? overrides.score100 : (prev?.score100 ?? null),
+    notes: overrides.notes !== undefined ? overrides.notes : (prev?.notes ?? null),
     // Keeps the most recent watch instant, including back-dated logs.
     lastWatchedAt: Math.max(prev?.lastWatchedAt ?? 0, instant.watchedAt),
     createdAt: prev?.createdAt ?? now,
@@ -80,6 +86,8 @@ function commitWatch(write: WatchWrite): Promise<Result<LibraryEntryRecord, Trac
           target: [libraryEntries.userId, libraryEntries.mediaId],
           set: {
             status: write.entry.status,
+            score100: write.entry.score100,
+            notes: write.entry.notes,
             lastWatchedAt: write.entry.lastWatchedAt,
             updatedAt: write.entry.updatedAt,
           },
@@ -99,6 +107,8 @@ export async function logMovieWatch(input: {
   userId: string;
   mediaId: string;
   watchedAt?: number;
+  score100?: number | null;
+  notes?: string | null;
 }): Promise<Result<LibraryEntryRecord, TrackingError>> {
   const media = await findMedia(input.mediaId);
   if (!media.ok) return media;
@@ -111,9 +121,23 @@ export async function logMovieWatch(input: {
 
   const instant = await resolveInstant(input.userId, input.watchedAt);
   return commitWatch({
-    entry: entryFor(entry.value, input.userId, media.value, "completed", instant),
+    entry: entryFor(entry.value, input.userId, media.value, "completed", instant, {
+      score100: input.score100,
+      notes: input.notes,
+    }),
     event: eventFor(input.userId, media.value, instant, null),
   });
+}
+
+function statusForShowProgress(
+  progress: ShowProgress,
+  fallbackEpisodeTotal: number | null,
+): LibraryEntryRecord["status"] {
+  if (progress.allAiredWatched) return "completed";
+  if (progress.airedEpisodeCount === null && fallbackEpisodeTotal !== null) {
+    return progress.watchedEpisodeCount >= fallbackEpisodeTotal ? "completed" : "watching";
+  }
+  return "watching";
 }
 
 export async function logEpisodeWatch(input: {
@@ -133,10 +157,11 @@ export async function logEpisodeWatch(input: {
 
   // Load refs once. Derive pre-write progress to pick the next episode and
   // completion. Derive post-write progress in memory for the response.
-  const { watched, aired } = await loadShowEpisodes(input.userId, input.mediaId);
-  const progress = deriveShowProgress(watched, aired);
+  const { watched, aired, provisionalCount } = await loadShowEpisodes(input.userId, input.mediaId);
+  const progress = deriveShowProgress(watched, aired, provisionalCount);
+  const fallbackEpisodeTotal = media.value.episodeCount;
 
-  let episode: EpisodeRef;
+  let episode: EpisodeRef | null;
   if (input.episode) {
     episode = input.episode;
   } else if (progress.nextEpisode) {
@@ -144,6 +169,11 @@ export async function logEpisodeWatch(input: {
   } else if (progress.airedEpisodeCount !== null) {
     // Every aired episode is already watched.
     return err({ kind: "already_at_episode_total", total: progress.airedEpisodeCount });
+  } else if (fallbackEpisodeTotal !== null) {
+    if (progress.watchedEpisodeCount >= fallbackEpisodeTotal) {
+      return err({ kind: "already_at_episode_total", total: fallbackEpisodeTotal });
+    }
+    episode = null;
   } else {
     // No catalog episodes yet. Caller must pass an explicit episode or wait for
     // hydration.
@@ -153,8 +183,10 @@ export async function logEpisodeWatch(input: {
   // Re-derive progress after selecting the episode, using the same loaded refs.
   // Rewatches collapse in the watched set, so status must come from
   // `allAiredWatched`, not from `watchedCount + 1`.
-  const after = deriveShowProgress([...watched, episode], aired);
-  const status: LibraryEntryRecord["status"] = after.allAiredWatched ? "completed" : "watching";
+  const after = episode
+    ? deriveShowProgress([...watched, episode], aired, provisionalCount)
+    : deriveShowProgress(watched, aired, provisionalCount + 1);
+  const status = statusForShowProgress(after, fallbackEpisodeTotal);
 
   const instant = await resolveInstant(input.userId, input.watchedAt);
   const committed = await commitWatch({

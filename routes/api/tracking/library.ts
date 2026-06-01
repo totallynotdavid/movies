@@ -3,12 +3,9 @@ import { requireAuth } from "void/auth";
 import { err, ok, type Result } from "@/result";
 import type { TrackingError } from "@/domain/errors";
 import { httpStatusFor } from "@/domain/errors";
-import {
-  entriesWithProgress,
-  parseLibraryStatus,
-  upsertLibraryEntry,
-} from "@/domain/tracking/library";
+import { entriesWithProgress, parseLibraryStatus } from "@/domain/tracking/library";
 import type { LibraryStatus } from "@/domain/tracking/library";
+import { saveLibraryEntry } from "@/domain/tracking/library-write";
 
 type LibraryBody = {
   mediaId: string;
@@ -63,7 +60,7 @@ export const POST = defineHandler(async (c) => {
     return c.json({ error: parsed.error }, httpStatusFor(parsed.error));
   }
 
-  const result = await upsertLibraryEntry({ userId: user.id, ...parsed.value });
+  const result = await saveLibraryEntry({ userId: user.id, ...parsed.value });
   if (!result.ok) {
     return c.json({ error: result.error }, httpStatusFor(result.error));
   }

@@ -2,7 +2,7 @@
 // Progress is derived from watch events and aired episodes. It is not stored as
 // a counter. Callers should read progress through this module.
 
-import { and, asc, eq, inArray, isNotNull, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "void/db";
 import { episodes, watchEvents } from "@schema";
 import { selectByIds } from "@/db/kernel";
@@ -27,31 +27,79 @@ function episodeKey(seasonNumber: number, episodeNumber: number): string {
   return `${seasonNumber}:${episodeNumber}`;
 }
 
+function uniqueEpisodes(items: EpisodeRef[]): EpisodeRef[] {
+  return Array.from(
+    new Map(
+      items.map((episode) => [episodeKey(episode.seasonNumber, episode.episodeNumber), episode]),
+    ).values(),
+  );
+}
+
+export function resolveWatchedEpisodes(
+  watched: EpisodeRef[],
+  aired: EpisodeRef[],
+  provisionalCount = 0,
+): EpisodeRef[] {
+  const explicit = uniqueEpisodes(watched);
+  if (aired.length === 0) return explicit;
+
+  const explicitKeys = new Set(
+    explicit.map((episode) => episodeKey(episode.seasonNumber, episode.episodeNumber)),
+  );
+
+  const resolved: EpisodeRef[] = [];
+  let remainingProvisional = provisionalCount;
+
+  for (const episode of aired) {
+    const key = episodeKey(episode.seasonNumber, episode.episodeNumber);
+    if (explicitKeys.has(key)) {
+      resolved.push(episode);
+      continue;
+    }
+    if (remainingProvisional > 0) {
+      resolved.push(episode);
+      remainingProvisional -= 1;
+    }
+  }
+
+  return resolved;
+}
+
 // Pure core. `aired` must be ordered by [season, episode].
-export function deriveShowProgress(watched: EpisodeRef[], aired: EpisodeRef[]): ShowProgress {
-  const watchedKeys = new Set(watched.map((e) => episodeKey(e.seasonNumber, e.episodeNumber)));
+export function deriveShowProgress(
+  watched: EpisodeRef[],
+  aired: EpisodeRef[],
+  provisionalCount = 0,
+): ShowProgress {
+  const explicitCount = uniqueEpisodes(watched).length;
 
   if (aired.length === 0) {
     return {
-      watchedEpisodeCount: watchedKeys.size,
+      watchedEpisodeCount: explicitCount + provisionalCount,
       airedEpisodeCount: null,
       nextEpisode: null,
       allAiredWatched: false,
     };
   }
 
-  let watchedAired = 0;
+  const watchedKeys = new Set(
+    resolveWatchedEpisodes(watched, aired, provisionalCount).map((episode) =>
+      episodeKey(episode.seasonNumber, episode.episodeNumber),
+    ),
+  );
+
+  let watchedEpisodeCount = 0;
   let nextEpisode: EpisodeRef | null = null;
-  for (const ep of aired) {
-    if (watchedKeys.has(episodeKey(ep.seasonNumber, ep.episodeNumber))) {
-      watchedAired += 1;
+  for (const episode of aired) {
+    if (watchedKeys.has(episodeKey(episode.seasonNumber, episode.episodeNumber))) {
+      watchedEpisodeCount += 1;
     } else if (nextEpisode === null) {
-      nextEpisode = { seasonNumber: ep.seasonNumber, episodeNumber: ep.episodeNumber };
+      nextEpisode = { seasonNumber: episode.seasonNumber, episodeNumber: episode.episodeNumber };
     }
   }
 
   return {
-    watchedEpisodeCount: watchedAired,
+    watchedEpisodeCount,
     airedEpisodeCount: aired.length,
     nextEpisode,
     allAiredWatched: nextEpisode === null,
@@ -99,6 +147,31 @@ async function watchedEpisodesByMedia(
   return byMedia;
 }
 
+async function provisionalEpisodeCountsByMedia(
+  userId: string,
+  mediaIds: readonly string[],
+): Promise<Map<string, number>> {
+  const rows = await selectByIds(mediaIds, (batch) =>
+    db
+      .select({
+        mediaId: watchEvents.mediaId,
+        provisionalCount: sql<number>`count(*)`,
+      })
+      .from(watchEvents)
+      .where(
+        and(
+          eq(watchEvents.userId, userId),
+          eq(watchEvents.mediaType, "show"),
+          inArray(watchEvents.mediaId, batch),
+          isNull(watchEvents.seasonNumber),
+        ),
+      )
+      .groupBy(watchEvents.mediaId),
+  );
+
+  return new Map(rows.map((row) => [row.mediaId, row.provisionalCount]));
+}
+
 async function airedEpisodesByMedia(
   mediaIds: readonly string[],
 ): Promise<Map<string, EpisodeRef[]>> {
@@ -130,14 +203,22 @@ export async function listShowProgress(
   const ids = [...new Set(mediaIds)];
   if (ids.length === 0) return new Map();
 
-  const [watched, aired] = await Promise.all([
+  const [watched, provisional, aired] = await Promise.all([
     watchedEpisodesByMedia(userId, ids),
+    provisionalEpisodeCountsByMedia(userId, ids),
     airedEpisodesByMedia(ids),
   ]);
 
   const progress = new Map<string, ShowProgress>();
   for (const mediaId of ids) {
-    progress.set(mediaId, deriveShowProgress(watched.get(mediaId) ?? [], aired.get(mediaId) ?? []));
+    progress.set(
+      mediaId,
+      deriveShowProgress(
+        watched.get(mediaId) ?? [],
+        aired.get(mediaId) ?? [],
+        provisional.get(mediaId) ?? 0,
+      ),
+    );
   }
   return progress;
 }
@@ -147,22 +228,27 @@ export async function listShowProgress(
 export async function loadShowEpisodes(
   userId: string,
   mediaId: string,
-): Promise<{ watched: EpisodeRef[]; aired: EpisodeRef[] }> {
-  const [watched, aired] = await Promise.all([
+): Promise<{ watched: EpisodeRef[]; aired: EpisodeRef[]; provisionalCount: number }> {
+  const [watched, provisional, aired] = await Promise.all([
     watchedEpisodesByMedia(userId, [mediaId]),
+    provisionalEpisodeCountsByMedia(userId, [mediaId]),
     airedEpisodesByMedia([mediaId]),
   ]);
-  return { watched: watched.get(mediaId) ?? [], aired: aired.get(mediaId) ?? [] };
+  return {
+    watched: watched.get(mediaId) ?? [],
+    aired: aired.get(mediaId) ?? [],
+    provisionalCount: provisional.get(mediaId) ?? 0,
+  };
 }
 
 export async function getShowProgress(userId: string, mediaId: string): Promise<ShowProgress> {
-  const { watched, aired } = await loadShowEpisodes(userId, mediaId);
-  return deriveShowProgress(watched, aired);
+  const { watched, aired, provisionalCount } = await loadShowEpisodes(userId, mediaId);
+  return deriveShowProgress(watched, aired, provisionalCount);
 }
 
 // The distinct (season, episode) the user has watched, for marking up an
 // episode picker. Order is not significant.
 export async function listWatchedEpisodes(userId: string, mediaId: string): Promise<EpisodeRef[]> {
-  const map = await watchedEpisodesByMedia(userId, [mediaId]);
-  return map.get(mediaId) ?? [];
+  const { watched, aired, provisionalCount } = await loadShowEpisodes(userId, mediaId);
+  return resolveWatchedEpisodes(watched, aired, provisionalCount);
 }
