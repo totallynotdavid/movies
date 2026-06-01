@@ -1,19 +1,6 @@
 import { index, integer, real, sqliteTable, text, uniqueIndex } from "void/schema-d1";
-import type { MediaStatus, MediaType } from "../src/domain/catalog/media";
-import type { LibraryStatus } from "../src/domain/tracking/library";
-import type { RatingSystem } from "../src/domain/rating";
-
-export const users = sqliteTable("users", {
-  id: text("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  name: text("name").notNull(),
-  role: text("role").notNull().default("member"),
-  ratingSystem: text("rating_system").$type<RatingSystem>().notNull().default("score100"),
-  // IANA timezone (example: "America/Lima"). Null falls back to UTC.
-  timeZone: text("time_zone"),
-  createdAt: integer("created_at").notNull(),
-  updatedAt: integer("updated_at").notNull(),
-});
+import type { MediaStatus, MediaType } from "@/domain/catalog/media";
+import type { LibraryStatus } from "@/domain/tracking/library";
 
 export const media = sqliteTable(
   "media",
@@ -213,13 +200,13 @@ export const mediaTitles = sqliteTable(
 
 // Immutable behavior log. Movies store null season/episode. Shows store episode
 // identity by [seasonNumber, episodeNumber]. Progress is derived from this log.
+// `userId` fields below are logical references to Better Auth `user.id` with no
+// DB foreign key. Better Auth owns user-table lifecycle and deletion cleanup.
 export const watchEvents = sqliteTable(
   "watch_events",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
     mediaId: text("media_id")
       .notNull()
       .references(() => media.id, { onDelete: "cascade" }),
@@ -244,9 +231,7 @@ export const libraryEntries = sqliteTable(
   "library_entries",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
     mediaId: text("media_id")
       .notNull()
       .references(() => media.id, { onDelete: "cascade" }),
@@ -269,9 +254,7 @@ export const favoriteMedia = sqliteTable(
   "favorite_media",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
     mediaId: text("media_id")
       .notNull()
       .references(() => media.id, { onDelete: "cascade" }),
@@ -287,9 +270,7 @@ export const favoritePeople = sqliteTable(
   "favorite_people",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
     personId: text("person_id")
       .notNull()
       .references(() => people.id, { onDelete: "cascade" }),

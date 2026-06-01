@@ -10,18 +10,6 @@ export default defineSeed<Schema>(async ({ db, schema }) => {
   const media = mediaJson as MediaFixture[];
 
   await db
-    .insert(schema.users)
-    .values({
-      id: "bootstrap-admin",
-      email: "admin@example.com",
-      name: "Bootstrap Admin",
-      role: "admin",
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoNothing();
-
-  await db
     .insert(schema.media)
     .values(
       media.map((item) => ({
