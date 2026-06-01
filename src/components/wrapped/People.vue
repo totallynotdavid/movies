@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { WrappedPersonStat } from "../../domain/insights/wrapped";
-import { tmdbImage } from "../tmdb-image";
+import type { WrappedPersonStat } from "@/domain/insights/wrapped";
+import { tmdbImage } from "@/components/tmdb-image";
 import { formatHours } from "./format";
 
 const props = defineProps<{

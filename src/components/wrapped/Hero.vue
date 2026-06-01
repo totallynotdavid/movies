@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { WrappedSummary } from "../../domain/insights/wrapped";
+import type { WrappedSummary } from "@/domain/insights/wrapped";
 import { formatDay, formatHours, formatMetric, formatNumber } from "./format";
 
 const props = defineProps<{ wrapped: WrappedSummary; userName: string }>();

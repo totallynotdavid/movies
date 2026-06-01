@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { WrappedFormatStat, WrappedGenreStat } from "../../domain/insights/wrapped";
+import type { WrappedFormatStat, WrappedGenreStat } from "@/domain/insights/wrapped";
 import { formatMetric } from "./format";
 import ShareBar from "./ShareBar.vue";
 
