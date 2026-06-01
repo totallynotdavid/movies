@@ -60,7 +60,3 @@ export function instantFor(watchedAt: number, timeZone: string | null): WatchIns
   const { watchedOn, utcOffsetMinutes } = localParts(watchedAt, timeZone);
   return { watchedAt, watchedOn, utcOffsetMinutes };
 }
-
-export function nowInstant(timeZone: string | null): WatchInstant {
-  return instantFor(Date.now(), timeZone);
-}

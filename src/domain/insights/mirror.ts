@@ -1,4 +1,5 @@
-import type { LibraryEntryWithProgress, LibraryStatus } from "@/domain/tracking/library";
+import type { LibraryEntryWithProgress } from "@/domain/tracking/library-entries";
+import type { LibraryStatus } from "@/shared/tracking";
 import type { WatchHistoryRow } from "@/domain/tracking/watch-history";
 
 // Mirror detectors derive interpretive patterns from watch history.

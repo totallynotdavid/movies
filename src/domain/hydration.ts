@@ -3,7 +3,7 @@
 // and the state falls out of the two. A successful hydration clears the error,
 // so a set error always means the most recent attempt failed.
 
-export type HydrationState = "stub" | "fresh" | "stale" | "failed";
+import type { HydrationState } from "@/shared/hydration";
 
 export const DETAILS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const EPISODES_TTL_MS = DETAILS_TTL_MS;

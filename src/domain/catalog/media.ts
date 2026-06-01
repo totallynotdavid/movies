@@ -56,7 +56,7 @@ export type UpsertMediaInput = {
   popularity?: number | null;
 };
 
-export function toMediaId(mediaType: MediaType, tmdbId: number) {
+function toMediaId(mediaType: MediaType, tmdbId: number) {
   return `tmdb:${mediaType}:${tmdbId}`;
 }
 

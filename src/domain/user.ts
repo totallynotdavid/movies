@@ -17,15 +17,6 @@ function toAvatarColor(value: string | null): AvatarColor | null {
   return isAvatarColor(value) ? value : null;
 }
 
-export async function getUserRole(userId: string): Promise<UserRole> {
-  const rows = await db
-    .select({ role: userTable.role })
-    .from(userTable)
-    .where(eq(userTable.id, userId))
-    .limit(1);
-  return rows[0]?.role === "admin" ? "admin" : "member";
-}
-
 // Lean identity read for request middleware and shared client context.
 // Includes role for auth gating, plus username and visibility for public-profile nav.
 export type UserContext = {

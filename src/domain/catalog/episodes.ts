@@ -1,8 +1,12 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "void/db";
 import { episodes, media } from "@schema";
 import { insertChunks, selectByIds, type Statement } from "@/db/kernel";
 import type { EpisodeInput } from "@/shared/types/metadata";
+import type { EpisodeRef } from "@/shared/tracking";
+import type { SeasonEpisodes } from "@/shared/catalog";
+
+export type { SeasonEpisodes };
 
 export type EpisodeRuntime = {
   mediaId: string;
@@ -30,19 +34,6 @@ export async function episodeRuntimesByMedia(
   );
 }
 
-export type EpisodeRecord = {
-  seasonNumber: number;
-  episodeNumber: number;
-  name: string | null;
-  runtime: number | null;
-  airDate: string | null;
-};
-
-export type SeasonEpisodes = {
-  seasonNumber: number;
-  episodes: EpisodeRecord[];
-};
-
 export async function listEpisodesBySeason(mediaId: string): Promise<SeasonEpisodes[]> {
   const rows = await db
     .select({
@@ -66,6 +57,39 @@ export async function listEpisodesBySeason(mediaId: string): Promise<SeasonEpiso
     current.episodes.push(row);
   }
   return seasons;
+}
+
+// An episode counts as aired when its air date has passed, or is unknown. ISO
+// dates compare lexically. Grouped by media as ordered EpisodeRefs, the input
+// the progress derive core expects.
+export async function airedEpisodeRefs(
+  mediaIds: readonly string[],
+): Promise<Map<string, EpisodeRef[]>> {
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = await selectByIds(mediaIds, (batch) =>
+    db
+      .select({
+        mediaId: episodes.mediaId,
+        seasonNumber: episodes.seasonNumber,
+        episodeNumber: episodes.episodeNumber,
+      })
+      .from(episodes)
+      .where(
+        and(
+          inArray(episodes.mediaId, batch),
+          or(isNull(episodes.airDate), lte(episodes.airDate, today)),
+        ),
+      )
+      .orderBy(asc(episodes.mediaId), asc(episodes.seasonNumber), asc(episodes.episodeNumber)),
+  );
+
+  const byMedia = new Map<string, EpisodeRef[]>();
+  for (const row of rows) {
+    const list = byMedia.get(row.mediaId) ?? [];
+    list.push({ seasonNumber: row.seasonNumber, episodeNumber: row.episodeNumber });
+    byMedia.set(row.mediaId, list);
+  }
+  return byMedia;
 }
 
 export function mediaEpisodesWrite(mediaId: string, items: EpisodeInput[]): Statement[] {

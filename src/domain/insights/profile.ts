@@ -1,6 +1,6 @@
 import type { MediaType } from "@/domain/catalog/media";
 import { genresByMedia } from "@/domain/catalog/metadata";
-import { entriesWithProgress } from "@/domain/tracking/library";
+import { entriesWithProgress } from "@/domain/tracking/library-entries";
 import { listWatchHistory, type WatchHistoryRow } from "@/domain/tracking/watch-history";
 import { buildMirror, type Mirror } from "./mirror";
 
@@ -119,9 +119,8 @@ export function buildActivityCalendar(
   });
 }
 
-// The recent activity feed is the latest N watches — a pure slice of the shared
-// history, no separate query.
-export function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileActivityItem[] {
+// Recent activity is the latest N watches from history.
+function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileActivityItem[] {
   return [...history]
     .sort((a, b) => b.watchedAt - a.watchedAt)
     .slice(0, limit)
@@ -137,7 +136,7 @@ export function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileAc
     }));
 }
 
-// The projections that are safe to expose on a public profile, from one gather.
+// Projections safe to expose on a public profile.
 function buildPublicProfile(
   history: WatchHistoryRow[],
   entries: { media: { mediaType: MediaType }; score100: number | null }[],
