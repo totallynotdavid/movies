@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import type { SeasonEpisodes } from "../domain/catalog/episodes";
+import type { SeasonEpisodes } from "@/domain/catalog/episodes";
 
 const props = defineProps<{
   seasons: SeasonEpisodes[];

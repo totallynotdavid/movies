@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Props } from "./credits.server";
-import PersonCredit from "../../../src/components/PersonCredit.vue";
+import PersonCredit from "@/components/PersonCredit.vue";
 
 const props = defineProps<Props>();
 

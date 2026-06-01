@@ -1,7 +1,7 @@
 import { computed, ref, type Ref } from "vue";
-import type { LibraryStatus } from "../domain/tracking/library";
-import type { MediaType } from "../domain/catalog/media";
-import { toDisplayScore, scoreMax, toScore100, type RatingSystem } from "../domain/rating";
+import type { LibraryStatus } from "@/domain/tracking/library";
+import type { MediaType } from "@/domain/catalog/media";
+import { toDisplayScore, scoreMax, toScore100, type RatingSystem } from "@/domain/rating";
 
 export type TrackedEntry = {
   id: string;

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import BaseCard from "./BaseCard.vue";
-import type { LibraryStatus } from "../domain/tracking/library";
-import type { RatingSystem } from "../domain/rating";
-import { useTracking, type TrackedEntry } from "../composables/useTracking";
+import type { LibraryStatus } from "@/domain/tracking/library";
+import type { RatingSystem } from "@/domain/rating";
+import { useTracking, type TrackedEntry } from "@/composables/useTracking";
 import { tmdbImage } from "./tmdb-image";
 
 const props = defineProps<{

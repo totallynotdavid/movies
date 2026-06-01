@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { Props } from "./[slug].server";
-import { genderLabel } from "../../src/domain/catalog/people";
-import FilmographyCard from "../../src/components/FilmographyCard.vue";
-import { tmdbImage } from "../../src/components/tmdb-image";
+import { genderLabel } from "@/domain/catalog/people";
+import FilmographyCard from "@/components/FilmographyCard.vue";
+import { tmdbImage } from "@/components/tmdb-image";
 
 const BIO_PREVIEW = 500;
 

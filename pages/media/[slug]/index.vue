@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { Props } from "./index.server";
-import type { LibraryStatus } from "../../../src/domain/tracking/library";
-import { mediaStatusLabel } from "../../../src/domain/catalog/media";
-import { STATS_MIN_SCORES, STATS_MIN_TRACKED } from "../../../src/domain/insights/title-stats";
-import { useTracking } from "../../../src/composables/useTracking";
-import PersonCredit from "../../../src/components/PersonCredit.vue";
-import EpisodeList from "../../../src/components/EpisodeList.vue";
-import { tmdbImage } from "../../../src/components/tmdb-image";
+import type { LibraryStatus } from "@/domain/tracking/library";
+import { mediaStatusLabel } from "@/domain/catalog/media";
+import { STATS_MIN_SCORES, STATS_MIN_TRACKED } from "@/domain/insights/title-stats";
+import { useTracking } from "@/composables/useTracking";
+import PersonCredit from "@/components/PersonCredit.vue";
+import EpisodeList from "@/components/EpisodeList.vue";
+import { tmdbImage } from "@/components/tmdb-image";
 
 const props = defineProps<Props>();
 

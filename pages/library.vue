@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { Props } from "./library.server";
-import LibraryCard from "../src/components/LibraryCard.vue";
-import MediaCard from "../src/components/MediaCard.vue";
-import SkeletonCard from "../src/components/SkeletonCard.vue";
-import type { LibraryStatus } from "../src/domain/tracking/library";
+import LibraryCard from "@/components/LibraryCard.vue";
+import MediaCard from "@/components/MediaCard.vue";
+import SkeletonCard from "@/components/SkeletonCard.vue";
+import type { LibraryStatus } from "@/domain/tracking/library";
 
 type RemoteCandidate = {
   mediaType: "movie" | "show";

@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useShared } from "@void/vue";
 import type { Props } from "./index.server";
-import MediaCard from "../src/components/MediaCard.vue";
+import MediaCard from "@/components/MediaCard.vue";
 
 const props = defineProps<Props>();
 const shared = useShared();
