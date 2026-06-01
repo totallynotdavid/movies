@@ -1,9 +1,9 @@
 import { db } from "void/db";
 import { and, desc, eq } from "drizzle-orm";
-import { libraryEntries, media } from "../../../db/schema";
-import { attempt, ok, type Result } from "../../result";
-import type { MediaRecord } from "../catalog/media";
-import type { TrackingError } from "../errors";
+import { libraryEntries, media } from "@schema";
+import { attempt, ok, type Result } from "@/result";
+import type { MediaRecord } from "@/domain/catalog/media";
+import type { TrackingError } from "@/domain/errors";
 import { listShowProgress } from "./watch-state";
 
 export type LibraryStatus = "planned" | "watching" | "completed" | "paused" | "dropped";

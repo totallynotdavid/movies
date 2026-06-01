@@ -1,8 +1,12 @@
-import { castByMedia, crewByMedia, type CastRow, type CrewRow } from "../catalog/credits";
-import { genresByMedia } from "../catalog/metadata";
-import { episodeRuntimesByMedia, type EpisodeRuntime } from "../catalog/episodes";
-import { listWatchHistory, type WatchHistoryRow } from "../tracking/watch-history";
-import type { MediaType } from "../catalog/media";
+import { castByMedia, crewByMedia, type CastRow, type CrewRow } from "@/domain/catalog/credits";
+import { genresByMedia } from "@/domain/catalog/metadata";
+import { episodeRuntimesByMedia, type EpisodeRuntime } from "@/domain/catalog/episodes";
+import {
+  listWatchHistory,
+  listWatchYears,
+  type WatchHistoryRow,
+} from "@/domain/tracking/watch-history";
+import type { MediaType } from "@/domain/catalog/media";
 
 const ACTOR_LIMIT_PER_TITLE = 5;
 const DIRECTOR_LIMIT_PER_TITLE = 2;
@@ -134,13 +138,56 @@ type WrappedBuildInput = {
   crewRows: CrewRow[];
 };
 
-export function wrappedWindowStartDate(today = new Date()): string {
-  return new Date(Date.UTC(today.getUTCFullYear(), 0, 1)).toISOString().slice(0, 10);
+// `watchedOn` is already a local calendar day (YYYY-MM-DD), so a year is a plain
+// half-open string range; no timezone math is needed for the window itself.
+export function wrappedYearWindow(year: number): { since: string; until: string } {
+  return { since: `${year}-01-01`, until: `${year + 1}-01-01` };
 }
 
-function emptyWrappedSummary(today = new Date()): WrappedSummary {
+// Calendar year and month (1-12) in a timezone, falling back to UTC for an
+// unknown zone. The one owner of the Intl zone extraction the recap logic needs.
+export function zonedYearMonth(
+  today: Date,
+  timeZone: string | null,
+): { year: number; month: number } {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timeZone ?? "UTC",
+      year: "numeric",
+      month: "numeric",
+    }).formatToParts(today);
+    return {
+      year: Number(parts.find((p) => p.type === "year")?.value),
+      month: Number(parts.find((p) => p.type === "month")?.value),
+    };
+  } catch {
+    return { year: today.getUTCFullYear(), month: today.getUTCMonth() + 1 };
+  }
+}
+
+// Which year a bare /wrapped (or public profile root) should default to. Resolved
+// in the user's zone so a New Year's-Eve watch lands in the right year. During
+// January we surface the just-completed year (full and shareable) instead of a
+// near-empty current year; explicit ?year navigation overrides this.
+export function resolveWrappedYear(today: Date, timeZone: string | null): number {
+  const { year, month } = zonedYearMonth(today, timeZone);
+  return month === 1 ? year - 1 : year;
+}
+
+// A public year recap is shareable once the year is complete enough to be worth
+// sharing: any past year always, the current year only from December (so a
+// mid-year recap is never half-empty), never a future year. The owner still sees
+// the live, in-progress current year on the private /wrapped regardless.
+export function isYearRecapPublic(year: number, today: Date, timeZone: string | null): boolean {
+  const { year: current, month } = zonedYearMonth(today, timeZone);
+  if (year > current) return false;
+  if (year < current) return true;
+  return month >= 12;
+}
+
+function emptyWrappedSummary(year: number): WrappedSummary {
   return {
-    year: today.getUTCFullYear(),
+    year,
     totalMinutes: 0,
     totalWatchCount: 0,
     watchDays: 0,
@@ -468,12 +515,12 @@ const compareDays = compareBy<WrappedDayStat>(
   (a, b) => textAsc(b.date, a.date), // ties go to the later date
 );
 
-export function buildWrappedSummary(input: WrappedBuildInput, today = new Date()): WrappedSummary {
+export function buildWrappedSummary(input: WrappedBuildInput, year: number): WrappedSummary {
   if (input.watchRows.length === 0) {
-    return emptyWrappedSummary(today);
+    return emptyWrappedSummary(year);
   }
 
-  const summary = emptyWrappedSummary(today);
+  const summary = emptyWrappedSummary(year);
   const episodeRuntimeIndex = buildEpisodeRuntimeIndex(input.episodeRows);
   const genresOf = input.genresByMedia;
   const actorsByMedia = indexCastRows(input.castRows);
@@ -557,11 +604,15 @@ export function buildWrappedSummary(input: WrappedBuildInput, today = new Date()
 
 export async function getWrappedSummary(
   userId: string,
-  today = new Date(),
+  opts: { year?: number; today?: Date; timeZone?: string | null } = {},
 ): Promise<WrappedSummary> {
-  const watchRows = await listWatchHistory(userId, { since: wrappedWindowStartDate(today) });
+  const today = opts.today ?? new Date();
+  const year = opts.year ?? resolveWrappedYear(today, opts.timeZone ?? null);
+  const { since, until } = wrappedYearWindow(year);
+
+  const watchRows = await listWatchHistory(userId, { since, until });
   if (watchRows.length === 0) {
-    return emptyWrappedSummary(today);
+    return emptyWrappedSummary(year);
   }
 
   const mediaIds = [...new Set(watchRows.map((row) => row.mediaId))];
@@ -574,6 +625,12 @@ export async function getWrappedSummary(
 
   return buildWrappedSummary(
     { watchRows, genresByMedia: genresOf, castRows, crewRows, episodeRows },
-    today,
+    year,
   );
+}
+
+// Distinct years with watch activity, newest first, for the year navigation on a
+// public profile. Delegates the watch_events read to the history seam.
+export async function wrappedYearsForUser(userId: string): Promise<number[]> {
+  return listWatchYears(userId);
 }

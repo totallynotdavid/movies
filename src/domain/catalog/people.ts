@@ -1,9 +1,9 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "void/db";
-import { people } from "../../../db/schema";
-import { insertChunks, type Statement } from "../../db/kernel";
-import { slugify } from "../../../shared/slug";
-import type { PersonScalars, PersonStubInput } from "../../../shared/types/metadata";
+import { people } from "@schema";
+import { insertChunks, type Statement } from "@/db/kernel";
+import { slugify } from "@/shared/slug";
+import type { PersonScalars, PersonStubInput } from "@/shared/types/metadata";
 
 export type PersonRecord = typeof people.$inferSelect;
 

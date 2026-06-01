@@ -1,9 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { buildWrappedSummary, wrappedWindowStartDate } from "./wrapped";
+import { buildWrappedSummary, resolveWrappedYear, wrappedYearWindow } from "./wrapped";
 
-describe("wrappedWindowStartDate", () => {
-  it("starts the recap at the beginning of the current UTC year", () => {
-    expect(wrappedWindowStartDate(new Date("2026-05-30T12:00:00Z"))).toBe("2026-01-01");
+describe("wrappedYearWindow", () => {
+  it("is a half-open local-day range for the year", () => {
+    expect(wrappedYearWindow(2025)).toEqual({ since: "2025-01-01", until: "2026-01-01" });
+  });
+});
+
+describe("resolveWrappedYear", () => {
+  it("defaults to the current year in the user's zone", () => {
+    expect(resolveWrappedYear(new Date("2026-05-30T12:00:00Z"), "UTC")).toBe(2026);
+  });
+
+  it("surfaces the just-completed year during the January grace window", () => {
+    expect(resolveWrappedYear(new Date("2026-01-15T12:00:00Z"), "UTC")).toBe(2025);
+  });
+
+  it("resolves the year in the user's timezone at the boundary", () => {
+    // 23:30 UTC Dec 31 2026 is already Jan 2027 in Tokyo (UTC+9), so the January
+    // grace window surfaces the just-completed 2026.
+    expect(resolveWrappedYear(new Date("2026-12-31T23:30:00Z"), "Asia/Tokyo")).toBe(2026);
   });
 });
 
@@ -195,7 +211,7 @@ describe("buildWrappedSummary", () => {
           },
         ],
       },
-      new Date("2026-05-30T12:00:00Z"),
+      2026,
     );
 
     expect(wrapped.totalMinutes).toBe(425);
@@ -260,7 +276,7 @@ describe("buildWrappedSummary", () => {
         castRows: [],
         crewRows: [],
       },
-      new Date("2026-05-30T12:00:00Z"),
+      2026,
     );
 
     expect(wrapped.totalMinutes).toBe(0);

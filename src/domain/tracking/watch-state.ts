@@ -4,8 +4,8 @@
 
 import { and, asc, eq, inArray, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { db } from "void/db";
-import { episodes, watchEvents } from "../../../db/schema";
-import { selectByIds } from "../../db/kernel";
+import { episodes, watchEvents } from "@schema";
+import { selectByIds } from "@/db/kernel";
 
 export type EpisodeRef = { seasonNumber: number; episodeNumber: number };
 

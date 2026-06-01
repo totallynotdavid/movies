@@ -1,10 +1,10 @@
 import { and, desc, eq, inArray, isNull, like, lt, or } from "drizzle-orm";
 import { db } from "void/db";
-import { media } from "../../../db/schema";
-import { selectByIds, type Statement } from "../../db/kernel";
-import type { MediaDetailScalars } from "../../../shared/types/metadata";
-import { attempt, err, ok, type Result } from "../../result";
-import type { TrackingError } from "../errors";
+import { media } from "@schema";
+import { selectByIds, type Statement } from "@/db/kernel";
+import type { MediaDetailScalars } from "@/shared/types/metadata";
+import { attempt, err, ok, type Result } from "@/result";
+import type { TrackingError } from "@/domain/errors";
 
 export type MediaType = "movie" | "show";
 

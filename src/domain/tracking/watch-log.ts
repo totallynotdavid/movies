@@ -1,11 +1,11 @@
 import { db } from "void/db";
-import { libraryEntries, watchEvents } from "../../../db/schema";
-import { attempt, err, ok, type Result } from "../../result";
-import type { TrackingError } from "../errors";
-import { instantFor, type WatchInstant } from "../instant";
-import { findMedia, type MediaRecord } from "../catalog/media";
+import { libraryEntries, watchEvents } from "@schema";
+import { attempt, err, ok, type Result } from "@/result";
+import type { TrackingError } from "@/domain/errors";
+import { instantFor, type WatchInstant } from "@/domain/instant";
+import { findMedia, type MediaRecord } from "@/domain/catalog/media";
 import { findEntry, type LibraryEntryRecord } from "./library";
-import { getUserTimeZone } from "../user";
+import { getUserTimeZone } from "@/domain/user";
 import {
   deriveShowProgress,
   loadShowEpisodes,

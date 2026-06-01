@@ -1,7 +1,7 @@
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "void/db";
-import { libraryEntries, media, watchEvents } from "../../../db/schema";
-import type { MediaType } from "../catalog/media";
+import { libraryEntries, media, watchEvents } from "@schema";
+import type { MediaType } from "@/domain/catalog/media";
 
 // Reads behavior history joined with media and score fields.
 // Keep this as the single join/filter owner for history reads.
@@ -22,13 +22,15 @@ export type WatchHistoryRow = {
   episodeNumber: number | null;
 };
 
-// `since` filters on local watch day [YYYY-MM-DD, inclusive]. Omit for all-time.
+// Filters on local watch day (YYYY-MM-DD): `since` inclusive, `until` exclusive.
+// A year window is [`{year}-01-01`, `{year+1}-01-01`). Omit both for all-time.
 export async function listWatchHistory(
   userId: string,
-  window?: { since?: string },
+  window?: { since?: string; until?: string },
 ): Promise<WatchHistoryRow[]> {
   const filters = [eq(watchEvents.userId, userId)];
   if (window?.since) filters.push(gte(watchEvents.watchedOn, window.since));
+  if (window?.until) filters.push(lt(watchEvents.watchedOn, window.until));
 
   return db
     .select({
@@ -54,4 +56,19 @@ export async function listWatchHistory(
       and(eq(libraryEntries.userId, userId), eq(libraryEntries.mediaId, watchEvents.mediaId)),
     )
     .where(and(...filters));
+}
+
+// Distinct years (from the local watch day) with activity, newest first. The
+// single owner of any year-bucketing read over the event log.
+export async function listWatchYears(userId: string): Promise<number[]> {
+  const yearExpr = sql<string>`substr(${watchEvents.watchedOn}, 1, 4)`;
+  const rows = await db
+    .selectDistinct({ year: yearExpr })
+    .from(watchEvents)
+    .where(eq(watchEvents.userId, userId));
+
+  return rows
+    .map((row) => Number(row.year))
+    .filter((year) => Number.isFinite(year))
+    .sort((a, b) => b - a);
 }

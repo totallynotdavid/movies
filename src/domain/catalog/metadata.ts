@@ -1,8 +1,8 @@
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "void/db";
-import { companies, genres, mediaCompanies, mediaGenres, mediaTitles } from "../../../db/schema";
-import { insertChunks, selectByIds, type Statement } from "../../db/kernel";
-import type { AltTitleInput, CompanyInput, GenreInput } from "../../../shared/types/metadata";
+import { companies, genres, mediaCompanies, mediaGenres, mediaTitles } from "@schema";
+import { insertChunks, selectByIds, type Statement } from "@/db/kernel";
+import type { AltTitleInput, CompanyInput, GenreInput } from "@/shared/types/metadata";
 
 export type GenreView = { name: string };
 export type CompanyView = { kind: "company" | "network"; name: string };

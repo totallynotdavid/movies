@@ -1,8 +1,8 @@
 import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "void/db";
-import { episodes, media } from "../../../db/schema";
-import { insertChunks, selectByIds, type Statement } from "../../db/kernel";
-import type { EpisodeInput } from "../../../shared/types/metadata";
+import { episodes, media } from "@schema";
+import { insertChunks, selectByIds, type Statement } from "@/db/kernel";
+import type { EpisodeInput } from "@/shared/types/metadata";
 
 export type EpisodeRuntime = {
   mediaId: string;

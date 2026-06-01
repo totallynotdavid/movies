@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "void/db";
-import { favoriteMedia, favoritePeople, media, people } from "../../../db/schema";
-import type { MediaRecord } from "../catalog/media";
+import { favoriteMedia, favoritePeople, media, people } from "@schema";
+import type { MediaRecord } from "@/domain/catalog/media";
 
 export async function listFavoriteMedia(userId: string) {
   return db.select().from(favoriteMedia).where(eq(favoriteMedia.userId, userId));

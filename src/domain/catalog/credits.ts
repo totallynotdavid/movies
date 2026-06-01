@@ -1,8 +1,8 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "void/db";
-import { castCredits, crewCredits, people } from "../../../db/schema";
-import { insertChunks, selectByIds, type Statement } from "../../db/kernel";
-import type { CastInput, CrewInput } from "../../../shared/types/metadata";
+import { castCredits, crewCredits, people } from "@schema";
+import { insertChunks, selectByIds, type Statement } from "@/db/kernel";
+import type { CastInput, CrewInput } from "@/shared/types/metadata";
 import type { MediaType } from "./media";
 import { toPersonId } from "./people";
 

@@ -1,7 +1,7 @@
-import type { MediaType } from "../catalog/media";
-import { genresByMedia } from "../catalog/metadata";
-import { entriesWithProgress } from "../tracking/library";
-import { listWatchHistory, type WatchHistoryRow } from "../tracking/watch-history";
+import type { MediaType } from "@/domain/catalog/media";
+import { genresByMedia } from "@/domain/catalog/metadata";
+import { entriesWithProgress } from "@/domain/tracking/library";
+import { listWatchHistory, type WatchHistoryRow } from "@/domain/tracking/watch-history";
 import { buildMirror, type Mirror } from "./mirror";
 
 type FormatStatsSource = {
@@ -32,24 +32,28 @@ export type ProfileCalendarDay = {
   count: number;
 };
 
+// Day-level by design: the feed exposes `watchedOn` (a calendar day) and never a
+// timestamp, so the same shape is safe to render on a public profile.
 export type ProfileActivityItem = {
   id: string;
   mediaId: string;
   mediaType: MediaType;
   title: string;
   slug: string;
-  watchedAt: number;
   watchedOn: string;
   seasonNumber: number | null;
   episodeNumber: number | null;
 };
 
-export type ProfileOverview = {
+// Public-safe subset of the profile read model.
+// Excludes behavioral mirror analysis and watch timestamps.
+export type PublicProfileOverview = {
   formatStats: ProfileFormatStats;
   activityCalendar: ProfileCalendarDay[];
   recentActivity: ProfileActivityItem[];
-  mirror: Mirror;
 };
+
+export type ProfileOverview = PublicProfileOverview & { mirror: Mirror };
 
 export function buildProfileFormatStats(
   libraryRows: FormatStatsSource[],
@@ -127,26 +131,17 @@ export function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileAc
       mediaType: row.mediaType,
       title: row.title,
       slug: row.slug,
-      watchedAt: row.watchedAt,
       watchedOn: row.watchedOn,
       seasonNumber: row.seasonNumber,
       episodeNumber: row.episodeNumber,
     }));
 }
 
-// The whole profile read model from a single behavior-log gather: history is read
-// once, the library entries (with derived progress) once, the genre map once —
-// then every projection is a pure function of those. Tracked counts come from the
-// intent side (titles with no watch yet count), watch days from the history.
-export async function getProfileOverview(userId: string): Promise<ProfileOverview> {
-  const history = await listWatchHistory(userId);
-  const mediaIds = [...new Set(history.map((row) => row.mediaId))];
-
-  const [entries, genres] = await Promise.all([
-    entriesWithProgress(userId),
-    genresByMedia(mediaIds),
-  ]);
-
+// The projections that are safe to expose on a public profile, from one gather.
+function buildPublicProfile(
+  history: WatchHistoryRow[],
+  entries: { media: { mediaType: MediaType }; score100: number | null }[],
+): PublicProfileOverview {
   const formatSource: FormatStatsSource[] = entries.map((entry) => ({
     mediaType: entry.media.mediaType,
     score100: entry.score100,
@@ -156,6 +151,33 @@ export async function getProfileOverview(userId: string): Promise<ProfileOvervie
     formatStats: buildProfileFormatStats(formatSource, history),
     activityCalendar: buildActivityCalendar(history),
     recentActivity: recentWatches(history),
+  };
+}
+
+// Public profile read model. Genres are not read here because only the private
+// mirror needs them, so a public view skips that work entirely.
+export async function getPublicProfileOverview(userId: string): Promise<PublicProfileOverview> {
+  const [history, entries] = await Promise.all([
+    listWatchHistory(userId),
+    entriesWithProgress(userId),
+  ]);
+  return buildPublicProfile(history, entries);
+}
+
+// Full profile read model built from one shared gather.
+// Projections are pure functions of history, entries, and genre data.
+// Tracked counts come from library intent; watch-day counts come from history.
+export async function getProfileOverview(userId: string): Promise<ProfileOverview> {
+  const history = await listWatchHistory(userId);
+  const mediaIds = [...new Set(history.map((row) => row.mediaId))];
+
+  const [entries, genres] = await Promise.all([
+    entriesWithProgress(userId),
+    genresByMedia(mediaIds),
+  ]);
+
+  return {
+    ...buildPublicProfile(history, entries),
     mirror: buildMirror(history, genres, entries, Date.now()),
   };
 }
