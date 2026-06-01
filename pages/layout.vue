@@ -1,25 +1,37 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import "virtual:uno.css";
-import "../src/styles/app.css";
-import { Link, useShared } from "@void/vue";
-import CommandPalette from "../src/components/CommandPalette.vue";
-import ScrollToTop from "../src/components/ScrollToTop.vue";
-import { useColorTheme } from "../src/composables/useColorTheme";
+import "@/styles/app.css";
+import { Link, useShared, useRouter } from "@void/vue";
+import { auth } from "void/client";
+import Avatar from "@/components/identity/Avatar.vue";
+import CommandPalette from "@/components/CommandPalette.vue";
+import ScrollToTop from "@/components/ScrollToTop.vue";
+import { useColorTheme } from "@/composables/useColorTheme";
 
 const { theme, toggle } = useColorTheme();
 const shared = useShared();
 const user = shared.user;
+const router = useRouter();
 
 const paletteRef = ref<InstanceType<typeof CommandPalette> | null>(null);
 const mobileMenuOpen = ref(false);
+const userMenuOpen = ref(false);
 const shortcutsOpen = ref(false);
 
+// Primary destinations live in the top nav; account actions (profile, public
+// profile, settings, sign out) live in the user menu.
 const navLinks = [
   { href: "/library", label: "library", auth: true },
   { href: "/wrapped", label: "wrapped", auth: true },
-  { href: "/profile", label: "profile", auth: true },
 ];
+
+async function signOut() {
+  await auth.signOut();
+  userMenuOpen.value = false;
+  mobileMenuOpen.value = false;
+  await router.visit("/login");
+}
 
 function isEditable(target: EventTarget | null): boolean {
   if (!target || !(target instanceof HTMLElement)) return false;
@@ -56,28 +68,9 @@ function onKeyup(e: KeyboardEvent) {
   }
 }
 
-// Capture the browser's timezone once per device so the server can render and
-// bucket watch activity in local time. Guarded by localStorage to avoid a POST
-// on every load; the server only fills it when unset, so this is safe to repeat.
-function captureTimeZone() {
-  if (!user || localStorage.getItem("tzCaptured")) return;
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  if (!timeZone) return;
-  void fetch("/api/user/timezone", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ timeZone }),
-  })
-    .then((res) => {
-      if (res.ok) localStorage.setItem("tzCaptured", "1");
-    })
-    .catch(() => {});
-}
-
 onMounted(() => {
   document.addEventListener("keydown", onKeydown);
   document.addEventListener("keyup", onKeyup);
-  captureTimeZone();
 });
 
 onUnmounted(() => {
@@ -150,13 +143,57 @@ onUnmounted(() => {
             sign in
           </Link>
 
-          <Link
-            v-else
-            href="/profile"
-            class="px-3 py-1.5 rounded-lg border border-border bg-bg-subtle text-fg-muted text-sm hover:border-accent/40 hover:text-fg transition-colors font-mono focus-ring"
-          >
-            {{ user.name }}
-          </Link>
+          <div v-else class="relative">
+            <button
+              type="button"
+              class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg border border-border bg-bg-subtle text-fg-muted text-sm hover:border-accent/40 hover:text-fg transition-colors font-mono focus-ring"
+              :aria-expanded="userMenuOpen"
+              aria-haspopup="menu"
+              @click="userMenuOpen = !userMenuOpen"
+            >
+              <Avatar :emoji="null" :color="null" :name="user.name" :size="24" />
+              <span>{{ user.name }}</span>
+              <span class="i-lucide:chevron-down w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+
+            <template v-if="userMenuOpen">
+              <div class="fixed inset-0 z-40" @click="userMenuOpen = false" />
+              <div
+                class="absolute right-0 mt-2 z-50 w-48 flex flex-col py-1 rounded-lg border border-border bg-bg-subtle shadow-xl"
+                role="menu"
+              >
+                <Link
+                  href="/profile"
+                  class="px-3 py-2 text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                  @click="userMenuOpen = false"
+                >
+                  profile
+                </Link>
+                <Link
+                  v-if="user.username"
+                  :href="`/u/${user.username}`"
+                  class="px-3 py-2 text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                  @click="userMenuOpen = false"
+                >
+                  public profile
+                </Link>
+                <Link
+                  href="/settings"
+                  class="px-3 py-2 text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                  @click="userMenuOpen = false"
+                >
+                  settings
+                </Link>
+                <button
+                  type="button"
+                  class="px-3 py-2 text-left text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                  @click="signOut"
+                >
+                  sign out
+                </button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <div class="ml-auto sm:hidden flex items-center gap-2">
@@ -228,6 +265,15 @@ onUnmounted(() => {
                 profile
               </Link>
               <Link
+                v-if="user.username"
+                :href="`/u/${user.username}`"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                @click="mobileMenuOpen = false"
+              >
+                <span class="i-lucide:globe w-4 h-4" aria-hidden="true" />
+                public profile
+              </Link>
+              <Link
                 href="/settings"
                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
                 @click="mobileMenuOpen = false"
@@ -235,6 +281,14 @@ onUnmounted(() => {
                 <span class="i-lucide:settings w-4 h-4" aria-hidden="true" />
                 settings
               </Link>
+              <button
+                type="button"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                @click="signOut"
+              >
+                <span class="i-lucide:log-out w-4 h-4" aria-hidden="true" />
+                sign out
+              </button>
             </template>
             <Link
               v-else

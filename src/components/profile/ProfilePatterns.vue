@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type {
-  DayPartPattern,
-  GenreTiming,
-  Phase,
-  WeekdayPattern,
-} from "../../domain/insights/mirror";
+import type { DayPartPattern, GenreTiming, Phase, WeekdayPattern } from "@/domain/insights/mirror";
 
 const props = defineProps<{
   weekday: WeekdayPattern;

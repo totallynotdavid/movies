@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { Ledger } from "../../domain/insights/mirror";
+import type { Ledger } from "@/domain/insights/mirror";
 
 const props = defineProps<{
   ledger: Ledger;

@@ -16,10 +16,14 @@ async function submit() {
   loading.value = true;
   try {
     if (mode.value === "signup") {
+      // Capture the browser timezone at account creation (timeZone is an
+      // input:true additionalField). Settings can change it later; there is no
+      // separate capture round-trip.
       await auth.signUp.email({
         email: email.value,
         password: password.value,
         name: name.value || email.value.split("@")[0],
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
     } else {
       await auth.signIn.email({ email: email.value, password: password.value });
@@ -36,7 +40,6 @@ async function submit() {
 <template>
   <div class="flex items-center justify-center min-h-[60vh]">
     <div class="w-full max-w-sm flex flex-col gap-6">
-      <!-- Mode toggle -->
       <div class="flex p-1 rounded-xl bg-bg-subtle border border-border gap-1">
         <button
           type="button"
@@ -60,7 +63,6 @@ async function submit() {
         </button>
       </div>
 
-      <!-- Form -->
       <form class="flex flex-col gap-4" @submit.prevent="submit">
         <div class="flex flex-col gap-3">
           <div v-if="mode === 'signup'" class="flex flex-col gap-1.5">

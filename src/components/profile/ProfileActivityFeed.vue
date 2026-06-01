@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import type { ProfileActivityItem } from "../../domain/insights/profile";
+import type { ProfileActivityItem } from "@/domain/insights/profile";
 
 defineProps<{
   items: ProfileActivityItem[];
 }>();
 
-const timeFormatter = new Intl.DateTimeFormat("en-US", {
+// Day granularity only: the feed renders the calendar day of a watch, never a
+// timestamp, so it is safe on a public profile (see ProfileActivityItem).
+const dayFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
+  year: "numeric",
   timeZone: "UTC",
 });
 
@@ -22,8 +23,8 @@ function episodeLabel(item: ProfileActivityItem) {
   return `S${item.seasonNumber}·E${item.episodeNumber}`;
 }
 
-function formatTime(watchedAt: number) {
-  return `${timeFormatter.format(new Date(watchedAt))} UTC`;
+function formatDay(watchedOn: string) {
+  return dayFormatter.format(new Date(`${watchedOn}T00:00:00Z`));
 }
 </script>
 
@@ -72,7 +73,7 @@ function formatTime(watchedAt: number) {
         <div
           class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.7rem] font-mono text-fg-subtle"
         >
-          <span>{{ formatTime(item.watchedAt) }}</span>
+          <span>{{ formatDay(item.watchedOn) }}</span>
         </div>
       </div>
     </div>

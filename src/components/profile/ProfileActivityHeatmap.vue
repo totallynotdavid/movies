@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { ProfileCalendarDay } from "../../domain/insights/profile";
+import type { ProfileCalendarDay } from "@/domain/insights/profile";
 
 const props = defineProps<{
   days: ProfileCalendarDay[];
