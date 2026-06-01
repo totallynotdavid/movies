@@ -1,20 +1,31 @@
 {
   "extends": "./.void/tsconfig.json",
-  "files": ["./.void/db.d.ts"],
+  "files": ["./.void/db.d.ts", "./.void/routes.d.ts", "./.void/queues.d.ts", "./.void/env.d.ts"],
   "compilerOptions": {
     "types": ["void/env"],
     "module": "preserve",
     "moduleResolution": "bundler",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "void/db": ["./.void/db.d.ts"],
+      "@schema": ["./db/schema.ts"],
+      "@schema/*": ["./db/schema/*"],
+      "void/routes": ["./.void/routes.d.ts"],
+      "void/queues": ["./.void/queues.d.ts"]
+    }
   },
   "include": [
     "pages/**/*.ts",
     "pages/**/*.vue",
     "routes/**/*.ts",
     "middleware/**/*.ts",
+    "crons/**/*.ts",
+    "queues/**/*.ts",
     "db/**/*.ts",
     "src/**/*.ts",
     "src/**/*.vue",
+    "auth.ts",
     "env.ts"
   ],
   "exclude": ["scripts"]

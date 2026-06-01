@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { TRACKING_STATUSES } from "../types/tracking";
+import { TRACKING_STATUSES } from "@/shared/types/tracking";
 
 export const StatusSchema = v.picklist(TRACKING_STATUSES);
 
