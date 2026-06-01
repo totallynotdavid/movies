@@ -1,6 +1,6 @@
 import { db } from "void/db";
 import type { BatchItem } from "drizzle-orm/batch";
-import { chunk } from "../../shared/chunk";
+import { chunk } from "@/shared/chunk";
 
 // D1 caps bound parameters at 100 per statement. We size every bulk write off
 // the actual bound-column count of a row and keep headroom under that hard cap,

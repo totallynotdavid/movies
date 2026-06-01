@@ -1,6 +1,6 @@
 import { defineMiddleware } from "void";
 import { getUser } from "void/auth";
-import { ensureProfileForAuthUser, getUserRole, type UserRole } from "../src/domain/user";
+import { getUserContext, type UserRole } from "@/domain/user";
 
 export default defineMiddleware(async (c, next) => {
   const user = getUser();
@@ -12,10 +12,18 @@ export default defineMiddleware(async (c, next) => {
     return;
   }
 
-  await ensureProfileForAuthUser({ id: user.id, email: user.email, name: user.name });
-  const role = await getUserRole(user.id);
-  c.set("role", role);
-  c.set("shared", { user: { id: user.id, name: user.name, email: user.email }, role });
+  const ctx = await getUserContext(user.id);
+  c.set("role", ctx.role);
+  c.set("shared", {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      username: ctx.username,
+      visibility: ctx.visibility,
+    },
+    role: ctx.role,
+  });
 
   await next();
 });
