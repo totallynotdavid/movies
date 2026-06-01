@@ -1,7 +1,7 @@
-import { computed, ref, type Ref } from "vue";
-import type { LibraryStatus } from "@/domain/tracking/library";
+import { computed, ref, unref, type Ref } from "vue";
 import type { MediaType } from "@/domain/catalog/media";
 import { toDisplayScore, scoreMax, toScore100, type RatingSystem } from "@/domain/rating";
+import type { LibraryStatus, TrackedEntryDto } from "@/shared/tracking";
 
 export type TrackedEntry = {
   id: string;
@@ -11,31 +11,24 @@ export type TrackedEntry = {
   updatedAt: number;
 };
 
-type ServerEntry = {
-  id: string;
-  status: LibraryStatus;
-  score100: number | null;
-  updatedAt?: number;
-};
 // Episode progress is derived server-side and returned alongside the entry only
-// when it changes (logging a watch); status/score posts omit it.
+// when it changes (recording a watch); intent posts omit it.
 type TrackingResponse = {
   error?: { kind?: string };
-  entry?: ServerEntry;
+  entry?: TrackedEntryDto;
   watchedEpisodeCount?: number;
 };
 
 type Options = {
   mediaId: string;
   mediaType: MediaType;
-  episodeTotal: number | null;
+  episodeTotal: number | null | Ref<number | null>;
   ratingSystem: RatingSystem;
   initialEntry: TrackedEntry | null;
   onUpdate?: (entry: TrackedEntry) => void;
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
-  episodes_not_ready: "Episodes are still loading — try again in a moment.",
   already_at_episode_total: "You've already logged every episode.",
 };
 
@@ -66,20 +59,21 @@ export function useTracking(options: Options) {
     if (score100 === null || score100 === undefined) return null;
     return toDisplayScore(score100, options.ratingSystem);
   });
+  const episodeTotal = computed(() => unref(options.episodeTotal));
 
   const max = scoreMax(options.ratingSystem);
 
   const progressText = computed(() => {
     if (!entry.value || options.mediaType !== "show") return null;
-    if (options.episodeTotal !== null) {
-      return `${entry.value.watchedEpisodeCount} / ${options.episodeTotal} episodes`;
+    if (episodeTotal.value !== null) {
+      return `${entry.value.watchedEpisodeCount} / ${episodeTotal.value} episodes`;
     }
     return `${entry.value.watchedEpisodeCount} episodes`;
   });
 
   const canLogEpisode = computed(() => {
     if (!entry.value || options.mediaType !== "show") return false;
-    return options.episodeTotal === null || entry.value.watchedEpisodeCount < options.episodeTotal;
+    return episodeTotal.value === null || entry.value.watchedEpisodeCount < episodeTotal.value;
   });
 
   function sync(next: TrackedEntry) {
@@ -133,16 +127,15 @@ export function useTracking(options: Options) {
     });
   }
 
+  // Records a watch: a movie completes, a show quick-logs the next aired episode.
   function logWatch() {
-    const url =
-      options.mediaType === "movie" ? "/api/tracking/movie-watch" : "/api/tracking/show-episode";
-    return post(url, { mediaId: options.mediaId });
+    return post("/api/tracking/watch", { mediaId: options.mediaId });
   }
 
   // Log a specific episode (the picker path), as opposed to quick-logging the
   // next aired one. Updates the shared entry + derived episode count.
   function logEpisode(seasonNumber: number, episodeNumber: number) {
-    return post("/api/tracking/show-episode", {
+    return post("/api/tracking/watch", {
       mediaId: options.mediaId,
       seasonNumber,
       episodeNumber,

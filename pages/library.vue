@@ -4,7 +4,7 @@ import type { Props } from "./library.server";
 import LibraryCard from "@/components/LibraryCard.vue";
 import MediaCard from "@/components/MediaCard.vue";
 import SkeletonCard from "@/components/SkeletonCard.vue";
-import type { LibraryStatus } from "@/domain/tracking/library";
+import type { LibraryStatus } from "@/shared/tracking";
 
 type RemoteCandidate = {
   mediaType: "movie" | "show";
@@ -24,7 +24,6 @@ type RemoteCandidate = {
 
 const props = defineProps<Props>();
 
-// Reactive local copy, no page reload needed.
 const localEntries = ref([...props.entries]);
 
 const query = ref("");

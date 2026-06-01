@@ -3,9 +3,9 @@ import type { InferProps } from "void";
 import { getUser } from "void/auth";
 import { findMediaBySlug } from "@/domain/catalog/media";
 import { isMediaFavorited } from "@/domain/tracking/favorites";
-import { findEntry, type LibraryEntryRecord } from "@/domain/tracking/library";
-import { getShowProgress, listWatchedEpisodes } from "@/domain/tracking/watch-state";
-import { listEpisodesBySeason, type SeasonEpisodes } from "@/domain/catalog/episodes";
+import { findEntry, type LibraryEntryRecord } from "@/domain/tracking/library-entries";
+import { buildShowView } from "@/domain/tracking/show-view";
+import type { SeasonEpisodes } from "@/domain/catalog/episodes";
 import { getUserSettings } from "@/domain/user";
 import { ensureMediaDetails } from "@/services/media-hydration";
 import { countCast, countCrew, listCast, listKeyCrew } from "@/domain/catalog/credits";
@@ -44,28 +44,25 @@ export const loader = defineHandler(async (c) => {
       getMediaStats(item.id),
     ]);
 
-  // Episode picker data is public (seasons); watched marks are per-user.
-  const seasons: SeasonEpisodes[] =
-    item.mediaType === "show" ? await listEpisodesBySeason(item.id) : [];
+  // Episode picker data is public (seasons); watched marks are per-user. One
+  // projection owns the show read, shared with the poll route.
+  const showView = item.mediaType === "show" ? await buildShowView(user?.id ?? null, item) : null;
+  const seasons: SeasonEpisodes[] = showView?.seasons ?? [];
+  const watchedEpisodeCount = showView?.progress.watchedEpisodeCount ?? 0;
+  const watchedEpisodeKeys = showView?.watchedKeys ?? [];
 
   let libraryEntry: LibraryEntryRecord | null = null;
-  let watchedEpisodeCount = 0;
-  let watchedEpisodeKeys: string[] = [];
   let isFavorited = false;
   let ratingSystem: RatingSystem = "score100";
 
   if (user) {
-    const [entry, favorited, settings, progress, watched] = await Promise.all([
+    const [entry, favorited, settings] = await Promise.all([
       findEntry(user.id, item.id),
       isMediaFavorited(user.id, item.id),
       getUserSettings(user.id),
-      item.mediaType === "show" ? getShowProgress(user.id, item.id) : null,
-      item.mediaType === "show" ? listWatchedEpisodes(user.id, item.id) : [],
     ]);
     if (!entry.ok) throw new Error("failed to load library entry", { cause: entry.error });
     libraryEntry = entry.value;
-    watchedEpisodeCount = progress?.watchedEpisodeCount ?? 0;
-    watchedEpisodeKeys = watched.map((e) => `${e.seasonNumber}:${e.episodeNumber}`);
     isFavorited = favorited;
     ratingSystem = settings.ratingSystem;
   }

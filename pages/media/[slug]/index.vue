@@ -1,30 +1,78 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import type { Props } from "./index.server";
-import type { LibraryStatus } from "@/domain/tracking/library";
 import { mediaStatusLabel } from "@/domain/catalog/media";
 import { STATS_MIN_SCORES, STATS_MIN_TRACKED } from "@/domain/insights/title-stats";
 import { useTracking } from "@/composables/useTracking";
+import { useHydrationPoll } from "@/composables/useHydrationPoll";
 import PersonCredit from "@/components/PersonCredit.vue";
 import EpisodeList from "@/components/EpisodeList.vue";
 import { tmdbImage } from "@/components/tmdb-image";
+import type { SeasonEpisodes } from "@/domain/catalog/episodes";
+import type { LibraryStatus, ShowViewDto } from "@/shared/tracking";
 
 const props = defineProps<Props>();
 
 const favorited = ref(props.isFavorited);
 const addingFav = ref(false);
 const favError = ref("");
+const seasons = ref<SeasonEpisodes[]>(props.seasons);
+const seasonCount = ref(props.media.seasonCount);
+const episodeTotal = ref(props.media.episodeCount);
+const episodeHydrationError = ref(props.media.episodesError);
 
 // Episode picker state. Watched keys are seeded from the loader and updated
 // optimistically as the user logs episodes.
 const watchedKeys = ref<string[]>([...props.watchedEpisodeKeys]);
 const canLogEpisodes = computed(() => !!props.user);
 
+async function fetchShowView(): Promise<ShowViewDto> {
+  const res = await fetch(`/api/tracking/show-view?mediaId=${encodeURIComponent(props.media.id)}`);
+  const payload = (await res.json()) as ShowViewDto & { error?: { kind?: string } };
+  if (!res.ok) throw new Error(payload.error?.kind ?? "request failed");
+  return payload;
+}
+
+function applyShowView(view: ShowViewDto) {
+  seasons.value = view.seasons;
+  seasonCount.value = view.seasonCount;
+  episodeTotal.value = view.episodeCount;
+  watchedKeys.value = view.watchedKeys;
+  episodeHydrationError.value = view.episodesError;
+}
+
+// Episodes hydrate off-request; poll until the catalog reports a settled state
+// (anything but a bare stub), then stop.
+const { start: startHydrationPoll } = useHydrationPoll<ShowViewDto>({
+  fetch: fetchShowView,
+  isDone: (view) => view.hydrationState !== "stub",
+  onData: applyShowView,
+});
+
+const showAwaitingEpisodes = computed(
+  () =>
+    props.media.mediaType === "show" && seasons.value.length === 0 && !episodeHydrationError.value,
+);
+
 async function onLogEpisode(seasonNumber: number, episodeNumber: number) {
   const ok = await logEpisode(seasonNumber, episodeNumber);
   if (!ok) return;
   const k = `${seasonNumber}:${episodeNumber}`;
   if (!watchedKeys.value.includes(k)) watchedKeys.value = [...watchedKeys.value, k];
+}
+
+async function onQuickLogEpisode() {
+  const ok = await logWatch();
+  if (!ok) return;
+  // A provisional quick-log on a not-yet-hydrated show: refresh once so watched
+  // marks reflect the new event without waiting for the next poll tick.
+  if (showAwaitingEpisodes.value) {
+    try {
+      applyShowView(await fetchShowView());
+    } catch {
+      // Transient; the background poll (if running) will catch up.
+    }
+  }
 }
 
 const {
@@ -43,7 +91,7 @@ const {
 } = useTracking({
   mediaId: props.media.id,
   mediaType: props.media.mediaType,
-  episodeTotal: props.media.episodeCount,
+  episodeTotal,
   ratingSystem: props.ratingSystem,
   initialEntry: props.libraryEntry
     ? {
@@ -70,8 +118,8 @@ const language = computed(() => props.media.originalLanguage?.toUpperCase() ?? n
 const seasonsText = computed(() => {
   if (props.media.mediaType !== "show") return null;
   const parts: string[] = [];
-  if (props.media.seasonCount) parts.push(`${props.media.seasonCount} seasons`);
-  if (props.media.episodeCount) parts.push(`${props.media.episodeCount} episodes`);
+  if (seasonCount.value) parts.push(`${seasonCount.value} seasons`);
+  if (episodeTotal.value) parts.push(`${episodeTotal.value} episodes`);
   return parts.length > 0 ? parts.join(" · ") : null;
 });
 const airedText = computed(() => {
@@ -168,6 +216,10 @@ async function onScoreChange(e: Event) {
   const saved = await setScore(Number(target.value));
   if (!saved) target.value = displayScore.value === null ? "" : String(displayScore.value);
 }
+
+onMounted(() => {
+  if (showAwaitingEpisodes.value) startHydrationPoll();
+});
 </script>
 
 <template>
@@ -313,7 +365,7 @@ async function onScoreChange(e: Event) {
               type="button"
               class="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-mono text-fg transition-colors hover:bg-accent/15 disabled:opacity-60 focus-ring"
               :disabled="saving || !canLogEpisode"
-              @click="logWatch"
+              @click="onQuickLogEpisode"
             >
               <span class="i-lucide:plus w-3.5 h-3.5" aria-hidden="true" />
               {{ saving ? "..." : "+1 episode" }}

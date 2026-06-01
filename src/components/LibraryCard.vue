@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import BaseCard from "./BaseCard.vue";
-import type { LibraryStatus } from "@/domain/tracking/library";
+import type { LibraryStatus } from "@/shared/tracking";
 import type { RatingSystem } from "@/domain/rating";
 import { useTracking, type TrackedEntry } from "@/composables/useTracking";
 import { tmdbImage } from "./tmdb-image";
@@ -110,7 +110,6 @@ async function onScoreInput(e: Event) {
         </span>
       </div>
 
-      <!-- Status select -->
       <select
         :value="status"
         :disabled="saving"
@@ -126,7 +125,6 @@ async function onScoreInput(e: Event) {
         <option value="dropped">dropped</option>
       </select>
 
-      <!-- Score input -->
       <div class="flex items-center gap-1.5">
         <input
           type="number"

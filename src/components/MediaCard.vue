@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import BaseCard from "./BaseCard.vue";
-import type { LibraryStatus } from "@/domain/tracking/library";
+import type { LibraryStatus } from "@/shared/tracking";
 import type { MediaType } from "@/domain/catalog/media";
 import { tmdbImage } from "./tmdb-image";
 
