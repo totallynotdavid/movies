@@ -9,7 +9,7 @@ import type {
   GenreInput,
   MediaDetail,
   PersonStubInput,
-} from "../../../shared/types/metadata";
+} from "@/shared/types/metadata";
 
 // Localized titles we keep; the source title's own language is added on top.
 const TITLE_LANGUAGES = ["es", "zh", "ja", "ko", "fr", "de"];

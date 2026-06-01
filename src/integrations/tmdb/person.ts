@@ -1,11 +1,7 @@
 import * as v from "valibot";
 import { tmdbFetch } from "./client";
 import { Id, NonEmptyStr, NullNum, NullStr, looseArray, parse } from "./parse";
-import type {
-  FilmographyEntry,
-  PersonCrewEntry,
-  PersonDetail,
-} from "../../../shared/types/metadata";
+import type { FilmographyEntry, PersonCrewEntry, PersonDetail } from "@/shared/types/metadata";
 
 // Credits carry a stable credit_id (the view key) and must be movie/tv; person
 // credits and rows missing the id are dropped at parse.

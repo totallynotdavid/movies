@@ -1,15 +1,15 @@
 import { logger } from "void/log";
-import { fetchPersonDetail, tmdbToken } from "../integrations/tmdb";
+import { fetchPersonDetail, tmdbToken } from "@/integrations/tmdb";
 import {
   findPersonBySlug,
   markPersonDetailsFailedWrite,
   personScalarsWrite,
   type PersonRecord,
-} from "../domain/catalog/people";
-import { runBatch } from "../db/kernel";
-import { summarizeCause } from "../domain/hydration";
-import { attempt } from "../result";
-import type { FilmographyEntry, PersonCrewEntry } from "../../shared/types/metadata";
+} from "@/domain/catalog/people";
+import { runBatch } from "@/db/kernel";
+import { summarizeCause } from "@/domain/hydration";
+import { attempt } from "@/result";
+import type { FilmographyEntry, PersonCrewEntry } from "@/shared/types/metadata";
 
 export type PersonView = {
   person: PersonRecord;

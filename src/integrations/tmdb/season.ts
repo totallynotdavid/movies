@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { tmdbFetch } from "./client";
 import { Id, NullNum, NullStr, looseArray, parse } from "./parse";
-import type { EpisodeInput } from "../../../shared/types/metadata";
+import type { EpisodeInput } from "@/shared/types/metadata";
 
 const SeasonDetail = v.object({
   episodes: looseArray(

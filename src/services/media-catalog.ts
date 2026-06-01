@@ -3,13 +3,13 @@ import {
   searchLocalMedia,
   type MediaType,
   upsertMediaFromTmdb,
-} from "../domain/catalog/media";
+} from "@/domain/catalog/media";
 import {
   fetchTmdbShowTotals,
   searchTmdbMedia,
   tmdbToken,
   type TmdbMediaResult,
-} from "../integrations/tmdb";
+} from "@/integrations/tmdb";
 
 export type MediaSearchResult = TmdbMediaResult & {
   cachedMediaId: string | null;

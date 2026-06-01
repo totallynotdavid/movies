@@ -5,39 +5,35 @@ import {
   fetchSeasonEpisodes,
   fetchShowDetail,
   tmdbToken,
-} from "../integrations/tmdb";
+} from "@/integrations/tmdb";
 import {
   findMedia,
   listMediaNeedingDetails,
   markDetailsFailedWrite,
   mediaScalarsWrite,
   type MediaRecord,
-} from "../domain/catalog/media";
-import { personStubsWrite } from "../domain/catalog/people";
-import { mediaCreditsWrite } from "../domain/catalog/credits";
-import {
-  mediaCompaniesWrite,
-  mediaGenresWrite,
-  mediaTitlesWrite,
-} from "../domain/catalog/metadata";
+} from "@/domain/catalog/media";
+import { personStubsWrite } from "@/domain/catalog/people";
+import { mediaCreditsWrite } from "@/domain/catalog/credits";
+import { mediaCompaniesWrite, mediaGenresWrite, mediaTitlesWrite } from "@/domain/catalog/metadata";
 import {
   markEpisodesFailedWrite,
   markEpisodesFreshWrite,
   mediaEpisodesWrite,
-} from "../domain/catalog/episodes";
-import { runBatch, type Statement } from "../db/kernel";
+} from "@/domain/catalog/episodes";
+import { runBatch, type Statement } from "@/db/kernel";
 import {
   DETAILS_TTL_MS,
   EPISODES_TTL_MS,
   hydrationState,
   summarizeCause,
-} from "../domain/hydration";
-import { attempt } from "../result";
+} from "@/domain/hydration";
+import { attempt } from "@/result";
 import type {
   EpisodeHydrationMessage,
   EpisodeInput,
   HydrationMessage,
-} from "../../shared/types/metadata";
+} from "@/shared/types/metadata";
 
 export type HydrationError =
   | { kind: "tmdb_unavailable"; cause: unknown }
