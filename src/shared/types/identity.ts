@@ -1,7 +1,5 @@
-// Shared identity vocabulary for the domain reads, the settings UI, and the
-// public profile: visibility states, avatar palette, and the username rules used
-// for inline UI validation. auth.ts deliberately keeps its own copy of the
-// username rules (its codegen loader cannot import app modules); keep them in sync.
+// Shared identity vocabulary for domain reads, settings UI, and public profile.
+// Includes visibility, avatar palette, and UI-side username validation rules.
 
 export type Visibility = "public" | "private";
 
@@ -33,7 +31,7 @@ export const USERNAME_RULES = {
 
 // Reserved only to stop impersonation of the platform, not for routing. Compared
 // against the normalized (lowercased) username.
-export const RESERVED_USERNAMES: ReadonlySet<string> = new Set([
+const RESERVED_USERNAMES: ReadonlySet<string> = new Set([
   "admin",
   "support",
   "official",
