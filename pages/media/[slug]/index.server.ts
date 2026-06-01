@@ -1,21 +1,17 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { getUser } from "void/auth";
-import { findMediaBySlug } from "../../../src/domain/catalog/media";
-import { isMediaFavorited } from "../../../src/domain/tracking/favorites";
-import { findEntry, type LibraryEntryRecord } from "../../../src/domain/tracking/library";
-import { getShowProgress, listWatchedEpisodes } from "../../../src/domain/tracking/watch-state";
-import { listEpisodesBySeason, type SeasonEpisodes } from "../../../src/domain/catalog/episodes";
-import { getUserSettings } from "../../../src/domain/user";
-import { ensureMediaDetails } from "../../../src/services/media-hydration";
-import { countCast, countCrew, listCast, listKeyCrew } from "../../../src/domain/catalog/credits";
-import {
-  listMediaCompanies,
-  listMediaGenres,
-  listMediaTitles,
-} from "../../../src/domain/catalog/metadata";
-import { getMediaStats } from "../../../src/domain/insights/title-stats";
-import type { RatingSystem } from "../../../src/domain/rating";
+import { findMediaBySlug } from "@/domain/catalog/media";
+import { isMediaFavorited } from "@/domain/tracking/favorites";
+import { findEntry, type LibraryEntryRecord } from "@/domain/tracking/library";
+import { getShowProgress, listWatchedEpisodes } from "@/domain/tracking/watch-state";
+import { listEpisodesBySeason, type SeasonEpisodes } from "@/domain/catalog/episodes";
+import { getUserSettings } from "@/domain/user";
+import { ensureMediaDetails } from "@/services/media-hydration";
+import { countCast, countCrew, listCast, listKeyCrew } from "@/domain/catalog/credits";
+import { listMediaCompanies, listMediaGenres, listMediaTitles } from "@/domain/catalog/metadata";
+import { getMediaStats } from "@/domain/insights/title-stats";
+import type { RatingSystem } from "@/domain/rating";
 
 const CAST_PREVIEW = 12;
 

@@ -1,32 +1,31 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { requireAuth } from "void/auth";
-import { getProfileOverview } from "../src/domain/insights/profile";
-import { favoriteMediaForUser, favoritePeopleForUser } from "../src/domain/tracking/favorites";
-import { getUserSettings } from "../src/domain/user";
+import { getProfileOverview } from "@/domain/insights/profile";
+import { favoriteMediaForUser, favoritePeopleForUser } from "@/domain/tracking/favorites";
+import { getUserProfile } from "@/domain/user";
 
 export type Props = InferProps<typeof loader>;
 
 export const loader = defineHandler(async (c) => {
   const user = requireAuth(c);
 
-  // One behavior-log gather drives the whole read model (stats, calendar, recent,
-  // mirror); the only other reads are favorites and settings.
-  const [overview, favorites, favPeople, settings] = await Promise.all([
+  // Compose the private profile payload from identity, overview projections, and favorites.
+  const [profile, overview, favoriteMedia, favoritePeople] = await Promise.all([
+    getUserProfile(user.id),
     getProfileOverview(user.id),
     favoriteMediaForUser(user.id),
     favoritePeopleForUser(user.id),
-    getUserSettings(user.id),
   ]);
+  if (!profile) return c.notFound();
 
   return {
-    user,
-    favoriteMedia: favorites,
-    favoritePeople: favPeople,
+    profile,
+    favoriteMedia,
+    favoritePeople,
     formatStats: overview.formatStats,
     activityCalendar: overview.activityCalendar,
     recentActivity: overview.recentActivity,
     mirror: overview.mirror,
-    ratingSystem: settings.ratingSystem,
   };
 });

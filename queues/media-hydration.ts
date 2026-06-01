@@ -1,7 +1,7 @@
 import { defineQueue } from "void";
 import { logger } from "void/log";
-import { runHydrationMessage } from "../src/services/media-hydration";
-import type { HydrationMessage } from "../shared/types/metadata";
+import { runHydrationMessage } from "@/services/media-hydration";
+import type { HydrationMessage } from "@/shared/types/metadata";
 
 // maxRetries must be >= this cap or Void (default 3) would stop
 // redelivering before we reach it.

@@ -1,6 +1,6 @@
 import { defineScheduled } from "void";
 import { logger } from "void/log";
-import { reconcileMediaDetails } from "../src/services/media-hydration";
+import { reconcileMediaDetails } from "@/services/media-hydration";
 
 // Refreshing stale/failed/un-hydrated media is owned here, not by the page
 // loader: a fixed-cadence bounded sweep instead of a per-view enqueue. This also

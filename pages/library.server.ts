@@ -1,8 +1,8 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { requireAuth } from "void/auth";
-import { entriesWithProgress } from "../src/domain/tracking/library";
-import { getUserSettings } from "../src/domain/user";
+import { entriesWithProgress } from "@/domain/tracking/library";
+import { getUserSettings } from "@/domain/user";
 
 export type Props = InferProps<typeof loader>;
 

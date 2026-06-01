@@ -1,12 +1,12 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { getUser } from "void/auth";
-import { findPersonBySlug } from "../../src/domain/catalog/people";
-import { findMediaByTmdbIds } from "../../src/domain/catalog/media";
-import { groupByDepartment } from "../../src/domain/catalog/credits";
-import { isPersonFavorited } from "../../src/domain/tracking/favorites";
-import { ensurePersonDetails } from "../../src/services/person-hydration";
-import type { FilmographyEntry } from "../../shared/types/metadata";
+import { findPersonBySlug } from "@/domain/catalog/people";
+import { findMediaByTmdbIds } from "@/domain/catalog/media";
+import { groupByDepartment } from "@/domain/catalog/credits";
+import { isPersonFavorited } from "@/domain/tracking/favorites";
+import { ensurePersonDetails } from "@/services/person-hydration";
+import type { FilmographyEntry } from "@/shared/types/metadata";
 
 export type Props = InferProps<typeof loader>;
 

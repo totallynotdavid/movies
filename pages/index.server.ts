@@ -1,6 +1,6 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
-import { listMedia } from "../src/domain/catalog/media";
+import { listMedia } from "@/domain/catalog/media";
 
 export type Props = InferProps<typeof loader>;
 
