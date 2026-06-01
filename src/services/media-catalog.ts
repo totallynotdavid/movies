@@ -45,7 +45,7 @@ export async function searchCatalog(input: { query: string; limit?: number }) {
   };
 }
 
-export function validateCacheInput(input: unknown) {
+function validateCacheInput(input: unknown) {
   if (!input || typeof input !== "object") {
     throw new Error("Invalid payload");
   }

@@ -45,7 +45,7 @@ export type HydrationOutcome =
 
 // Tier-1 hydration. One TMDB detail call, one atomic batch write [scalars,
 // credits, metadata, freshness marker]. Returns outcomes instead of throwing.
-export async function hydrateMediaDetails(item: MediaRecord): Promise<HydrationOutcome> {
+async function hydrateMediaDetails(item: MediaRecord): Promise<HydrationOutcome> {
   if (!tmdbToken()) return { ok: true, skipped: true };
   if (hydrationState(item.detailsHydratedAt, item.detailsError, DETAILS_TTL_MS) === "fresh") {
     return { ok: true, skipped: true };
@@ -91,9 +91,7 @@ export async function hydrateMediaDetails(item: MediaRecord): Promise<HydrationO
 
 // Tier-2 hydration for season episode data [runtime, air date]. Runs in queue
 // consumers.
-export async function hydrateMediaEpisodes(
-  msg: EpisodeHydrationMessage,
-): Promise<HydrationOutcome> {
+async function hydrateMediaEpisodes(msg: EpisodeHydrationMessage): Promise<HydrationOutcome> {
   if (!tmdbToken()) return { ok: true, skipped: true };
 
   const fetched = await attempt(
