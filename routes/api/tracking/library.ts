@@ -3,18 +3,14 @@ import { requireAuth } from "void/auth";
 import { err, ok, type Result } from "@/result";
 import type { TrackingError } from "@/domain/errors";
 import { httpStatusFor } from "@/domain/errors";
-import {
-  entriesWithProgress,
-  parseLibraryStatus,
-  upsertLibraryEntry,
-} from "@/domain/tracking/library";
-import type { LibraryStatus } from "@/domain/tracking/library";
+import { entriesWithProgress } from "@/domain/tracking/library-entries";
+import { saveEntry } from "@/domain/tracking/commands";
+import { parseLibraryStatus, type LibraryStatus } from "@/shared/tracking";
 
 type LibraryBody = {
   mediaId: string;
   status: LibraryStatus;
   score100?: number | null;
-  notes?: string | null;
 };
 
 function parseLibraryBody(body: Record<string, unknown>): Result<LibraryBody, TrackingError> {
@@ -27,7 +23,6 @@ function parseLibraryBody(body: Record<string, unknown>): Result<LibraryBody, Tr
   }
 
   const parsed: LibraryBody = { mediaId: body.mediaId, status };
-
   if (body.score100 !== undefined) {
     if (body.score100 !== null && typeof body.score100 !== "number") {
       return err({
@@ -38,13 +33,6 @@ function parseLibraryBody(body: Record<string, unknown>): Result<LibraryBody, Tr
     }
     parsed.score100 = body.score100;
   }
-  if (body.notes !== undefined) {
-    if (body.notes !== null && typeof body.notes !== "string") {
-      return err({ kind: "invalid_payload", field: "notes", reason: "must be a string or null" });
-    }
-    parsed.notes = body.notes;
-  }
-
   return ok(parsed);
 }
 
@@ -54,6 +42,8 @@ export const GET = defineHandler(async (c) => {
   return { entries };
 });
 
+// Intent surface: status/score changes and adding to the library. Filing a
+// status never logs a watch; recording a watch lives on /api/tracking/watch.
 export const POST = defineHandler(async (c) => {
   const user = requireAuth(c);
   const body = await c.req.json<Record<string, unknown>>();
@@ -63,7 +53,8 @@ export const POST = defineHandler(async (c) => {
     return c.json({ error: parsed.error }, httpStatusFor(parsed.error));
   }
 
-  const result = await upsertLibraryEntry({ userId: user.id, ...parsed.value });
+  const { mediaId, status, score100 } = parsed.value;
+  const result = await saveEntry(user.id, mediaId, { status, score100 });
   if (!result.ok) {
     return c.json({ error: result.error }, httpStatusFor(result.error));
   }

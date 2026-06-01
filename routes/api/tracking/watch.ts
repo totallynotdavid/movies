@@ -1,8 +1,8 @@
 import { defineHandler } from "void";
 import { requireAuth } from "void/auth";
 import { httpStatusFor, type TrackingError } from "@/domain/errors";
-import { logEpisodeWatch } from "@/domain/tracking/watch-log";
-import type { EpisodeRef } from "@/domain/tracking/watch-state";
+import { recordWatch } from "@/domain/tracking/commands";
+import type { EpisodeRef } from "@/shared/tracking";
 
 type Body = {
   mediaId?: unknown;
@@ -11,6 +11,8 @@ type Body = {
   watchedAt?: unknown;
 };
 
+// Fact surface: records a watch. A movie completes; a show logs the requested
+// episode, or quick-logs the next aired one when no episode is given.
 export const POST = defineHandler(async (c) => {
   const user = requireAuth(c);
   const body = await c.req.json<Body>();
@@ -24,8 +26,7 @@ export const POST = defineHandler(async (c) => {
     return c.json({ error }, httpStatusFor(error));
   }
 
-  // An explicit episode is optional: omit it to quick-log the next aired episode.
-  // Both numbers must be present together.
+  // An explicit episode is optional; both numbers must be present together.
   let episode: EpisodeRef | undefined;
   if (body.seasonNumber !== undefined || body.episodeNumber !== undefined) {
     if (typeof body.seasonNumber !== "number" || typeof body.episodeNumber !== "number") {
@@ -41,21 +42,16 @@ export const POST = defineHandler(async (c) => {
 
   const watchedAt = typeof body.watchedAt === "number" ? body.watchedAt : undefined;
 
-  const result = await logEpisodeWatch({
-    userId: user.id,
-    mediaId: body.mediaId,
-    episode,
-    watchedAt,
-  });
+  const result = await recordWatch(user.id, body.mediaId, episode, watchedAt);
   if (!result.ok) {
     return c.json({ error: result.error }, httpStatusFor(result.error));
   }
 
-  // Progress was derived during the write; return it so the client doesn't
-  // re-implement it and the server doesn't re-query it.
+  // Progress was derived during the write (shows only); return it so the client
+  // does not re-implement it and the server does not re-query it.
   return c.json({
     ok: true,
     entry: result.value.entry,
-    watchedEpisodeCount: result.value.progress.watchedEpisodeCount,
+    watchedEpisodeCount: result.value.progress?.watchedEpisodeCount,
   });
 });
