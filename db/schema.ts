@@ -1,6 +1,6 @@
 import { index, integer, real, sqliteTable, text, uniqueIndex } from "void/schema-d1";
 import type { MediaStatus, MediaType } from "@/domain/catalog/media";
-import type { LibraryStatus } from "@/domain/tracking/library";
+import type { LibraryStatus } from "@/shared/tracking";
 
 export const media = sqliteTable(
   "media",

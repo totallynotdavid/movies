@@ -1,3 +1,4 @@
+-- void:allow-destructive
 DROP TABLE `users`;--> statement-breakpoint
 PRAGMA foreign_keys=OFF;--> statement-breakpoint
 CREATE TABLE `__new_favorite_media` (
