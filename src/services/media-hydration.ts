@@ -126,9 +126,7 @@ export async function loadMedia(slug: string): Promise<MediaRecord | null> {
   return ensureMediaDetails(found);
 }
 
-// Request path trigger. Block only for stub state with no data. Fresh, stale,
-// and failed states render existing data. Reconcile refreshes stale/failed rows
-// off-request.
+// Hydrate bare stubs synchronously before the first detail render.
 export async function ensureMediaDetails(item: MediaRecord): Promise<MediaRecord> {
   if (hydrationState(item.detailsHydratedAt, item.detailsError, DETAILS_TTL_MS) !== "stub") {
     return item;

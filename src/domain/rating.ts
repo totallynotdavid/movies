@@ -21,18 +21,15 @@ export function scoreMax(system: RatingSystem): number {
   return 100;
 }
 
-/** Convert a user-facing value in the given system to the canonical 0–100 scale. */
 export function toScore100(value: number, system: RatingSystem): number {
   const score100 = value * scaleFor(system);
   return Math.min(100, Math.max(0, score100));
 }
 
-/** Convert canonical 0–100 to a rounded user-facing value in the given system. */
 export function toDisplayScore(score100: number, system: RatingSystem): number {
   return Math.round(score100 / scaleFor(system));
 }
 
-/** Render canonical 0–100 (or null) as "value/max" in the given system, e.g. "4.5/5". */
 export function formatScore(score100: number | null, system: RatingSystem): string {
   if (score100 === null) return "—";
   const value = score100 / scaleFor(system);

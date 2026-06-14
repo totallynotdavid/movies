@@ -115,10 +115,7 @@ const meta = computed(() =>
     </div>
   </header>
 
-  <div
-    class="w-full bg-bg sticky top-14 z-40 border-b border-border pt-2"
-    data-testid="media-subheader"
-  >
+  <div class="w-full bg-bg z-40 border-b border-border pt-2" data-testid="media-subheader">
     <div
       class="w-full container flex flex-col md:flex-row-reverse items-baseline justify-between gap-x-2 gap-y-1 flex-wrap"
     >

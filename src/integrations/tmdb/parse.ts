@@ -29,7 +29,7 @@ export const Id = v.number();
 export const NonEmptyStr = v.pipe(v.string(), v.trim(), v.minLength(1));
 
 // An array that keeps the rows passing `row` and drops the ones that don't,
-// instead of rejecting the whole array on one bad element. Missing → []. Each
+// instead of rejecting the whole array on one bad element. Missing becomes []. Each
 // element falls back to null on failure (via nullable so the fallback type is
 // legal), then the nulls are filtered out.
 export function looseArray<S extends v.GenericSchema>(row: S) {

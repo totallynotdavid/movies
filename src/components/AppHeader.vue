@@ -47,7 +47,7 @@ async function signOut() {
 </script>
 
 <template>
-  <header class="sticky top-0 z-50 border-b border-border">
+  <header class="relative z-50 border-b border-border">
     <div class="absolute inset-0 bg-bg/80 backdrop-blur-md" />
     <nav
       class="relative container min-h-14 flex items-center gap-2 z-1 justify-end"

@@ -46,7 +46,6 @@ const props = defineProps<{
       :joined-at="props.joinedAt"
     />
 
-    <!-- Visitors never receive visibility controls or private status. -->
     <div v-if="props.owner" class="-mt-6 flex items-center gap-3 text-xs font-mono">
       <span
         v-if="props.isPrivate"
@@ -84,7 +83,6 @@ const props = defineProps<{
       <ProfileActivityHeatmap :days="props.activityCalendar" />
     </ProfileSection>
 
-    <!-- The private mirror is built from watch timestamps and shown only to the owner. -->
     <template v-if="props.owner && props.mirror">
       <ProfilePatterns
         :weekday="props.mirror.weekday"

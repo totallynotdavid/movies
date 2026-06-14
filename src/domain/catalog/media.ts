@@ -73,9 +73,7 @@ export async function searchLocalMedia(query: string, limit = 20) {
     .limit(safeLimit);
 }
 
-// Media whose details are not fresh: never hydrated (stub/failed) or past the TTL
-// (stale). The reconcile cron drains this off the request path, most-popular
-// first, bounded per run. Idempotent: a permanently-failed row simply reappears.
+// Reconcile candidates, most-popular first. Failed rows reappear until refreshed.
 export async function listMediaNeedingDetails(
   ttlMs: number,
   limit: number,
