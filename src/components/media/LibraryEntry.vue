@@ -5,7 +5,7 @@ import type { MediaLayout } from "@/composables/useLayoutPreference";
 import { LIBRARY_STATUSES, statusBg, type LibraryStatus } from "@/shared/library-status";
 import type { RatingSystem } from "@/domain/rating";
 import { tmdbImage } from "@/components/tmdb-image";
-import { useTracking, type TrackedEntry } from "@/composables/useTracking";
+import { useTracking, type EntryUpdate } from "@/composables/useTracking";
 
 const props = defineProps<{
   layout: MediaLayout;
@@ -18,6 +18,7 @@ const props = defineProps<{
   voteAverage?: number | null;
   slug?: string | null;
   status: LibraryStatus;
+  filedStatus: LibraryStatus;
   score100?: number | null;
   watchedEpisodeCount: number;
   episodeTotal: number | null;
@@ -25,25 +26,34 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  update: [entry: TrackedEntry];
+  update: [entry: EntryUpdate];
 }>();
 
-const { entry, saving, displayScore, canLogEpisode, setStatus, logWatch } = useTracking({
-  mediaId: props.mediaId,
-  mediaType: props.mediaType,
-  episodeTotal: props.episodeTotal,
-  ratingSystem: props.ratingSystem,
-  initialEntry: {
-    id: props.id,
-    status: props.status,
-    score100: props.score100 ?? null,
-    watchedEpisodeCount: props.watchedEpisodeCount,
-    updatedAt: Date.now(),
-  },
-  onUpdate: (next) => emit("update", { ...next, id: props.id }),
-});
+const { entry, saving, displayStatus, displayScore, canLogEpisode, setStatus, logWatch } =
+  useTracking({
+    mediaId: props.mediaId,
+    mediaType: props.mediaType,
+    episodeTotal: props.episodeTotal,
+    ratingSystem: props.ratingSystem,
+    initialEntry: {
+      id: props.id,
+      filedStatus: props.filedStatus,
+      score100: props.score100 ?? null,
+      watchedEpisodeCount: props.watchedEpisodeCount,
+      updatedAt: Date.now(),
+    },
+    onUpdate: (next) =>
+      emit("update", {
+        id: props.id,
+        filedStatus: next.filedStatus,
+        status: displayStatus.value ?? props.status,
+        score100: next.score100,
+        watchedEpisodeCount: next.watchedEpisodeCount,
+        updatedAt: next.updatedAt,
+      }),
+  });
 
-const status = computed(() => entry.value?.status ?? props.status);
+const status = computed(() => displayStatus.value ?? props.status);
 const statusDot = computed(() => statusBg(status.value));
 const year = computed(() => (props.releaseDate ? new Date(props.releaseDate).getFullYear() : null));
 const href = computed(() => (props.slug ? `/media/${props.slug}` : undefined));
@@ -85,6 +95,13 @@ async function onStatusChange(e: Event) {
         class="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-bg/80 text-fg-muted backdrop-blur-sm opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100 hover:border-fg hover:bg-fg hover:text-bg disabled:opacity-40 focus-ring"
         :disabled="saving || (mediaType === 'show' && !canLogEpisode)"
         :aria-label="mediaType === 'show' ? 'log next episode' : 'mark watched'"
+        :title="
+          mediaType === 'show' && !canLogEpisode
+            ? 'every episode is already logged'
+            : mediaType === 'show'
+              ? 'log next episode'
+              : 'mark watched'
+        "
         @click="logWatch"
       >
         <span
@@ -147,6 +164,13 @@ async function onStatusChange(e: Event) {
       class="shrink-0 flex h-7 w-7 items-center justify-center rounded-md border border-border bg-bg-subtle text-fg-muted transition-colors hover:border-fg hover:bg-fg hover:text-bg disabled:opacity-40 focus-ring"
       :disabled="saving || (mediaType === 'show' && !canLogEpisode)"
       :aria-label="mediaType === 'show' ? 'log next episode' : 'mark watched'"
+      :title="
+        mediaType === 'show' && !canLogEpisode
+          ? 'every episode is already logged'
+          : mediaType === 'show'
+            ? 'log next episode'
+            : 'mark watched'
+      "
       @click="logWatch"
     >
       <span

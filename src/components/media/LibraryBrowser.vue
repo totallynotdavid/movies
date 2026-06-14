@@ -7,7 +7,7 @@ import { useLayoutPreference } from "@/composables/useLayoutPreference";
 import { LIBRARY_STATUSES, LIBRARY_STATUS_LABELS } from "@/shared/library-status";
 import type { LibraryEntryWithProgress } from "@/domain/tracking/library-entries";
 import type { RatingSystem } from "@/domain/rating";
-import type { TrackedEntry } from "@/composables/useTracking";
+import type { EntryUpdate } from "@/composables/useTracking";
 
 const props = defineProps<{
   entries: LibraryEntryWithProgress[];
@@ -68,9 +68,10 @@ const filteredEntries = computed(() => {
   });
 });
 
-function onEntryUpdate(update: TrackedEntry) {
+function onEntryUpdate(update: EntryUpdate) {
   const entry = localEntries.value.find((item) => item.id === update.id);
   if (entry) {
+    entry.filedStatus = update.filedStatus;
     entry.status = update.status;
     entry.score100 = update.score100;
     entry.watchedEpisodeCount = update.watchedEpisodeCount;
@@ -179,6 +180,7 @@ function onEntryUpdate(update: TrackedEntry) {
         :vote-average="entry.media.voteAverage"
         :slug="entry.media.slug"
         :status="entry.status"
+        :filed-status="entry.filedStatus"
         :score100="entry.score100"
         :watched-episode-count="entry.watchedEpisodeCount"
         :episode-total="entry.media.episodeCount"

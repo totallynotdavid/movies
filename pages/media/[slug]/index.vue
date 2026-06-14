@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import type { Props } from "./index.server";
 import { STATS_MIN_SCORES, STATS_MIN_TRACKED } from "@/domain/insights/title-stats";
 import { useTracking } from "@/composables/useTracking";
+import { useToast } from "@/composables/useToast";
 import { useHydrationPoll } from "@/composables/useHydrationPoll";
 import EpisodeList from "@/components/media/EpisodeList.vue";
 import FavoriteButton from "@/components/media/FavoriteButton.vue";
@@ -13,6 +14,7 @@ import type { SeasonEpisodes } from "@/domain/catalog/episodes";
 import type { ShowViewDto } from "@/shared/tracking";
 
 const props = defineProps<Props>();
+const toast = useToast();
 
 const seasons = ref<SeasonEpisodes[]>(props.seasons);
 const seasonCount = ref(props.media.seasonCount);
@@ -67,6 +69,37 @@ async function onLogEpisode(seasonNumber: number, episodeNumber: number) {
   if (!watchedKeys.value.includes(k)) watchedKeys.value = [...watchedKeys.value, k];
 }
 
+async function onUnlogEpisode(seasonNumber: number, episodeNumber: number) {
+  const ok = await unwatch(seasonNumber, episodeNumber);
+  if (!ok) return;
+  const k = `${seasonNumber}:${episodeNumber}`;
+  watchedKeys.value = watchedKeys.value.filter((key) => key !== k);
+}
+
+// Untracking discards watch history, so guard it with an inline two-step confirm
+// rather than a modal: the first click arms, a second within a few seconds
+// commits. Keeps momentum while making the data loss deliberate.
+const confirmRemove = ref(false);
+let confirmTimer: ReturnType<typeof setTimeout> | undefined;
+function onRemoveClick() {
+  if (!confirmRemove.value) {
+    confirmRemove.value = true;
+    clearTimeout(confirmTimer);
+    confirmTimer = setTimeout(() => (confirmRemove.value = false), 3000);
+    return;
+  }
+  clearTimeout(confirmTimer);
+  confirmRemove.value = false;
+  void onUntrack();
+}
+async function onUntrack() {
+  const removed = await untrack();
+  if (removed) {
+    watchedKeys.value = [];
+    toast.info("removed from your library");
+  }
+}
+
 async function onQuickLogEpisode() {
   const ok = await logWatch();
   if (!ok) return;
@@ -84,7 +117,7 @@ async function onQuickLogEpisode() {
 const {
   entry,
   saving,
-  error: trackingError,
+  displayStatus,
   displayScore,
   scoreMax,
   progressText,
@@ -93,6 +126,8 @@ const {
   setScore,
   logWatch,
   logEpisode,
+  unwatch,
+  untrack,
 } = useTracking({
   mediaId: props.media.id,
   mediaType: props.media.mediaType,
@@ -101,7 +136,7 @@ const {
   initialEntry: props.libraryEntry
     ? {
         id: props.libraryEntry.id,
-        status: props.libraryEntry.status,
+        filedStatus: props.libraryEntry.filedStatus,
         score100: props.libraryEntry.score100,
         watchedEpisodeCount: props.watchedEpisodeCount,
         updatedAt: Date.now(),
@@ -143,7 +178,7 @@ const statusBar = computed(() => {
 async function onStatusChange(e: Event) {
   const target = e.target as HTMLSelectElement;
   const saved = await setStatus(target.value as (typeof LIBRARY_STATUSES)[number]);
-  if (!saved) target.value = entry.value?.status ?? "";
+  if (!saved) target.value = displayStatus.value ?? "";
 }
 
 async function onScoreChange(e: Event) {
@@ -191,12 +226,12 @@ onMounted(() => {
           <label class="flex flex-col gap-1 w-full sm:w-auto">
             <span class="text-xs font-mono text-fg-subtle">status</span>
             <select
-              :value="entry?.status ?? ''"
+              :value="displayStatus ?? ''"
               :disabled="saving"
               class="w-full sm:w-auto rounded-lg border text-sm font-mono px-3 py-2 outline-none transition-colors disabled:opacity-60 cursor-pointer"
               :class="
-                entry
-                  ? [statusBadge(entry.status), 'border']
+                displayStatus
+                  ? [statusBadge(displayStatus), 'border']
                   : 'border-border bg-bg-subtle text-fg-muted'
               "
               aria-label="library status"
@@ -235,6 +270,11 @@ onMounted(() => {
               type="button"
               class="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-fg px-4 py-2 text-sm font-mono text-bg transition-colors hover:bg-fg/50 disabled:opacity-60 focus-ring"
               :disabled="saving || (media.mediaType === 'show' && !canLogEpisode)"
+              :title="
+                media.mediaType === 'show' && !canLogEpisode
+                  ? 'every episode is already logged'
+                  : undefined
+              "
               @click="media.mediaType === 'movie' ? logWatch() : onQuickLogEpisode()"
             >
               <span
@@ -245,6 +285,22 @@ onMounted(() => {
               {{ saving ? "..." : media.mediaType === "movie" ? "log watch" : "+1 episode" }}
             </button>
           </div>
+
+          <button
+            v-if="entry"
+            type="button"
+            class="self-start sm:self-end inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-mono transition-colors disabled:opacity-60 focus-ring"
+            :class="
+              confirmRemove
+                ? 'border-red-400/40 bg-red-400/10 text-red-400'
+                : 'border-border bg-bg-subtle text-fg-subtle hover:text-fg hover:border-border-hover'
+            "
+            :disabled="saving"
+            @click="onRemoveClick"
+          >
+            <span class="i-lucide:trash-2 w-4 h-4" aria-hidden="true" />
+            {{ confirmRemove ? "confirm?" : "remove" }}
+          </button>
         </div>
 
         <a
@@ -255,10 +311,6 @@ onMounted(() => {
           <span class="i-lucide:log-in w-4 h-4" aria-hidden="true" />
           sign in to track
         </a>
-
-        <p v-if="trackingError" class="text-sm text-red-400 font-mono">
-          {{ trackingError }}
-        </p>
       </section>
 
       <section class="flex flex-col gap-4">
@@ -325,6 +377,7 @@ onMounted(() => {
           :can-log="canLogEpisodes"
           :saving="saving"
           @log="onLogEpisode"
+          @unlog="onUnlogEpisode"
         />
       </section>
 

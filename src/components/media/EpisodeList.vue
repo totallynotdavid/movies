@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   log: [seasonNumber: number, episodeNumber: number];
+  unlog: [seasonNumber: number, episodeNumber: number];
 }>();
 
 const watched = computed(() => new Set(props.watchedKeys));
@@ -43,7 +44,7 @@ function watchedInSeason(season: SeasonEpisodes) {
     v-if="seasons.length === 0"
     class="rounded-lg border border-dashed border-border px-4 py-6 text-sm font-mono text-fg-subtle"
   >
-    Episode list is still loading. Check back in a moment.
+    episodes are still loading, check back in a moment
   </div>
 
   <div v-else class="flex flex-col gap-3">
@@ -57,8 +58,8 @@ function watchedInSeason(season: SeasonEpisodes) {
         class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left focus-ring"
         @click="toggleSeason(season.seasonNumber)"
       >
-        <span class="text-sm font-mono text-fg">
-          {{ season.seasonNumber === 0 ? "Specials" : `Season ${season.seasonNumber}` }}
+        <span class="text-sm font-mono text-fg lowercase">
+          {{ season.seasonNumber === 0 ? "specials" : `season ${season.seasonNumber}` }}
         </span>
         <span class="flex items-center gap-3 text-[0.7rem] font-mono text-fg-subtle">
           {{ watchedInSeason(season) }} / {{ season.episodes.length }} watched
@@ -89,7 +90,7 @@ function watchedInSeason(season: SeasonEpisodes) {
 
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-mono text-fg">
-              {{ ep.name ?? `Episode ${ep.episodeNumber}` }}
+              {{ ep.name ?? `episode ${ep.episodeNumber}` }}
             </p>
             <p v-if="ep.airDate || ep.runtime" class="text-[0.65rem] font-mono text-fg-subtle">
               <span v-if="ep.airDate">{{ ep.airDate }}</span>
@@ -98,9 +99,22 @@ function watchedInSeason(season: SeasonEpisodes) {
             </p>
           </div>
 
+          <button
+            v-if="isWatched(season.seasonNumber, ep.episodeNumber) && canLog"
+            type="button"
+            class="group inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[0.7rem] font-mono text-green-500 transition-colors hover:text-fg-muted disabled:opacity-60 focus-ring"
+            :disabled="saving"
+            title="un-watch this episode"
+            @click="emit('unlog', season.seasonNumber, ep.episodeNumber)"
+          >
+            <span class="i-lucide:check w-3.5 h-3.5 group-hover:hidden" aria-hidden="true" />
+            <span class="i-lucide:x w-3.5 h-3.5 hidden group-hover:inline" aria-hidden="true" />
+            <span class="group-hover:hidden">watched</span>
+            <span class="hidden group-hover:inline">un-watch</span>
+          </button>
           <span
-            v-if="isWatched(season.seasonNumber, ep.episodeNumber)"
-            class="inline-flex items-center gap-1.5 text-[0.7rem] font-mono text-green-500"
+            v-else-if="isWatched(season.seasonNumber, ep.episodeNumber)"
+            class="inline-flex items-center gap-1.5 px-2 py-1 text-[0.7rem] font-mono text-green-500"
           >
             <span class="i-lucide:check w-3.5 h-3.5" aria-hidden="true" />
             watched
