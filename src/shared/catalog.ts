@@ -1,6 +1,3 @@
-// Pure catalog view shapes, safe in any bundle. The catalog domain re-exports
-// these so server reads and client props share one definition.
-
 export type EpisodeRecord = {
   seasonNumber: number;
   episodeNumber: number;
@@ -12,4 +9,21 @@ export type EpisodeRecord = {
 export type SeasonEpisodes = {
   seasonNumber: number;
   episodes: EpisodeRecord[];
+};
+
+export type MediaSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  mediaType: "movie" | "show";
+  posterPath: string | null;
+  releaseDate: string | null;
+  runtime: number | null;
+  seasonCount: number | null;
+  episodeCount: number | null;
+  voteAverage: number | null;
+  voteCount: number | null;
+  status: string | null;
+  tagline: string | null;
+  overview: string | null;
 };

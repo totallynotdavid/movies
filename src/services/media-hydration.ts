@@ -8,6 +8,7 @@ import {
 } from "@/integrations/tmdb";
 import {
   findMedia,
+  findMediaBySlug,
   listMediaNeedingDetails,
   markDetailsFailedWrite,
   mediaScalarsWrite,
@@ -118,6 +119,13 @@ async function hydrateMediaEpisodes(msg: EpisodeHydrationMessage): Promise<Hydra
   return written.ok ? { ok: true, skipped: false } : { ok: false, error: written.error };
 }
 
+// Unknown slugs return null so callers can choose their not-found response.
+export async function loadMedia(slug: string): Promise<MediaRecord | null> {
+  const found = await findMediaBySlug(slug);
+  if (!found) return null;
+  return ensureMediaDetails(found);
+}
+
 // Request path trigger. Block only for stub state with no data. Fresh, stale,
 // and failed states render existing data. Reconcile refreshes stale/failed rows
 // off-request.
@@ -136,8 +144,6 @@ export async function ensureMediaDetails(item: MediaRecord): Promise<MediaRecord
   return refreshed.ok ? refreshed.value : item;
 }
 
-// Reconcile enqueues not-fresh media outside the request path.
-// The query owns batch size and priority.
 const RECONCILE_BATCH = 50;
 
 export async function reconcileMediaDetails(): Promise<number> {

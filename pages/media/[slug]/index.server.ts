@@ -1,51 +1,32 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { getUser } from "void/auth";
-import { findMediaBySlug } from "@/domain/catalog/media";
 import { isMediaFavorited } from "@/domain/tracking/favorites";
 import { findEntry, type LibraryEntryRecord } from "@/domain/tracking/library-entries";
 import { buildShowView } from "@/domain/tracking/show-view";
 import type { SeasonEpisodes } from "@/domain/catalog/episodes";
 import { getUserSettings } from "@/domain/user";
-import { ensureMediaDetails } from "@/services/media-hydration";
-import { countCast, countCrew, listCast, listKeyCrew } from "@/domain/catalog/credits";
+import { loadMedia } from "@/services/media-hydration";
 import { listMediaCompanies, listMediaGenres, listMediaTitles } from "@/domain/catalog/metadata";
 import { getMediaStats } from "@/domain/insights/title-stats";
 import type { RatingSystem } from "@/domain/rating";
 
-const CAST_PREVIEW = 12;
-
 export type Props = InferProps<typeof loader>;
 
 export const loader = defineHandler(async (c) => {
-  const slug = c.req.param("slug") as string;
   const user = getUser();
 
-  const found = await findMediaBySlug(slug);
+  const item = await loadMedia(c.req.param("slug") as string);
+  if (!item) return c.notFound();
 
-  if (!found) {
-    return c.notFound();
-  }
+  const [genres, companies, altTitles, stats] = await Promise.all([
+    listMediaGenres(item.id),
+    listMediaCompanies(item.id),
+    listMediaTitles(item.id),
+    getMediaStats(item.id),
+  ]);
 
-  // State-keyed hydration: block only when the entity is a bare stub; serve
-  // stale/failed data immediately and refresh off-request. The service owns the
-  // failure model, so the loader never swallows or re-reads by hand.
-  const item = await ensureMediaDetails(found);
-
-  const [genres, companies, altTitles, cast, castTotal, keyCrew, crewTotal, stats] =
-    await Promise.all([
-      listMediaGenres(item.id),
-      listMediaCompanies(item.id),
-      listMediaTitles(item.id),
-      listCast(item.id, item.mediaType, CAST_PREVIEW),
-      countCast(item.id),
-      listKeyCrew(item.id),
-      countCrew(item.id),
-      getMediaStats(item.id),
-    ]);
-
-  // Episode picker data is public (seasons); watched marks are per-user. One
-  // projection owns the show read, shared with the poll route.
+  // Episode picker data is public; watched marks are per-user.
   const showView = item.mediaType === "show" ? await buildShowView(user?.id ?? null, item) : null;
   const seasons: SeasonEpisodes[] = showView?.seasons ?? [];
   const watchedEpisodeCount = showView?.progress.watchedEpisodeCount ?? 0;
@@ -72,10 +53,6 @@ export const loader = defineHandler(async (c) => {
     genres,
     companies,
     altTitles,
-    cast,
-    castTotal,
-    keyCrew,
-    crewTotal,
     stats,
     seasons,
     libraryEntry,
