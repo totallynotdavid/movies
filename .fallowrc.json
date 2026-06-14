@@ -17,6 +17,7 @@
     "**/*.test.ts"
   ],
   "ignorePatterns": [".void/**", "**/*.d.ts"],
+  "ignoreDependencies": ["@iconify-json/lucide", "@e18e/eslint-plugin", "eslint-plugin-regexp"],
   "rules": {
     "unused-exports": "warn",
     "unused-files": "warn"
