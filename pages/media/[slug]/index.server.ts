@@ -3,6 +3,7 @@ import type { InferProps } from "void";
 import { getUser } from "void/auth";
 import { isMediaFavorited } from "@/domain/tracking/favorites";
 import { findEntry, type LibraryEntryRecord } from "@/domain/tracking/library-entries";
+import { hasWatch } from "@/domain/tracking/watch-events";
 import { buildShowView } from "@/domain/tracking/show-view";
 import type { SeasonEpisodes } from "@/domain/catalog/episodes";
 import { getUserSettings } from "@/domain/user";
@@ -23,29 +24,31 @@ export const loader = defineHandler(async (c) => {
     listMediaGenres(item.id),
     listMediaCompanies(item.id),
     listMediaTitles(item.id),
-    getMediaStats(item.id),
+    getMediaStats(item.id, item.mediaType),
   ]);
 
   // Episode picker data is public; watched marks are per-user.
   const showView = item.mediaType === "show" ? await buildShowView(user?.id ?? null, item) : null;
   const seasons: SeasonEpisodes[] = showView?.seasons ?? [];
-  const watchedEpisodeCount = showView?.progress.watchedEpisodeCount ?? 0;
   const watchedEpisodeKeys = showView?.watchedKeys ?? [];
 
+  let watchedEpisodeCount = showView?.progress.watchedEpisodeCount ?? 0;
   let libraryEntry: LibraryEntryRecord | null = null;
   let isFavorited = false;
   let ratingSystem: RatingSystem = "score100";
 
   if (user) {
-    const [entry, favorited, settings] = await Promise.all([
+    const [entry, favorited, settings, movieWatched] = await Promise.all([
       findEntry(user.id, item.id),
       isMediaFavorited(user.id, item.id),
       getUserSettings(user.id),
+      item.mediaType === "movie" ? hasWatch(user.id, item.id) : Promise.resolve(false),
     ]);
     if (!entry.ok) throw new Error("failed to load library entry", { cause: entry.error });
     libraryEntry = entry.value;
     isFavorited = favorited;
     ratingSystem = settings.ratingSystem;
+    if (item.mediaType === "movie" && movieWatched) watchedEpisodeCount = 1;
   }
 
   return {

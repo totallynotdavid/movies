@@ -1,28 +1,28 @@
 import { db } from "void/db";
-import { and, desc, eq } from "drizzle-orm";
-import { libraryEntries, media } from "@schema";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { libraryEntries, media, watchEvents } from "@schema";
 import { attempt, ok, type Result } from "@/result";
-import type { Statement } from "@/db/kernel";
+import { selectByIds, type Statement } from "@/db/kernel";
 import type { MediaRecord } from "@/domain/catalog/media";
 import type { TrackingError } from "@/domain/errors";
 import { listShowProgress } from "./progress";
-import type { LibraryStatus } from "@/shared/library-status";
+import { resolveStatus, type LibraryStatus } from "@/shared/library-status";
 
 export type LibraryEntryRecord = typeof libraryEntries.$inferSelect;
 
 export type LibraryEntryWithProgress = LibraryEntryRecord & {
   media: MediaRecord;
+  status: LibraryStatus;
   watchedEpisodeCount: number;
   airedEpisodeCount: number | null;
+  lastWatchedAt: number | null;
 };
 
-// What a command wants to change. An omitted field keeps the previous value;
-// lastWatchedAt is set only by watch commands and never decreases.
+// An omitted field keeps the previous value.
 export type EntryPatch = {
-  status?: LibraryStatus;
+  filedStatus?: LibraryStatus;
   score100?: number | null;
   notes?: string | null;
-  lastWatchedAt?: number;
 };
 
 export function buildEntry(
@@ -36,14 +36,9 @@ export function buildEntry(
     id: prev?.id ?? crypto.randomUUID(),
     userId,
     mediaId,
-    status: patch.status ?? prev?.status ?? "planned",
+    filedStatus: patch.filedStatus ?? prev?.filedStatus ?? "planned",
     score100: patch.score100 !== undefined ? patch.score100 : (prev?.score100 ?? null),
     notes: patch.notes !== undefined ? patch.notes : (prev?.notes ?? null),
-    // Keeps the most recent watch instant, including back-dated logs.
-    lastWatchedAt:
-      patch.lastWatchedAt !== undefined
-        ? Math.max(prev?.lastWatchedAt ?? 0, patch.lastWatchedAt)
-        : (prev?.lastWatchedAt ?? null),
     createdAt: prev?.createdAt ?? now,
     updatedAt: now,
   };
@@ -56,12 +51,21 @@ export function entryUpsertWrite(row: LibraryEntryRecord): Statement {
     .onConflictDoUpdate({
       target: [libraryEntries.userId, libraryEntries.mediaId],
       set: {
-        status: row.status,
+        filedStatus: row.filedStatus,
         score100: row.score100,
         notes: row.notes,
-        lastWatchedAt: row.lastWatchedAt,
         updatedAt: row.updatedAt,
       },
+    });
+}
+
+// Registers a title without overwriting an existing filed status or score.
+export function ensureEntryWrite(row: LibraryEntryRecord): Statement {
+  return db
+    .insert(libraryEntries)
+    .values(row)
+    .onConflictDoNothing({
+      target: [libraryEntries.userId, libraryEntries.mediaId],
     });
 }
 
@@ -92,6 +96,25 @@ export async function upsertEntry(
   return ok(row);
 }
 
+type WatchSummary = { lastWatchedAt: number };
+
+async function watchSummaries(
+  userId: string,
+  mediaIds: readonly string[],
+): Promise<Map<string, WatchSummary>> {
+  const rows = await selectByIds(mediaIds, (batch) =>
+    db
+      .select({
+        mediaId: watchEvents.mediaId,
+        lastWatchedAt: sql<number>`max(${watchEvents.watchedAt})`,
+      })
+      .from(watchEvents)
+      .where(and(eq(watchEvents.userId, userId), inArray(watchEvents.mediaId, batch)))
+      .groupBy(watchEvents.mediaId),
+  );
+  return new Map(rows.map((row) => [row.mediaId, { lastWatchedAt: row.lastWatchedAt }]));
+}
+
 export async function entriesWithProgress(userId: string): Promise<LibraryEntryWithProgress[]> {
   const rows = await db
     .select({ entry: libraryEntries, media })
@@ -101,12 +124,30 @@ export async function entriesWithProgress(userId: string): Promise<LibraryEntryW
     .orderBy(desc(libraryEntries.updatedAt));
 
   const showIds = rows.filter((r) => r.media.mediaType === "show").map((r) => r.media.id);
-  const progress = await listShowProgress(userId, showIds);
+  const [progress, summaries] = await Promise.all([
+    listShowProgress(userId, showIds),
+    watchSummaries(
+      userId,
+      rows.map((r) => r.media.id),
+    ),
+  ]);
 
-  return rows.map(({ entry, media }) => ({
-    ...entry,
-    media,
-    watchedEpisodeCount: progress.get(media.id)?.watchedEpisodeCount ?? 0,
-    airedEpisodeCount: progress.get(media.id)?.airedEpisodeCount ?? null,
-  }));
+  return rows.map(({ entry, media }) => {
+    const summary = summaries.get(media.id) ?? null;
+    const show = progress.get(media.id);
+
+    const watchedEpisodeCount =
+      media.mediaType === "movie" ? (summary ? 1 : 0) : (show?.watchedEpisodeCount ?? 0);
+    const complete =
+      media.mediaType === "movie" ? summary !== null : (show?.allAiredWatched ?? false);
+
+    return {
+      ...entry,
+      media,
+      status: resolveStatus(entry.filedStatus, { complete, watchedCount: watchedEpisodeCount }),
+      watchedEpisodeCount,
+      airedEpisodeCount: show?.airedEpisodeCount ?? null,
+      lastWatchedAt: summary?.lastWatchedAt ?? null,
+    };
+  });
 }

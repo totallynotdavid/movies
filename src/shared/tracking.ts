@@ -28,7 +28,7 @@ export type MediaRef = string | MediaSearchCandidate;
 
 export type TrackedEntryDto = {
   id: string;
-  status: LibraryStatus;
+  filedStatus: LibraryStatus;
   score100: number | null;
   updatedAt: number;
 };

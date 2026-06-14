@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "bae52643-5fd6-49ef-ac15-ee65088c6150",
+  "id": "34eeaf41-26db-405c-9ce3-1d70005a0b87",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "cast_credits": {
@@ -393,15 +393,6 @@
         }
       },
       "foreignKeys": {
-        "favorite_media_user_id_users_id_fk": {
-          "name": "favorite_media_user_id_users_id_fk",
-          "tableFrom": "favorite_media",
-          "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "favorite_media_media_id_media_id_fk": {
           "name": "favorite_media_media_id_media_id_fk",
           "tableFrom": "favorite_media",
@@ -461,15 +452,6 @@
         }
       },
       "foreignKeys": {
-        "favorite_people_user_id_users_id_fk": {
-          "name": "favorite_people_user_id_users_id_fk",
-          "tableFrom": "favorite_people",
-          "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "favorite_people_person_id_people_id_fk": {
           "name": "favorite_people_person_id_people_id_fk",
           "tableFrom": "favorite_people",
@@ -545,8 +527,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "status": {
-          "name": "status",
+        "filed_status": {
+          "name": "filed_status",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -562,13 +544,6 @@
         "notes": {
           "name": "notes",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "last_watched_at": {
-          "name": "last_watched_at",
-          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -601,15 +576,6 @@
         }
       },
       "foreignKeys": {
-        "library_entries_user_id_users_id_fk": {
-          "name": "library_entries_user_id_users_id_fk",
-          "tableFrom": "library_entries",
-          "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "library_entries_media_id_media_id_fk": {
           "name": "library_entries_media_id_media_id_fk",
           "tableFrom": "library_entries",
@@ -1179,80 +1145,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "users": {
-      "name": "users",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "role": {
-          "name": "role",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'member'"
-        },
-        "rating_system": {
-          "name": "rating_system",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'score100'"
-        },
-        "time_zone": {
-          "name": "time_zone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "users_email_unique": {
-          "name": "users_email_unique",
-          "columns": ["email"],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "watch_events": {
       "name": "watch_events",
       "columns": {
@@ -1345,15 +1237,6 @@
         }
       },
       "foreignKeys": {
-        "watch_events_user_id_users_id_fk": {
-          "name": "watch_events_user_id_users_id_fk",
-          "tableFrom": "watch_events",
-          "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "watch_events_media_id_media_id_fk": {
           "name": "watch_events_media_id_media_id_fk",
           "tableFrom": "watch_events",

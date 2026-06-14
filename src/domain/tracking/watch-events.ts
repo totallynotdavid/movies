@@ -35,6 +35,17 @@ export function watchEventInsertWrite(event: WatchEventInsert): Statement {
   return db.insert(watchEvents).values(event);
 }
 
+// Whether the user has logged any watch for a title. The movie "completed"
+// signal (movies hold no episode rows, so completion is fact presence).
+export async function hasWatch(userId: string, mediaId: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: watchEvents.id })
+    .from(watchEvents)
+    .where(and(eq(watchEvents.userId, userId), eq(watchEvents.mediaId, mediaId)))
+    .limit(1);
+  return rows.length > 0;
+}
+
 export type WatchedEpisodes = { watched: EpisodeRef[]; provisionalCount: number };
 
 export async function watchedAndProvisional(

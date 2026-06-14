@@ -1,7 +1,9 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "void/db";
-import { favoriteMedia, libraryEntries } from "@schema";
-import type { LibraryStatus } from "@/shared/library-status";
+import { favoriteMedia, libraryEntries, watchEvents } from "@schema";
+import { airedEpisodeRefs } from "@/domain/catalog/episodes";
+import { resolveStatus, type LibraryStatus } from "@/shared/library-status";
+import type { MediaType } from "@/domain/catalog/media";
 
 // Platform-native stats only render once enough users engage, so a tiny user
 // base never shows an embarrassing "score 80 from 1 person".
@@ -24,39 +26,59 @@ const EMPTY_STATUS: Record<LibraryStatus, number> = {
   dropped: 0,
 };
 
-export async function getMediaStats(mediaId: string): Promise<MediaStats> {
-  // Aggregate in SQL (count/sum per status) so we never pull per-user rows
-  // into app memory just to derive a handful of totals.
-  const [statusRows, favRows] = await Promise.all([
+export async function getMediaStats(mediaId: string, mediaType: MediaType): Promise<MediaStats> {
+  // Status distribution has no shared progress row, so this aggregates per
+  // tracker before resolving status. For a very popular title this is the
+  // heaviest read on the page; a materialized stat is the escape hatch.
+  const episodeKey = sql<string>`${watchEvents.seasonNumber} || ':' || ${watchEvents.episodeNumber}`;
+
+  const [trackers, aired, favRows] = await Promise.all([
     db
       .select({
-        status: libraryEntries.status,
-        tracked: sql<number>`count(*)`,
-        scored: sql<number>`count(${libraryEntries.score100})`,
-        scoreSum: sql<number>`coalesce(sum(${libraryEntries.score100}), 0)`,
+        filed: libraryEntries.filedStatus,
+        score: libraryEntries.score100,
+        watchedDistinct: sql<number>`count(distinct case when ${watchEvents.seasonNumber} is not null then ${episodeKey} end)`,
+        provisional: sql<number>`coalesce(sum(case when ${watchEvents.id} is not null and ${watchEvents.seasonNumber} is null then 1 else 0 end), 0)`,
+        watches: sql<number>`count(${watchEvents.id})`,
       })
       .from(libraryEntries)
+      .leftJoin(
+        watchEvents,
+        and(
+          eq(watchEvents.userId, libraryEntries.userId),
+          eq(watchEvents.mediaId, libraryEntries.mediaId),
+        ),
+      )
       .where(eq(libraryEntries.mediaId, mediaId))
-      .groupBy(libraryEntries.status),
+      .groupBy(libraryEntries.id),
+    mediaType === "show" ? airedEpisodeRefs([mediaId]) : Promise.resolve(null),
     db
       .select({ n: sql<number>`count(*)` })
       .from(favoriteMedia)
       .where(eq(favoriteMedia.mediaId, mediaId)),
   ]);
 
+  const airedCount = aired?.get(mediaId)?.length ?? 0;
+
   const statusCounts = { ...EMPTY_STATUS };
-  let trackedCount = 0;
   let scoreSum = 0;
   let scoreCount = 0;
-  for (const row of statusRows) {
-    statusCounts[row.status] = row.tracked;
-    trackedCount += row.tracked;
-    scoreSum += row.scoreSum;
-    scoreCount += row.scored;
+
+  for (const t of trackers) {
+    const watchedCount =
+      mediaType === "movie" ? (t.watches > 0 ? 1 : 0) : t.watchedDistinct + t.provisional;
+    const complete =
+      mediaType === "movie" ? t.watches > 0 : airedCount > 0 && watchedCount >= airedCount;
+
+    statusCounts[resolveStatus(t.filed, { complete, watchedCount })] += 1;
+    if (t.score !== null) {
+      scoreSum += t.score;
+      scoreCount += 1;
+    }
   }
 
   return {
-    trackedCount,
+    trackedCount: trackers.length,
     statusCounts,
     trackScore: scoreCount > 0 ? scoreSum / scoreCount : null,
     scoreCount,

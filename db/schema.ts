@@ -236,12 +236,10 @@ export const libraryEntries = sqliteTable(
     mediaId: text("media_id")
       .notNull()
       .references(() => media.id, { onDelete: "cascade" }),
-    status: text("status").$type<LibraryStatus>().notNull(),
+    // User-filed status. Displayed status and recency are derived from watch_events.
+    filedStatus: text("filed_status").$type<LibraryStatus>().notNull(),
     score100: integer("score100"),
     notes: text("notes"),
-    // Mutable intent fields only. Episode progress is derived from watch_events.
-    // `lastWatchedAt` is a rebuildable recency cache.
-    lastWatchedAt: integer("last_watched_at"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },

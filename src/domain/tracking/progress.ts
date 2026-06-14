@@ -3,7 +3,6 @@ import { airedEpisodeRefs } from "@/domain/catalog/episodes";
 import { watchedAndProvisional } from "./watch-events";
 import { err, ok, type Result } from "@/result";
 import { episodeKey, type EpisodeRef } from "@/shared/tracking";
-import type { LibraryStatus } from "@/shared/library-status";
 
 export type ShowProgress = {
   // Distinct aired episodes the user has watched.
@@ -12,9 +11,7 @@ export type ShowProgress = {
   airedEpisodeCount: number | null;
   // First aired episode not yet watched, in airing order.
   nextEpisode: EpisodeRef | null;
-  // Every aired episode watched (and at least one exists). Whether this becomes
-  // the "completed" library status also depends on the show having ended; that
-  // decision lives in statusForShowProgress, not here.
+  // Every aired episode watched, and at least one exists.
   allAiredWatched: boolean;
 };
 
@@ -98,20 +95,6 @@ export function deriveShowProgress(
     nextEpisode,
     allAiredWatched: nextEpisode === null,
   };
-}
-
-// Library status is mutable intent. For shows, completion follows from derived
-// progress: all aired watched, or (pre-hydration) the watched count reaching a
-// known episode total.
-export function statusForShowProgress(
-  progress: ShowProgress,
-  fallbackEpisodeTotal: number | null,
-): LibraryStatus {
-  if (progress.allAiredWatched) return "completed";
-  if (progress.airedEpisodeCount === null && fallbackEpisodeTotal !== null) {
-    return progress.watchedEpisodeCount >= fallbackEpisodeTotal ? "completed" : "watching";
-  }
-  return "watching";
 }
 
 export function pickEpisodeToLog(

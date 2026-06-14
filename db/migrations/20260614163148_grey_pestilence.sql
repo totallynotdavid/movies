@@ -58,7 +58,6 @@ CREATE TABLE `favorite_media` (
 	`user_id` text NOT NULL,
 	`media_id` text NOT NULL,
 	`created_at` integer NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`media_id`) REFERENCES `media`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -69,7 +68,6 @@ CREATE TABLE `favorite_people` (
 	`user_id` text NOT NULL,
 	`person_id` text NOT NULL,
 	`created_at` integer NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`person_id`) REFERENCES `people`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -86,13 +84,11 @@ CREATE TABLE `library_entries` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
 	`media_id` text NOT NULL,
-	`status` text NOT NULL,
+	`filed_status` text NOT NULL,
 	`score100` integer,
 	`notes` text,
-	`last_watched_at` integer,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`media_id`) REFERENCES `media`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -186,18 +182,6 @@ CREATE TABLE `people` (
 CREATE UNIQUE INDEX `people_slug_unique` ON `people` (`slug`);--> statement-breakpoint
 CREATE UNIQUE INDEX `uq_people_tmdb` ON `people` (`tmdb_id`);--> statement-breakpoint
 CREATE INDEX `idx_people_popularity` ON `people` (`popularity`);--> statement-breakpoint
-CREATE TABLE `users` (
-	`id` text PRIMARY KEY NOT NULL,
-	`email` text NOT NULL,
-	`name` text NOT NULL,
-	`role` text DEFAULT 'member' NOT NULL,
-	`rating_system` text DEFAULT 'score100' NOT NULL,
-	`time_zone` text,
-	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
 CREATE TABLE `watch_events` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
@@ -209,7 +193,6 @@ CREATE TABLE `watch_events` (
 	`watched_on` text NOT NULL,
 	`utc_offset_minutes` integer NOT NULL,
 	`created_at` integer NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`media_id`) REFERENCES `media`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint

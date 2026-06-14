@@ -1,10 +1,8 @@
-// Intent and fact are kept distinct on purpose. Filing a status (including
-// "completed") is intent only and never fabricates a watch date, so cataloging
-// an old movie does not pollute the timeline. Recording a watch is the only
-// thing that writes a dated fact.
-
+import { db } from "void/db";
+import { and, eq } from "drizzle-orm";
+import { libraryEntries, watchEvents } from "@schema";
 import { attempt, ok, type Result } from "@/result";
-import { runBatch } from "@/db/kernel";
+import { runBatch, type Statement } from "@/db/kernel";
 import type { TrackingError } from "@/domain/errors";
 import { findMedia } from "@/domain/catalog/media";
 import { getUserTimeZone } from "@/domain/user";
@@ -12,34 +10,23 @@ import { instantFor, type WatchInstant } from "@/domain/instant";
 import { buildWatchEvent, watchEventInsertWrite } from "./watch-events";
 import {
   buildEntry,
-  entryUpsertWrite,
+  ensureEntryWrite,
   findEntry,
   upsertEntry,
   type EntryPatch,
   type LibraryEntryRecord,
 } from "./library-entries";
-import {
-  deriveShowProgress,
-  loadShowEpisodes,
-  pickEpisodeToLog,
-  statusForShowProgress,
-  type ShowProgress,
-} from "./progress";
+import { deriveShowProgress, loadShowEpisodes, pickEpisodeToLog } from "./progress";
 import type { EpisodeRef } from "@/shared/tracking";
 
-// A watch always yields the entry; shows also return freshly derived progress so
-// the client and server skip re-deriving it.
-export type WatchOutcome = { entry: LibraryEntryRecord; progress?: ShowProgress };
+export type WatchOutcome = { entry: LibraryEntryRecord; watchedEpisodeCount: number };
 
 async function resolveInstant(userId: string, watchedAt?: number): Promise<WatchInstant> {
   const timeZone = await getUserTimeZone(userId);
   return instantFor(watchedAt ?? Date.now(), timeZone);
 }
 
-// Intent write: status/score/notes in one upsert, no fact. Validates the media
-// up front so an unknown id is a clean 404 rather than an FK failure. This is
-// the only completion path for a movie that does not assert a watch, so
-// cataloging an old title never fabricates a timeline entry.
+// Validate media first so an unknown id is a clean 404 rather than an FK failure.
 export async function saveEntry(
   userId: string,
   mediaId: string,
@@ -53,20 +40,27 @@ export async function saveEntry(
   return upsertEntry(buildEntry(userId, mediaId, prev.value, patch));
 }
 
-async function commit(
-  entry: LibraryEntryRecord,
-  write: ReturnType<typeof entryUpsertWrite>[],
-): Promise<Result<LibraryEntryRecord, TrackingError>> {
+// Untracking removes the library row and watch events together.
+export async function removeEntry(
+  userId: string,
+  mediaId: string,
+): Promise<Result<void, TrackingError>> {
   const result = await attempt(
-    runBatch(write),
+    runBatch([
+      db
+        .delete(libraryEntries)
+        .where(and(eq(libraryEntries.userId, userId), eq(libraryEntries.mediaId, mediaId))),
+      db
+        .delete(watchEvents)
+        .where(and(eq(watchEvents.userId, userId), eq(watchEvents.mediaId, mediaId))),
+    ]),
     (cause): TrackingError => ({ kind: "persistence_failed", cause }),
   );
   if (!result.ok) return result;
-  return ok(entry);
+  return ok(undefined);
 }
 
-// A movie completes on a single watch. A show derives its status from the
-// post-write episode set so repeated watches do not over-count progress.
+// Ensure the library row exists without disturbing filed intent.
 export async function recordWatch(
   userId: string,
   mediaId: string,
@@ -78,43 +72,69 @@ export async function recordWatch(
 
   const prev = await findEntry(userId, mediaId);
   if (!prev.ok) return prev;
+  const entry = prev.value ?? buildEntry(userId, mediaId, null, {});
+  const instant = await resolveInstant(userId, watchedAt);
 
   if (media.value.mediaType === "movie") {
-    const instant = await resolveInstant(userId, watchedAt);
-    const entry = buildEntry(userId, mediaId, prev.value, {
-      status: "completed",
-      lastWatchedAt: instant.watchedAt,
-    });
     const event = buildWatchEvent(userId, media.value, instant, null);
-    const committed = await commit(entry, [entryUpsertWrite(entry), watchEventInsertWrite(event)]);
-    if (!committed.ok) return committed;
-    return ok({ entry: committed.value });
+    const written = await write([ensureEntryWrite(entry), watchEventInsertWrite(event)]);
+    if (!written.ok) return written;
+    return ok({ entry, watchedEpisodeCount: 1 });
   }
 
-  // Load refs once. Derive pre-write progress to pick the next episode, then
-  // post-write progress in memory for the response and the status decision.
+  // Load refs once: derive pre-write progress to pick the next episode, then
+  // post-write progress in memory for the response. Rewatches collapse in the
+  // watched set, so the count comes from the derived progress, not watched + 1.
   const { watched, aired, provisionalCount } = await loadShowEpisodes(userId, mediaId);
   const before = deriveShowProgress(watched, aired, provisionalCount);
-  const fallbackEpisodeTotal = media.value.episodeCount;
 
-  const picked = pickEpisodeToLog(before, fallbackEpisodeTotal, episode);
+  const picked = pickEpisodeToLog(before, media.value.episodeCount, episode);
   if (!picked.ok) return picked;
 
-  // Rewatches collapse in the watched set, so status must come from the derived
-  // progress, not from watchedCount + 1.
   const after = picked.value
     ? deriveShowProgress([...watched, picked.value], aired, provisionalCount)
     : deriveShowProgress(watched, aired, provisionalCount + 1);
-  const status = statusForShowProgress(after, fallbackEpisodeTotal);
 
-  const instant = await resolveInstant(userId, watchedAt);
-  const entry = buildEntry(userId, mediaId, prev.value, {
-    status,
-    lastWatchedAt: instant.watchedAt,
-  });
   const event = buildWatchEvent(userId, media.value, instant, picked.value);
+  const written = await write([ensureEntryWrite(entry), watchEventInsertWrite(event)]);
+  if (!written.ok) return written;
+  return ok({ entry, watchedEpisodeCount: after.watchedEpisodeCount });
+}
 
-  const committed = await commit(entry, [entryUpsertWrite(entry), watchEventInsertWrite(event)]);
-  if (!committed.ok) return committed;
-  return ok({ entry: committed.value, progress: after });
+// Reverses a single episode watch, the undo for an over-eager log.
+export async function unwatchEpisode(
+  userId: string,
+  mediaId: string,
+  episode: EpisodeRef,
+): Promise<Result<WatchOutcome, TrackingError>> {
+  const prev = await findEntry(userId, mediaId);
+  if (!prev.ok) return prev;
+  const entry = prev.value ?? buildEntry(userId, mediaId, null, {});
+
+  const removed = await write([
+    db
+      .delete(watchEvents)
+      .where(
+        and(
+          eq(watchEvents.userId, userId),
+          eq(watchEvents.mediaId, mediaId),
+          eq(watchEvents.seasonNumber, episode.seasonNumber),
+          eq(watchEvents.episodeNumber, episode.episodeNumber),
+        ),
+      ),
+  ]);
+  if (!removed.ok) return removed;
+
+  const { watched, aired, provisionalCount } = await loadShowEpisodes(userId, mediaId);
+  const after = deriveShowProgress(watched, aired, provisionalCount);
+  return ok({ entry, watchedEpisodeCount: after.watchedEpisodeCount });
+}
+
+async function write(statements: Statement[]): Promise<Result<void, TrackingError>> {
+  const result = await attempt(
+    runBatch(statements),
+    (cause): TrackingError => ({ kind: "persistence_failed", cause }),
+  );
+  if (!result.ok) return result;
+  return ok(undefined);
 }
