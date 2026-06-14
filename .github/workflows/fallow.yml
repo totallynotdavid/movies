@@ -1,0 +1,66 @@
+name: Fallow
+on:
+  pull_request:
+    branches: [master]
+
+# Comment step needs write; everything else is read-only.
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: fallow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Full history so `fallow audit` can resolve the merge-base and
+          # attribute findings as new-vs-inherited. A shallow clone breaks this.
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      # --ignore-scripts skips the `vp config` postinstall (vp is not installed
+      # in this bun-only job). The audit does not need it.
+      - run: bun install --frozen-lockfile --ignore-scripts
+
+      # One audit run produces the PR-comment body and carries the gate verdict
+      # in its exit code. Capture the code here, enforce it after commenting so a
+      # failing verdict still posts the report.
+      - name: Fallow audit
+        id: audit
+        run: |
+          set +e
+          bunx fallow audit --format pr-comment-github --quiet > fallow-comment.md
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      # Upsert a single sticky comment keyed on fallow's stable marker.
+      # continue-on-error so a missing write token (e.g. fork PRs) never fails CI;
+      # the gate step below is the source of truth.
+      - name: Upsert PR comment
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          marker='<!-- fallow-id: fallow-results -->'
+          id=$(gh api "repos/$GH_REPO/issues/$PR/comments" \
+            --jq "[.[] | select(.body | contains(\"$marker\"))] | last | .id // empty")
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GH_REPO/issues/comments/$id" -F body=@fallow-comment.md >/dev/null
+          else
+            gh pr comment "$PR" --body-file fallow-comment.md
+          fi
+
+      - name: Enforce gate
+        if: always()
+        run: exit ${{ steps.audit.outputs.exit_code }}
