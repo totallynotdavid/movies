@@ -1,5 +1,5 @@
 import { db } from "void/db";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { userTable } from "@/db/auth-schema";
 import { parseRatingSystem, type RatingSystem } from "./rating";
 import { isAvatarColor, type AvatarColor, type Visibility } from "@/shared/types/identity";
@@ -64,7 +64,6 @@ export async function getUserTimeZone(userId: string): Promise<string | null> {
   return rows[0]?.timeZone ?? null;
 }
 
-// Read model for settings UI.
 export type UserProfile = {
   username: string | null;
   displayName: string;
@@ -113,9 +112,9 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   };
 }
 
-// Public identity returned for /u/{username}; null means not found or not public.
-// `timeZone` is included for owner-zone recap-year resolution.
-export type PublicProfile = {
+// Identity fields needed by profile routes to gate visibility and resolve
+// owner-local recap years.
+export type ProfileIdentity = {
   id: string;
   username: string;
   displayName: string;
@@ -123,9 +122,10 @@ export type PublicProfile = {
   avatarColor: AvatarColor | null;
   joinedAt: number;
   timeZone: string | null;
+  visibility: Visibility;
 };
 
-export async function findPublicProfile(username: string): Promise<PublicProfile | null> {
+export async function findProfileByUsername(username: string): Promise<ProfileIdentity | null> {
   const handle = username.toLowerCase();
   const rows = await db
     .select({
@@ -139,7 +139,7 @@ export async function findPublicProfile(username: string): Promise<PublicProfile
       createdAt: userTable.createdAt,
     })
     .from(userTable)
-    .where(and(eq(userTable.username, handle), eq(userTable.visibility, "public")))
+    .where(eq(userTable.username, handle))
     .limit(1);
 
   const row = rows[0];
@@ -153,5 +153,6 @@ export async function findPublicProfile(username: string): Promise<PublicProfile
     avatarColor: toAvatarColor(row.avatarColor),
     joinedAt: row.createdAt instanceof Date ? row.createdAt.getTime() : Number(row.createdAt),
     timeZone: row.timeZone ?? null,
+    visibility: toVisibility(row.visibility),
   };
 }

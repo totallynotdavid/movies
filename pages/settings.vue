@@ -11,7 +11,7 @@ const { theme, toggle } = useColorTheme();
 </script>
 
 <template>
-  <div class="flex flex-col gap-8 max-w-xl">
+  <div class="flex flex-col gap-8 max-w-2xl">
     <div>
       <h1 class="text-3xl font-mono font-bold">settings</h1>
       <p class="text-fg-muted text-sm mt-1">account and preferences</p>

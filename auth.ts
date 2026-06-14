@@ -1,4 +1,3 @@
-// Auth config for Better Auth + app-specific additional user fields.
 // Keep this file self-contained. The auth-config codegen loader is plain Node ESM
 // and does not resolve app-local extensionless TS imports.
 
@@ -11,8 +10,7 @@ const USERNAME_MAX = 20;
 const USERNAME_PATTERN = /^[a-z0-9_]+$/;
 const RESERVED_USERNAMES = new Set(["admin", "support", "official", "staff", "root"]);
 
-// Authoritative username validator for auth writes.
-// shared/types/identity.ts mirrors these rules for UI-only validation.
+// Auth-write username validator. UI validation is advisory; this is the boundary check.
 function isValidUsername(value: string): boolean {
   return (
     value.length >= USERNAME_MIN &&
