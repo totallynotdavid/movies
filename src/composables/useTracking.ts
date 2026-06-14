@@ -72,8 +72,11 @@ export function useTracking(options: Options) {
   });
 
   const canLogEpisode = computed(() => {
-    if (!entry.value || options.mediaType !== "show") return false;
-    return episodeTotal.value === null || entry.value.watchedEpisodeCount < episodeTotal.value;
+    if (options.mediaType !== "show") return false;
+    // No entry yet means nothing is logged, so the next watch starts at episode 1;
+    // logging is what registers the show, it does not require a prior entry.
+    const watched = entry.value?.watchedEpisodeCount ?? 0;
+    return episodeTotal.value === null || watched < episodeTotal.value;
   });
 
   function sync(next: TrackedEntry) {
@@ -106,12 +109,12 @@ export function useTracking(options: Options) {
   }
 
   function addToLibrary() {
-    return post("/api/tracking/library", { mediaId: options.mediaId, status: "planned" });
+    return post("/api/tracking/library", { media: options.mediaId, status: "planned" });
   }
 
   function setStatus(status: LibraryStatus) {
     return post("/api/tracking/library", {
-      mediaId: options.mediaId,
+      media: options.mediaId,
       status,
       score100: entry.value?.score100 ?? null,
     });
@@ -121,7 +124,7 @@ export function useTracking(options: Options) {
     const score100 =
       !Number.isNaN(rawValue) && rawValue > 0 ? toScore100(rawValue, options.ratingSystem) : null;
     return post("/api/tracking/library", {
-      mediaId: options.mediaId,
+      media: options.mediaId,
       status: entry.value?.status ?? "planned",
       score100,
     });
@@ -129,14 +132,14 @@ export function useTracking(options: Options) {
 
   // Records a watch: a movie completes, a show quick-logs the next aired episode.
   function logWatch() {
-    return post("/api/tracking/watch", { mediaId: options.mediaId });
+    return post("/api/tracking/watch", { media: options.mediaId });
   }
 
   // Log a specific episode (the picker path), as opposed to quick-logging the
   // next aired one. Updates the shared entry + derived episode count.
   function logEpisode(seasonNumber: number, episodeNumber: number) {
     return post("/api/tracking/watch", {
-      mediaId: options.mediaId,
+      media: options.mediaId,
       seasonNumber,
       episodeNumber,
     });

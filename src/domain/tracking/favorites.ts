@@ -7,8 +7,7 @@ export async function listFavoriteMedia(userId: string) {
   return db.select().from(favoriteMedia).where(eq(favoriteMedia.userId, userId));
 }
 
-// Favorites joined to their catalog rows, for the profile + media pages — so a
-// loader never hand-rolls the favorite⋈media join.
+// Favorites joined to catalog rows for profile and media-page reads.
 export async function favoriteMediaForUser(
   userId: string,
 ): Promise<{ mediaId: string; media: MediaRecord }[]> {

@@ -10,12 +10,21 @@ import {
   tmdbToken,
   type TmdbMediaResult,
 } from "@/integrations/tmdb";
+import { err, ok, type Result } from "@/result";
+import type { TrackingError } from "@/domain/errors";
+import type { MediaRef } from "@/shared/tracking";
 
 export type MediaSearchResult = TmdbMediaResult & {
   cachedMediaId: string | null;
 };
 
 export async function searchCatalog(input: { query: string; limit?: number }) {
+  // An empty query has nothing to match; report whether remote is wired so the
+  // search page can tailor its empty state without importing the token check.
+  if (!input.query.trim()) {
+    return { remoteEnabled: Boolean(tmdbToken()), local: [], remote: [] as MediaSearchResult[] };
+  }
+
   const local = await searchLocalMedia(input.query, input.limit ?? 20);
 
   if (!tmdbToken()) {
@@ -95,4 +104,31 @@ export async function cacheMediaSelection(input: unknown) {
     ...showTotals,
   });
   return { mediaId };
+}
+
+// Boundary parse for the `media` field of a tracking request. Light shape check
+// only; a candidate's deep validation is deferred to cacheMediaSelection.
+export function parseMediaRef(value: unknown): Result<MediaRef, TrackingError> {
+  if (typeof value === "string") {
+    if (value.length === 0) {
+      return err({ kind: "invalid_payload", field: "media", reason: "must not be empty" });
+    }
+    return ok(value);
+  }
+  if (value && typeof value === "object") {
+    return ok(value as MediaRef);
+  }
+  return err({
+    kind: "invalid_payload",
+    field: "media",
+    reason: "must be a media id or candidate",
+  });
+}
+
+// Resolve a reference to a catalog id, caching an uncached candidate on demand.
+// A bare id passes through; downstream commands assert it exists via findMedia.
+export async function resolveMediaId(ref: MediaRef): Promise<string> {
+  if (typeof ref === "string") return ref;
+  if (ref.cachedMediaId) return ref.cachedMediaId;
+  return (await cacheMediaSelection(ref)).mediaId;
 }

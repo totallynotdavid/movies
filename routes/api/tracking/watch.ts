@@ -1,30 +1,33 @@
 import { defineHandler } from "void";
 import { requireAuth } from "void/auth";
+import { attempt } from "@/result";
 import { httpStatusFor, type TrackingError } from "@/domain/errors";
 import { recordWatch } from "@/domain/tracking/commands";
+import { parseMediaRef, resolveMediaId } from "@/services/media-catalog";
 import type { EpisodeRef } from "@/shared/tracking";
 
 type Body = {
-  mediaId?: unknown;
+  media?: unknown;
   seasonNumber?: unknown;
   episodeNumber?: unknown;
   watchedAt?: unknown;
 };
 
 // Fact surface: records a watch. A movie completes; a show logs the requested
-// episode, or quick-logs the next aired one when no episode is given.
+// episode, or quick-logs the next aired one when no episode is given. `media`
+// is a catalog id or a search candidate the system caches on demand.
 export const POST = defineHandler(async (c) => {
   const user = requireAuth(c);
   const body = await c.req.json<Body>();
 
-  if (typeof body.mediaId !== "string") {
-    const error: TrackingError = {
-      kind: "invalid_payload",
-      field: "mediaId",
-      reason: "must be a string",
-    };
-    return c.json({ error }, httpStatusFor(error));
-  }
+  const ref = parseMediaRef(body.media);
+  if (!ref.ok) return c.json({ error: ref.error }, httpStatusFor(ref.error));
+
+  const resolved = await attempt(
+    resolveMediaId(ref.value),
+    (cause): TrackingError => ({ kind: "invalid_payload", field: "media", reason: String(cause) }),
+  );
+  if (!resolved.ok) return c.json({ error: resolved.error }, httpStatusFor(resolved.error));
 
   // An explicit episode is optional; both numbers must be present together.
   let episode: EpisodeRef | undefined;
@@ -42,7 +45,7 @@ export const POST = defineHandler(async (c) => {
 
   const watchedAt = typeof body.watchedAt === "number" ? body.watchedAt : undefined;
 
-  const result = await recordWatch(user.id, body.mediaId, episode, watchedAt);
+  const result = await recordWatch(user.id, resolved.value, episode, watchedAt);
   if (!result.ok) {
     return c.json({ error: result.error }, httpStatusFor(result.error));
   }

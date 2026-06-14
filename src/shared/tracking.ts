@@ -1,6 +1,4 @@
-// Isomorphic tracking vocabulary: the episode identity, the library status, and
-// the DTOs the API and client both speak. No db, no domain imports, so this is
-// the single owner of these shapes for server reads and client state alike.
+// Isomorphic tracking DTOs. Keep this file free of db and domain imports.
 
 import type { SeasonEpisodes } from "@/shared/catalog";
 import type { HydrationState } from "@/shared/hydration";
@@ -12,6 +10,27 @@ export type EpisodeRef = { seasonNumber: number; episodeNumber: number };
 export function episodeKey(seasonNumber: number, episodeNumber: number): string {
   return `${seasonNumber}:${episodeNumber}`;
 }
+
+// A title the user can act on: either a catalog id (already cached) or a search
+// candidate the server caches on demand. One owner of the wire shape the client
+// sends to the tracking endpoints and the server resolves through resolveMediaId.
+export type MediaSearchCandidate = {
+  mediaType: "movie" | "show";
+  tmdbId: number;
+  title: string;
+  slug: string;
+  originalTitle?: string | null;
+  overview?: string | null;
+  posterPath?: string | null;
+  backdropPath?: string | null;
+  releaseDate?: string | null;
+  voteAverage?: number | null;
+  voteCount?: number | null;
+  popularity?: number | null;
+  cachedMediaId?: string | null;
+};
+
+export type MediaRef = string | MediaSearchCandidate;
 
 export type LibraryStatus = "planned" | "watching" | "completed" | "paused" | "dropped";
 

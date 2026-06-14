@@ -41,8 +41,8 @@ export function watchEventInsertWrite(event: WatchEventInsert): Statement {
 
 export type WatchedEpisodes = { watched: EpisodeRef[]; provisionalCount: number };
 
-// Read watch events and partition in memory:
-// episode-tagged rows build the explicit watched set, null-episode rows count as provisional.
+// Episode-tagged rows build the explicit watched set.
+// Null-episode rows count as provisional watches until progress maps them to aired rows.
 export async function watchedAndProvisional(
   userId: string,
   mediaIds: readonly string[],

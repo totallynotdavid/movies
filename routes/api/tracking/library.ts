@@ -1,28 +1,29 @@
 import { defineHandler } from "void";
 import { requireAuth } from "void/auth";
-import { err, ok, type Result } from "@/result";
+import { attempt, err, ok, type Result } from "@/result";
 import type { TrackingError } from "@/domain/errors";
 import { httpStatusFor } from "@/domain/errors";
 import { entriesWithProgress } from "@/domain/tracking/library-entries";
 import { saveEntry } from "@/domain/tracking/commands";
-import { parseLibraryStatus, type LibraryStatus } from "@/shared/tracking";
+import { parseMediaRef, resolveMediaId } from "@/services/media-catalog";
+import { parseLibraryStatus, type LibraryStatus, type MediaRef } from "@/shared/tracking";
 
 type LibraryBody = {
-  mediaId: string;
+  media: MediaRef;
   status: LibraryStatus;
   score100?: number | null;
 };
 
 function parseLibraryBody(body: Record<string, unknown>): Result<LibraryBody, TrackingError> {
-  if (typeof body.mediaId !== "string") {
-    return err({ kind: "invalid_payload", field: "mediaId", reason: "must be a string" });
-  }
+  const ref = parseMediaRef(body.media);
+  if (!ref.ok) return ref;
+
   const status = parseLibraryStatus(body.status);
   if (!status) {
     return err({ kind: "invalid_payload", field: "status", reason: "unknown status" });
   }
 
-  const parsed: LibraryBody = { mediaId: body.mediaId, status };
+  const parsed: LibraryBody = { media: ref.value, status };
   if (body.score100 !== undefined) {
     if (body.score100 !== null && typeof body.score100 !== "number") {
       return err({
@@ -53,8 +54,14 @@ export const POST = defineHandler(async (c) => {
     return c.json({ error: parsed.error }, httpStatusFor(parsed.error));
   }
 
-  const { mediaId, status, score100 } = parsed.value;
-  const result = await saveEntry(user.id, mediaId, { status, score100 });
+  const { media, status, score100 } = parsed.value;
+  const resolved = await attempt(
+    resolveMediaId(media),
+    (cause): TrackingError => ({ kind: "invalid_payload", field: "media", reason: String(cause) }),
+  );
+  if (!resolved.ok) return c.json({ error: resolved.error }, httpStatusFor(resolved.error));
+
+  const result = await saveEntry(user.id, resolved.value, { status, score100 });
   if (!result.ok) {
     return c.json({ error: result.error }, httpStatusFor(result.error));
   }
