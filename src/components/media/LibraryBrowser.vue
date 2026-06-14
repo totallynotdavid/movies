@@ -4,6 +4,7 @@ import MediaCollection from "./MediaCollection.vue";
 import LibraryEntry from "./LibraryEntry.vue";
 import LayoutToggle from "@/components/ui/LayoutToggle.vue";
 import { useLayoutPreference } from "@/composables/useLayoutPreference";
+import { usePersistentRef } from "@/composables/usePersistentRef";
 import { LIBRARY_STATUSES, LIBRARY_STATUS_LABELS } from "@/shared/library-status";
 import type { LibraryEntryWithProgress } from "@/domain/tracking/library-entries";
 import type { RatingSystem } from "@/domain/rating";
@@ -17,11 +18,13 @@ const props = defineProps<{
 const localEntries = ref([...props.entries]);
 const { layout } = useLayoutPreference();
 
-const filterStatus = ref<string>("all");
-const filterType = ref<"all" | "movie" | "show">("all");
+// Library filters are a standing preference, not a per-visit choice, so the
+// system remembers them across visits instead of resetting to "all" every time.
+const filterStatus = usePersistentRef("library.filterStatus", "all");
+const filterType = usePersistentRef("library.filterType", "all");
+const sortKey = usePersistentRef("library.sortKey", "updated");
 
 type SortKey = "updated" | "title" | "rating" | "status";
-const sortKey = ref<SortKey>("updated");
 
 const sortOptions: { value: SortKey; label: string }[] = [
   { value: "updated", label: "recent" },
@@ -91,9 +94,7 @@ function onEntryUpdate(update: EntryUpdate) {
         <LayoutToggle v-model="layout" />
       </div>
 
-      <div
-        class="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden"
-      >
+      <div class="flex flex-wrap items-center gap-2">
         <div class="flex gap-1 shrink-0">
           <button
             v-for="opt in typeOptions"
