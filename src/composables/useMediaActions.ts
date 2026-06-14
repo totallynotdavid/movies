@@ -2,10 +2,14 @@ import type { MediaRef } from "@/shared/tracking";
 
 export type ActionResult = { ok: boolean; error?: string };
 
-async function post(url: string, body: Record<string, unknown>): Promise<ActionResult> {
+async function send(
+  method: "POST" | "DELETE",
+  url: string,
+  body: Record<string, unknown>,
+): Promise<ActionResult> {
   try {
     const res = await fetch(url, {
-      method: "POST",
+      method,
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
@@ -24,9 +28,13 @@ async function post(url: string, body: Record<string, unknown>): Promise<ActionR
 }
 
 export function logWatch(media: MediaRef): Promise<ActionResult> {
-  return post("/api/tracking/watch", { media });
+  return send("POST", "/api/tracking/watch", { media });
 }
 
 export function addToPlan(media: MediaRef): Promise<ActionResult> {
-  return post("/api/tracking/library", { media, status: "planned" });
+  return send("POST", "/api/tracking/library", { media, status: "planned" });
+}
+
+export function removeFromLibrary(media: MediaRef): Promise<ActionResult> {
+  return send("DELETE", "/api/tracking/library", { media });
 }

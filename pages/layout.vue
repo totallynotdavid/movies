@@ -7,6 +7,7 @@ import AppFooter from "@/components/AppFooter.vue";
 import AppHeader from "@/components/AppHeader.vue";
 import CommandPalette from "@/components/CommandPalette.vue";
 import ScrollToTop from "@/components/ui/ScrollToTop.vue";
+import ToastHost from "@/components/ui/ToastHost.vue";
 
 const shared = useShared();
 const user = shared.user;
@@ -76,5 +77,6 @@ onUnmounted(() => {
     <CommandPalette ref="paletteRef" :user="user" />
     <AppFooter />
     <ScrollToTop />
+    <ToastHost />
   </div>
 </template>

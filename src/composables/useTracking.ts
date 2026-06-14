@@ -1,19 +1,28 @@
 import { computed, ref, unref, type Ref } from "vue";
 import type { MediaType } from "@/domain/catalog/media";
 import { toDisplayScore, scoreMax, toScore100, type RatingSystem } from "@/domain/rating";
+import { useToast } from "@/composables/useToast";
+import { trackingMessage } from "@/shared/tracking-messages";
 import type { TrackedEntryDto } from "@/shared/tracking";
-import type { LibraryStatus } from "@/shared/library-status";
+import { resolveStatus, type LibraryStatus } from "@/shared/library-status";
 
 export type TrackedEntry = {
   id: string;
+  filedStatus: LibraryStatus;
+  score100: number | null;
+  watchedEpisodeCount: number;
+  updatedAt: number;
+};
+
+export type EntryUpdate = {
+  id: string;
+  filedStatus: LibraryStatus;
   status: LibraryStatus;
   score100: number | null;
   watchedEpisodeCount: number;
   updatedAt: number;
 };
 
-// Episode progress is derived server-side and returned alongside the entry only
-// when it changes (recording a watch); intent posts omit it.
 type TrackingResponse = {
   error?: { kind?: string };
   entry?: TrackedEntryDto;
@@ -29,31 +38,25 @@ type Options = {
   onUpdate?: (entry: TrackedEntry) => void;
 };
 
-const ERROR_MESSAGES: Record<string, string> = {
-  already_at_episode_total: "You've already logged every episode.",
-};
-
-function friendlyError(kind: string): string {
-  return ERROR_MESSAGES[kind] ?? kind;
-}
-
 function readEntry(payload: TrackingResponse, prevCount: number): TrackedEntry {
   const entry = payload.entry!;
   return {
     id: entry.id,
-    status: entry.status,
+    filedStatus: entry.filedStatus,
     score100: entry.score100,
     watchedEpisodeCount: payload.watchedEpisodeCount ?? prevCount,
     updatedAt: entry.updatedAt ?? Date.now(),
   };
 }
 
+const JSON_HEADERS = { "content-type": "application/json" };
+
 export function useTracking(options: Options) {
+  const toast = useToast();
   const entry: Ref<TrackedEntry | null> = ref(
     options.initialEntry ? { ...options.initialEntry } : null,
   );
   const saving = ref(false);
-  const error = ref("");
 
   const displayScore = computed(() => {
     const score100 = entry.value?.score100;
@@ -61,8 +64,21 @@ export function useTracking(options: Options) {
     return toDisplayScore(score100, options.ratingSystem);
   });
   const episodeTotal = computed(() => unref(options.episodeTotal));
-
   const max = scoreMax(options.ratingSystem);
+
+  const isComplete = computed(() => {
+    const watched = entry.value?.watchedEpisodeCount ?? 0;
+    if (options.mediaType === "movie") return watched > 0;
+    return episodeTotal.value !== null && watched > 0 && watched >= episodeTotal.value;
+  });
+
+  const displayStatus = computed<LibraryStatus | null>(() => {
+    if (!entry.value) return null;
+    return resolveStatus(entry.value.filedStatus, {
+      complete: isComplete.value,
+      watchedCount: entry.value.watchedEpisodeCount,
+    });
+  });
 
   const progressText = computed(() => {
     if (!entry.value || options.mediaType !== "show") return null;
@@ -85,77 +101,146 @@ export function useTracking(options: Options) {
     options.onUpdate?.(next);
   }
 
-  async function post(url: string, body: Record<string, unknown>): Promise<boolean> {
+  function snapshot(): TrackedEntry | null {
+    return entry.value ? { ...entry.value } : null;
+  }
+
+  // Optimistic update so the most-repeated actions feel instant. A null entry
+  // (an untracked title) starts from a provisional row the server later confirms.
+  function applyOptimistic(patch: Partial<TrackedEntry>) {
+    const base: TrackedEntry = entry.value ?? {
+      id: "pending",
+      filedStatus: "planned",
+      score100: null,
+      watchedEpisodeCount: 0,
+      updatedAt: Date.now(),
+    };
+    sync({ ...base, ...patch, updatedAt: Date.now() });
+  }
+
+  function rollback(prev: TrackedEntry | null) {
+    entry.value = prev;
+    if (prev) options.onUpdate?.(prev);
+  }
+
+  function fail(caught: unknown): false {
+    const kind = caught instanceof Error ? caught.message : "request failed";
+    toast.error(trackingMessage(kind));
+    return false;
+  }
+
+  // The one request seam: optimistic patch, send, reconcile or roll back, and
+  // report failures through the toast channel. `clears` is the untrack case where
+  // success drops the entry instead of syncing a returned one.
+  async function mutate(opts: {
+    method: "POST" | "DELETE";
+    url: string;
+    body: Record<string, unknown>;
+    optimistic?: Partial<TrackedEntry>;
+    clears?: boolean;
+  }): Promise<boolean> {
+    const prev = snapshot();
+    if (opts.optimistic) applyOptimistic(opts.optimistic);
     saving.value = true;
-    error.value = "";
     try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
+      const res = await fetch(opts.url, {
+        method: opts.method,
+        headers: JSON_HEADERS,
+        body: JSON.stringify(opts.body),
       });
-      const payload = (await res.json()) as TrackingResponse;
-      if (!res.ok || !payload.entry) {
-        throw new Error(payload.error?.kind ?? "request failed");
+      const payload = (await res.json().catch(() => ({}))) as TrackingResponse;
+      if (!res.ok) throw new Error(payload.error?.kind ?? "request failed");
+      if (opts.clears) {
+        entry.value = null;
+      } else {
+        if (!payload.entry) throw new Error(payload.error?.kind ?? "request failed");
+        sync(readEntry(payload, prev?.watchedEpisodeCount ?? 0));
       }
-      sync(readEntry(payload, entry.value?.watchedEpisodeCount ?? 0));
       return true;
     } catch (caught) {
-      const kind = caught instanceof Error ? caught.message : "request failed";
-      error.value = friendlyError(kind);
-      return false;
+      rollback(prev);
+      return fail(caught);
     } finally {
       saving.value = false;
     }
   }
 
-  function addToLibrary() {
-    return post("/api/tracking/library", { media: options.mediaId, status: "planned" });
-  }
-
-  function setStatus(status: LibraryStatus) {
-    return post("/api/tracking/library", {
-      media: options.mediaId,
-      status,
-      score100: entry.value?.score100 ?? null,
+  function setStatus(filedStatus: LibraryStatus) {
+    return mutate({
+      method: "POST",
+      url: "/api/tracking/library",
+      body: { media: options.mediaId, status: filedStatus },
+      optimistic: { filedStatus },
     });
   }
 
   function setScore(rawValue: number) {
     const score100 =
       !Number.isNaN(rawValue) && rawValue > 0 ? toScore100(rawValue, options.ratingSystem) : null;
-    return post("/api/tracking/library", {
-      media: options.mediaId,
-      status: entry.value?.status ?? "planned",
-      score100,
+    return mutate({
+      method: "POST",
+      url: "/api/tracking/library",
+      body: { media: options.mediaId, score100 },
+      optimistic: { score100 },
     });
   }
 
   function logWatch() {
-    return post("/api/tracking/watch", { media: options.mediaId });
+    const watchedEpisodeCount =
+      options.mediaType === "movie" ? 1 : (entry.value?.watchedEpisodeCount ?? 0) + 1;
+    return mutate({
+      method: "POST",
+      url: "/api/tracking/watch",
+      body: { media: options.mediaId },
+      optimistic: { watchedEpisodeCount },
+    });
   }
 
   // Explicit episode logging must not fall through to quick-log selection.
   function logEpisode(seasonNumber: number, episodeNumber: number) {
-    return post("/api/tracking/watch", {
-      media: options.mediaId,
-      seasonNumber,
-      episodeNumber,
+    return mutate({
+      method: "POST",
+      url: "/api/tracking/watch",
+      body: { media: options.mediaId, seasonNumber, episodeNumber },
+      optimistic: { watchedEpisodeCount: (entry.value?.watchedEpisodeCount ?? 0) + 1 },
+    });
+  }
+
+  function unwatch(seasonNumber: number, episodeNumber: number) {
+    const optimistic = entry.value
+      ? { watchedEpisodeCount: Math.max(0, entry.value.watchedEpisodeCount - 1) }
+      : undefined;
+    return mutate({
+      method: "DELETE",
+      url: "/api/tracking/watch",
+      body: { media: options.mediaId, seasonNumber, episodeNumber },
+      optimistic,
+    });
+  }
+
+  function untrack() {
+    if (!entry.value) return Promise.resolve(true);
+    return mutate({
+      method: "DELETE",
+      url: "/api/tracking/library",
+      body: { media: options.mediaId },
+      clears: true,
     });
   }
 
   return {
     entry,
     saving,
-    error,
+    displayStatus,
     displayScore,
     scoreMax: max,
     progressText,
     canLogEpisode,
-    addToLibrary,
     setStatus,
     setScore,
     logWatch,
     logEpisode,
+    unwatch,
+    untrack,
   };
 }
