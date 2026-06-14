@@ -11,7 +11,7 @@ const { theme, toggle } = useColorTheme();
 </script>
 
 <template>
-  <div class="flex flex-col gap-8 max-w-2xl">
+  <main class="container flex flex-col gap-8 max-w-2xl py-8 sm:py-12">
     <div>
       <h1 class="text-3xl font-mono font-bold">settings</h1>
       <p class="text-fg-muted text-sm mt-1">account and preferences</p>
@@ -63,5 +63,5 @@ const { theme, toggle } = useColorTheme();
     <p v-if="props.profile.role === 'admin'" class="text-xs font-mono text-fg-subtle">
       role: admin
     </p>
-  </div>
+  </main>
 </template>

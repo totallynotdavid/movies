@@ -134,7 +134,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-8">
+  <main class="container flex flex-col gap-8 py-8 sm:py-12">
     <div class="flex flex-col gap-1">
       <h1 class="text-3xl font-mono font-bold">search</h1>
       <p class="text-fg-muted text-sm">find a movie or show, then track it inline.</p>
@@ -263,5 +263,5 @@ onMounted(() => {
         searching your local catalog only
       </p>
     </div>
-  </div>
+  </main>
 </template>

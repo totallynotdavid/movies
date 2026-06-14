@@ -1,13 +1,13 @@
 <script setup lang="ts">
-// Labeled buttons only. Icon-only chrome actions use IconBtn.
 withDefaults(
   defineProps<{
     variant?: "primary" | "secondary";
     size?: "sm" | "md";
-    type?: "button" | "submit" | "reset";
+    type?: "button" | "submit";
     disabled?: boolean;
-    icon?: string;
     block?: boolean;
+    classicon?: string;
+    ariaKeyshortcuts?: string;
   }>(),
   { variant: "secondary", size: "md", type: "button" },
 );
@@ -16,22 +16,29 @@ withDefaults(
 <template>
   <button
     :type="type"
-    :disabled="disabled"
-    class="group items-center justify-center gap-1.5 font-mono border rounded-md transition-colors duration-200 focus-ring disabled:opacity-40 disabled:pointer-events-none"
-    :class="[
-      block ? 'flex w-full' : 'inline-flex',
-      size === 'sm' ? 'text-xs px-2.5 py-1' : 'text-sm px-3.5 py-2',
-      variant === 'primary'
-        ? 'border-transparent bg-fg text-bg hover:bg-fg/80'
-        : 'border-border bg-transparent text-fg hover:bg-fg/10',
-    ]"
+    :disabled="disabled ? true : undefined"
+    class="group gap-x-1 items-center justify-center font-mono border border-border rounded-md transition-all duration-200 cursor-pointer disabled:(opacity-40 cursor-not-allowed border-transparent)"
+    :class="{
+      'inline-flex': !block,
+      flex: block,
+      'text-sm px-4 py-2': size === 'md',
+      'text-xs px-2 py-0.5': size === 'sm',
+      'bg-transparent text-fg hover:enabled:(bg-fg/10) focus-visible:enabled:(bg-fg/10) aria-pressed:(bg-fg/10 border-fg/20 hover:enabled:(bg-fg/20 text-fg/50))':
+        variant === 'secondary',
+      'text-bg bg-fg hover:enabled:(bg-fg/50) focus-visible:enabled:(bg-fg/50) aria-pressed:(bg-fg text-bg border-fg hover:enabled:(text-bg/50))':
+        variant === 'primary',
+    }"
+    :aria-keyshortcuts="ariaKeyshortcuts"
   >
-    <span
-      v-if="icon"
-      :class="[icon, size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4']"
-      class="shrink-0"
-      aria-hidden="true"
-    />
+    <span v-if="classicon" class="size-[1em]" :class="classicon" aria-hidden="true" />
     <slot />
+    <kbd
+      v-if="ariaKeyshortcuts"
+      data-kbd-hint
+      class="ms-2 inline-flex items-center justify-center w-4 h-4 text-xs text-fg bg-bg-muted border border-border rounded no-underline"
+      aria-hidden="true"
+    >
+      {{ ariaKeyshortcuts }}
+    </kbd>
   </button>
 </template>

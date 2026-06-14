@@ -17,21 +17,21 @@ onUnmounted(() => window.removeEventListener("scroll", onScroll));
 
 <template>
   <Transition
-    enter-active-class="transition duration-200 ease-out"
+    enter-active-class="transition-all duration-200"
     enter-from-class="opacity-0 translate-y-2"
     enter-to-class="opacity-100 translate-y-0"
-    leave-active-class="transition duration-150 ease-in"
+    leave-active-class="transition-all duration-200"
     leave-from-class="opacity-100 translate-y-0"
     leave-to-class="opacity-0 translate-y-2"
   >
     <button
       v-show="visible"
       type="button"
-      class="fixed bottom-6 right-6 z-40 w-10 h-10 flex items-center justify-center rounded-full border border-border bg-bg-elevated text-fg-muted hover:text-fg hover:border-border-hover transition-all duration-200 shadow-lg"
+      class="fixed bottom-4 inset-ie-4 z-50 w-12 h-12 flex items-center justify-center rounded-full border border-border bg-bg-elevated text-fg-muted hover:text-fg transition-colors active:scale-95 shadow-lg"
       aria-label="scroll to top"
       @click="scrollTop"
     >
-      <span class="i-lucide:arrow-up w-4 h-4" aria-hidden="true" />
+      <span class="i-lucide:arrow-up w-5 h-5" aria-hidden="true" />
     </button>
   </Transition>
 </template>

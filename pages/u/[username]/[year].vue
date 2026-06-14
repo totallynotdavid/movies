@@ -10,7 +10,7 @@ const ratingSystem = "score100" as const;
 </script>
 
 <template>
-  <div class="flex flex-col gap-12">
+  <main class="container flex flex-col gap-12 py-8 sm:py-12">
     <ProfileHeader
       :display-name="props.profile.displayName"
       :username="props.profile.username"
@@ -37,5 +37,5 @@ const ratingSystem = "score100" as const;
       :rating-system="ratingSystem"
       :user-name="props.profile.displayName"
     />
-  </div>
+  </main>
 </template>

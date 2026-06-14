@@ -38,7 +38,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-[60vh]">
+  <main class="container flex items-center justify-center min-h-[60vh] py-8 sm:py-12">
     <div class="w-full max-w-sm flex flex-col gap-6">
       <div class="flex p-1 rounded-xl bg-bg-subtle border border-border gap-1">
         <button
@@ -113,5 +113,5 @@ async function submit() {
         </button>
       </form>
     </div>
-  </div>
+  </main>
 </template>

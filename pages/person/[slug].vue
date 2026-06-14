@@ -71,7 +71,7 @@ async function toggleFavorite() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-10">
+  <main class="container flex flex-col gap-10 py-8 sm:py-12">
     <section class="flex flex-col sm:flex-row gap-6 motion-safe:animate-slide-up animate-fill-both">
       <div class="shrink-0 w-32 sm:w-40">
         <div class="poster-wrap rounded-xl overflow-hidden bg-bg-elevated">
@@ -148,5 +148,5 @@ async function toggleFavorite() {
         <FilmographyCard v-for="f in group.items" :key="f.key" v-bind="f" />
       </div>
     </section>
-  </div>
+  </main>
 </template>

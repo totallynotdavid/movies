@@ -22,9 +22,16 @@ export default defineConfig({
   ],
   transformers: [transformerDirectives(), transformerVariantGroup()],
   theme: {
+    spacing: { DEFAULT: "4px" },
     font: {
-      mono: "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-      sans: "'IBM Plex Sans', 'Inter', 'Segoe UI', system-ui, sans-serif",
+      mono: "'IBM Plex Sans Arabic', monospace",
+      sans: "'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif",
+    },
+    text: {
+      "2xs": { fontSize: "0.6875rem" }, // 11px
+      "3xs": { fontSize: "0.625rem" }, // 10px
+      "4xs": { fontSize: "0.5625rem" }, // 9px
+      "5xs": { fontSize: "0.5rem" }, // 8px
     },
     colors: {
       bg: {
@@ -45,6 +52,23 @@ export default defineConfig({
       },
       accent: {
         DEFAULT: "var(--accent)",
+        fallback: "var(--accent-muted)",
+      },
+      syntax: {
+        fn: "var(--syntax-fn)",
+        str: "var(--syntax-str)",
+        kw: "var(--syntax-kw)",
+        comment: "var(--syntax-comment)",
+      },
+      badge: {
+        orange: "var(--badge-orange)",
+        yellow: "var(--badge-yellow)",
+        green: "var(--badge-green)",
+        cyan: "var(--badge-cyan)",
+        blue: "var(--badge-blue)",
+        indigo: "var(--badge-indigo)",
+        purple: "var(--badge-purple)",
+        pink: "var(--badge-pink)",
       },
       status: {
         planned: "var(--status-planned)",
@@ -82,18 +106,37 @@ export default defineConfig({
   },
   shortcuts: [
     ["container", "max-w-6xl mx-auto px-4 sm:px-6"],
-    ["container-sm", "max-w-4xl mx-auto px-4 sm:px-6"],
+    ["container-sm", "max-w-5xl mx-auto px-4 sm:px-6"],
     ["flex-split", "flex items-center justify-between"],
-    ["focus-ring", "outline-none focus-visible:(ring-2 ring-fg/50 ring-offset-2 ring-offset-bg)"],
+    ["focus-ring", "outline-none focus-visible:(ring-2 ring-fg/50 ring-offset-2)"],
     ["link-subtle", "text-fg-muted hover:text-fg transition-colors duration-200 focus-ring"],
-    ["badge-planned", "bg-blue-500/10 text-blue-400 border-blue-500/20"],
-    ["badge-watching", "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"],
-    ["badge-completed", "bg-green-500/10 text-green-400 border-green-500/20"],
-    ["badge-paused", "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"],
-    ["badge-dropped", "bg-red-500/10 text-red-400 border-red-500/20"],
+    ["badge-orange", "bg-badge-orange/10 text-badge-orange"],
+    ["badge-yellow", "bg-badge-yellow/10 text-badge-yellow"],
+    ["badge-green", "bg-badge-green/10 text-badge-green"],
+    ["badge-cyan", "bg-badge-cyan/10 text-badge-cyan"],
+    ["badge-blue", "bg-badge-blue/10 text-badge-blue"],
+    ["badge-indigo", "bg-badge-indigo/10 text-badge-indigo"],
+    ["badge-purple", "bg-badge-purple/10 text-badge-purple"],
+    ["badge-pink", "bg-badge-pink/10 text-badge-pink"],
+    ["badge-subtle", "bg-bg-subtle text-fg-subtle"],
+    ["badge-accent", "bg-accent/10 text-accent"],
+    ["badge-planned", "bg-status-planned/10 text-status-planned border-status-planned/20"],
+    ["badge-watching", "bg-status-watching/10 text-status-watching border-status-watching/20"],
+    ["badge-completed", "bg-status-completed/10 text-status-completed border-status-completed/20"],
+    ["badge-paused", "bg-status-paused/10 text-status-paused border-status-paused/20"],
+    ["badge-dropped", "bg-status-dropped/10 text-status-dropped border-status-dropped/20"],
   ],
   rules: [
     ["animate-fill-both", { "animation-fill-mode": "both" }],
     ["scale-98", { transform: "scale(0.98)" }],
+    [
+      "text-gradient",
+      {
+        background: "linear-gradient(to right, #fafafa, #a1a1a1)",
+        "-webkit-background-clip": "text",
+        "-webkit-text-fill-color": "transparent",
+        "background-clip": "text",
+      },
+    ],
   ],
 });

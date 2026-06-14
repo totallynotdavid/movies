@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { MediaLayout } from "@/composables/useLayoutPreference";
 
-// The active layout is the only filled segment.
 const layout = defineModel<MediaLayout>({ default: "grid" });
 
 const options = [
