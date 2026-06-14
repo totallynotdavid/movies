@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
 import Modal from "@/components/ui/Modal.vue";
 import MediaResultRow from "@/components/media/MediaResultRow.vue";
 import { auth } from "void/client";
@@ -21,7 +21,9 @@ const isOpen = ref(false);
 const query = ref("");
 const modalRef = ref<InstanceType<typeof Modal> | null>(null);
 const inputRef = ref<HTMLInputElement | null>(null);
+const listRef = ref<HTMLElement | null>(null);
 const previouslyFocused = ref<HTMLElement | null>(null);
+const activeIndex = ref(0);
 
 const search = useMediaSearch({ limit: 8 });
 
@@ -68,6 +70,65 @@ const filteredCommands = computed(() => {
 
 const hasResults = computed(() => search.local.value.length > 0 || search.remote.value.length > 0);
 
+// Flat list of everything the arrow keys can land on, in render order, so the
+// palette behaves like every other ⌘K (Spotlight, Linear, Raycast): a highlight
+// moves with Up/Down and Enter activates whatever is highlighted.
+type Nav =
+  | { kind: "command"; cmd: Command }
+  | { kind: "media"; slug: string | null }
+  | { kind: "seeall"; href: string };
+
+const navItems = computed<Nav[]>(() => {
+  if (showCommands.value) {
+    return filteredCommands.value.map((cmd) => ({ kind: "command", cmd }) as Nav);
+  }
+  const items: Nav[] = [];
+  for (const r of search.local.value) items.push({ kind: "media", slug: r.slug ?? null });
+  for (const r of search.remote.value) items.push({ kind: "media", slug: r.slug ?? null });
+  if (query.value.trim()) {
+    items.push({ kind: "seeall", href: `/search?q=${encodeURIComponent(query.value.trim())}` });
+  }
+  return items;
+});
+
+const localCount = computed(() => search.local.value.length);
+
+// Results shift under the cursor as the user types; keep the highlight valid.
+watch(navItems, () => {
+  activeIndex.value = 0;
+});
+
+function move(delta: number) {
+  const count = navItems.value.length;
+  if (count === 0) return;
+  activeIndex.value = (activeIndex.value + delta + count) % count;
+  nextTick(() => {
+    listRef.value?.querySelector<HTMLElement>("[data-active='true']")?.scrollIntoView({
+      block: "nearest",
+    });
+  });
+}
+
+function activate(item: Nav) {
+  if (item.kind === "command") {
+    if (item.cmd.href) {
+      close();
+      window.location.href = item.cmd.href;
+    } else {
+      void runCommand(item.cmd);
+    }
+    return;
+  }
+  if (item.kind === "media") {
+    if (!item.slug) return;
+    close();
+    window.location.href = `/media/${item.slug}`;
+    return;
+  }
+  close();
+  window.location.href = item.href;
+}
+
 // Debounce title search so each keystroke does not hit the network.
 let debounce: ReturnType<typeof setTimeout> | undefined;
 watch(query, (q) => {
@@ -86,6 +147,7 @@ function open(initial = "") {
     document.activeElement instanceof HTMLElement ? document.activeElement : null;
   query.value = initial;
   search.clear();
+  activeIndex.value = 0;
   isOpen.value = true;
   modalRef.value?.open();
   setTimeout(() => inputRef.value?.focus(), 50);
@@ -115,23 +177,10 @@ async function runCommand(cmd: Command) {
   if (cmd.action) await cmd.action();
 }
 
-// Enter navigates only. Logging stays behind explicit row actions.
+// Enter activates the highlighted row. Logging stays behind explicit row actions.
 function onEnter() {
-  if (showCommands.value) {
-    const cmd = filteredCommands.value[0];
-    if (cmd?.href) {
-      close();
-      window.location.href = cmd.href;
-    } else if (cmd) {
-      void runCommand(cmd);
-    }
-    return;
-  }
-  const first = search.local.value[0] ?? search.remote.value[0];
-  if (first?.slug) {
-    close();
-    window.location.href = `/media/${first.slug}`;
-  }
+  const item = navItems.value[activeIndex.value];
+  if (item) activate(item);
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -150,6 +199,16 @@ function handleKeydown(e: KeyboardEvent) {
   if (e.key === "Escape") {
     e.preventDefault();
     close();
+    return;
+  }
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    move(1);
+    return;
+  }
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    move(-1);
   }
 }
 
@@ -175,12 +234,19 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
           placeholder="search titles, or / for commands..."
           class="w-full bg-transparent text-fg placeholder:text-fg-subtle text-base outline-none font-mono lowercase"
           aria-label="command palette"
-          aria-live="polite"
+          role="combobox"
+          aria-expanded="true"
+          aria-controls="command-palette-list"
           @keydown.enter.prevent="onEnter"
         />
       </div>
 
-      <div class="max-h-96 overflow-y-auto py-2 px-2">
+      <div
+        id="command-palette-list"
+        ref="listRef"
+        class="max-h-96 overflow-y-auto py-2 px-2"
+        role="listbox"
+      >
         <template v-if="showCommands">
           <div
             v-if="filteredCommands.length === 0"
@@ -188,11 +254,16 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
           >
             no commands found
           </div>
-          <template v-for="cmd in filteredCommands" :key="cmd.id">
+          <template v-for="(cmd, index) in filteredCommands" :key="cmd.id">
             <a
               v-if="cmd.href"
               :href="cmd.href"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-fg no-underline transition-colors duration-100 hover:bg-bg-elevated focus:bg-bg-elevated outline-none cursor-pointer"
+              role="option"
+              :aria-selected="activeIndex === index"
+              :data-active="activeIndex === index ? 'true' : undefined"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-fg no-underline transition-colors duration-100 outline-none cursor-pointer"
+              :class="activeIndex === index ? 'bg-bg-elevated' : 'hover:bg-bg-elevated'"
+              @mouseenter="activeIndex = index"
               @click="close"
             >
               <span
@@ -206,7 +277,12 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
             <button
               v-else
               type="button"
-              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-fg transition-colors duration-100 hover:bg-bg-elevated focus:bg-bg-elevated outline-none cursor-pointer"
+              role="option"
+              :aria-selected="activeIndex === index"
+              :data-active="activeIndex === index ? 'true' : undefined"
+              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-fg transition-colors duration-100 outline-none cursor-pointer"
+              :class="activeIndex === index ? 'bg-bg-elevated' : 'hover:bg-bg-elevated'"
+              @mouseenter="activeIndex = index"
               @click="runCommand(cmd)"
             >
               <span
@@ -235,7 +311,7 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
           </div>
           <div v-else class="flex flex-col gap-0.5">
             <MediaResultRow
-              v-for="item in search.local.value"
+              v-for="(item, index) in search.local.value"
               :key="`local:${item.id}`"
               :title="item.title"
               :media-type="item.mediaType"
@@ -243,9 +319,11 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
               :release-date="item.releaseDate"
               :slug="item.slug"
               :media="item.id"
+              :active="activeIndex === index"
+              @mouseenter="activeIndex = index"
             />
             <MediaResultRow
-              v-for="item in search.remote.value"
+              v-for="(item, index) in search.remote.value"
               :key="`remote:${item.mediaType}:${item.tmdbId}`"
               :title="item.title"
               :media-type="item.mediaType"
@@ -254,6 +332,8 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
               :slug="item.slug"
               :media="item"
               :tracked="Boolean(item.cachedMediaId)"
+              :active="activeIndex === localCount + index"
+              @mouseenter="activeIndex = localCount + index"
             />
           </div>
 
@@ -261,7 +341,14 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
           <a
             v-if="query.trim()"
             :href="`/search?q=${encodeURIComponent(query.trim())}`"
-            class="mt-1 flex items-center gap-3 px-3 py-2.5 rounded-lg text-fg-muted no-underline transition-colors duration-100 hover:bg-bg-elevated hover:text-fg focus:bg-bg-elevated outline-none"
+            :data-active="activeIndex === navItems.length - 1 ? 'true' : undefined"
+            class="mt-1 flex items-center gap-3 px-3 py-2.5 rounded-lg no-underline transition-colors duration-100 outline-none"
+            :class="
+              activeIndex === navItems.length - 1
+                ? 'bg-bg-elevated text-fg'
+                : 'text-fg-muted hover:bg-bg-elevated hover:text-fg'
+            "
+            @mouseenter="activeIndex = navItems.length - 1"
             @click="close"
           >
             <span class="i-lucide:search w-4 h-4 shrink-0" aria-hidden="true" />
@@ -274,6 +361,7 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
       <div
         class="px-4 py-2.5 border-t border-border/60 flex items-center gap-3 text-xs text-fg-subtle"
       >
+        <span><kbd class="font-mono">↑↓</kbd> navigate</span>
         <span><kbd class="font-mono">↵</kbd> open</span>
         <span><kbd class="font-mono">/</kbd> commands</span>
         <span><kbd class="font-mono">esc</kbd> close</span>

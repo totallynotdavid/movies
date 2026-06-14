@@ -12,6 +12,7 @@ const props = defineProps<{
   slug?: string | null;
   media: MediaRef;
   tracked?: boolean;
+  active?: boolean;
 }>();
 
 const year = computed(() => (props.releaseDate ? new Date(props.releaseDate).getFullYear() : null));
@@ -25,7 +26,11 @@ const { state, doneLabel, action, act } = useResultAction({
 </script>
 
 <template>
-  <div class="flex items-center gap-2 rounded-lg pr-1.5 hover:bg-bg-elevated transition-colors">
+  <div
+    class="flex items-center gap-2 rounded-lg pr-1.5 transition-colors"
+    :class="active ? 'bg-bg-elevated' : 'hover:bg-bg-elevated'"
+    :data-active="active ? 'true' : undefined"
+  >
     <a :href="href" class="flex min-w-0 flex-1 items-center gap-3 px-2 py-1.5 no-underline">
       <div class="w-8 h-12 shrink-0 overflow-hidden rounded bg-bg-elevated">
         <img
