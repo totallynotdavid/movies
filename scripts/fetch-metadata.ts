@@ -32,8 +32,6 @@ async function fetchPaged(token: string, path: string, limit: number): Promise<u
   return out.slice(0, limit);
 }
 
-// mappers
-
 type Raw = Record<string, unknown>;
 
 function str(v: unknown): string | null {
@@ -116,8 +114,6 @@ function dedup(items: MediaFixture[]): MediaFixture[] {
   });
 }
 
-// main
-
 async function main() {
   const token = process.env["TMDB_READ_ACCESS_TOKEN"];
   if (!token) {
@@ -130,7 +126,7 @@ async function main() {
   const mediaPath = join(root, "db/fixtures/media.json");
   const metaPath = join(root, "db/fixtures/meta.json");
 
-  // In trending mode, preserve existing items not covered by the trending fetch
+  // Trending refresh keeps manually retained fixtures that are outside the fetched set.
   let existing: MediaFixture[] = [];
   if (mode === "trending" && existsSync(mediaPath)) {
     existing = JSON.parse(readFileSync(mediaPath, "utf8")) as MediaFixture[];
@@ -158,7 +154,7 @@ async function main() {
   const trendShows = await fetchPaged(token, "/trending/tv/week", CONFIG.trending.shows);
   fetched.push(...(await Promise.all((trendShows as Raw[]).map((raw) => mapShow(token, raw)))));
 
-  // Merge: fetched items take precedence; in trending mode, non-fetched existing items are kept
+  // Fetched rows win when TMDB returns an item that already exists locally.
   const fetchedIds = new Set(fetched.map((i) => i.id));
   const preserved = mode === "trending" ? existing.filter((i) => !fetchedIds.has(i.id)) : [];
   const merged = dedup([...fetched, ...preserved]);

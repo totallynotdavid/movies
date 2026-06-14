@@ -14,17 +14,13 @@ import type {
 // Localized titles we keep; the source title's own language is added on top.
 const TITLE_LANGUAGES = ["es", "zh", "ja", "ko", "fr", "de"];
 
-// aggregate_credits are per-CHARACTER and dominated by single-episode guests
-// (Grey's lists 3000+, ~2600 one-off); voice-heavy shows further multiply rows
-// per person (Simpsons actors hold ~10 each). We keep the most-present cast
-// credit ROWS by episode count, main + recurring characters, all the credits
-// page and wrapped consume, which bounds the hydration batch by construction
-// (uncapped it hit ~700 statements). Capping by row, not by person, is what
-// keeps voice/sketch shows bounded too. One-off guests are recovered lazily via
-// the per-episode credit graph. Movies are not capped.
+// TMDB aggregate_credits are per-character, not per-person. Long-running and
+// voice-heavy shows can return thousands of cast rows.
+// Cap TV cast by credit row so hydration stays bounded while preserving the most
+// present characters. Movies are not capped.
 const TV_CAST_LIMIT = 100;
 
-// --- Projection schemas (only the fields we consume; extras are ignored). A
+// Projection schemas consume only the fields we use; extras are ignored. A
 // row missing a required field is dropped by looseArray, so blank-job crew and
 // nameless people never reach the domain.
 
@@ -267,9 +263,7 @@ export async function fetchShowDetail(tmdbId: number): Promise<MediaDetail> {
   });
   const show = parse(TvDetail, raw);
 
-  // Flatten per-character role rows, then cap by episode count (see
-  // TV_CAST_LIMIT). People stubs derive from the surviving rows, so dropped
-  // guests are not persisted.
+  // People stubs derive from capped cast rows, so dropped guests are not persisted.
   const topCast = show.aggregate_credits.cast
     .flatMap((person) => person.roles.map((role) => ({ person, role })))
     .sort((a, b) => (b.role.episode_count ?? 0) - (a.role.episode_count ?? 0))

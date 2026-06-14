@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import type { Props } from "./[slug].server";
 import { genderLabel } from "@/domain/catalog/people";
-import FilmographyCard from "@/components/FilmographyCard.vue";
+import FilmographyCard from "@/components/media/FilmographyCard.vue";
 import { tmdbImage } from "@/components/tmdb-image";
 
 const BIO_PREVIEW = 500;

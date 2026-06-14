@@ -5,8 +5,9 @@ import { mediaStatusLabel } from "@/domain/catalog/media";
 import { STATS_MIN_SCORES, STATS_MIN_TRACKED } from "@/domain/insights/title-stats";
 import { useTracking } from "@/composables/useTracking";
 import { useHydrationPoll } from "@/composables/useHydrationPoll";
-import PersonCredit from "@/components/PersonCredit.vue";
-import EpisodeList from "@/components/EpisodeList.vue";
+import CreditNameList from "@/components/media/CreditNameList.vue";
+import EpisodeList from "@/components/media/EpisodeList.vue";
+import MediaTabs from "@/components/media/MediaTabs.vue";
 import { tmdbImage } from "@/components/tmdb-image";
 import type { SeasonEpisodes } from "@/domain/catalog/episodes";
 import type { LibraryStatus, ShowViewDto } from "@/shared/tracking";
@@ -16,6 +17,18 @@ const props = defineProps<Props>();
 const favorited = ref(props.isFavorited);
 const addingFav = ref(false);
 const favError = ref("");
+
+// Bumping the key after a successful toggle restarts the favorite animation.
+// prefers-reduced-motion neutralizes the keyframes below.
+const favPulse = ref(0);
+const favAnimStyle = computed(() => {
+  if (favPulse.value === 0) return {};
+  return {
+    animation: favorited.value
+      ? "heart-spring 0.5s cubic-bezier(0.34,1.56,0.64,1)"
+      : "heart-settle 0.3s ease",
+  };
+});
 const seasons = ref<SeasonEpisodes[]>(props.seasons);
 const seasonCount = ref(props.media.seasonCount);
 const episodeTotal = ref(props.media.episodeCount);
@@ -83,7 +96,6 @@ const {
   scoreMax,
   progressText,
   canLogEpisode,
-  addToLibrary: addToLibraryEntry,
   setStatus,
   setScore,
   logWatch,
@@ -129,13 +141,7 @@ const airedText = computed(() => {
   if (props.media.mediaType === "show" && end && end !== start) return `${start} → ${end}`;
   return start;
 });
-const creditsHref = computed(() => `/media/${props.media.slug}/credits`);
 const showOtherTitles = ref(false);
-
-function episodeCaption(episodeCount: number | null): string | null {
-  if (props.media.mediaType !== "show" || !episodeCount) return null;
-  return `${episodeCount} episode${episodeCount > 1 ? "s" : ""}`;
-}
 
 const STATUS_ORDER: LibraryStatus[] = ["watching", "completed", "planned", "paused", "dropped"];
 const statusColor: Record<LibraryStatus, string> = {
@@ -190,6 +196,7 @@ async function toggleFavorite() {
       throw new Error(p.error ?? "failed");
     }
     favorited.value = !favorited.value;
+    favPulse.value++;
   } catch (err) {
     favError.value = err instanceof Error ? err.message : "failed";
   } finally {
@@ -197,18 +204,10 @@ async function toggleFavorite() {
   }
 }
 
-function addToLibrary() {
-  if (!props.user) {
-    window.location.href = "/login";
-    return;
-  }
-  return addToLibraryEntry();
-}
-
 async function onStatusChange(e: Event) {
   const target = e.target as HTMLSelectElement;
   const saved = await setStatus(target.value as LibraryStatus);
-  if (!saved && entry.value) target.value = entry.value.status;
+  if (!saved) target.value = entry.value?.status ?? "";
 }
 
 async function onScoreChange(e: Event) {
@@ -239,7 +238,7 @@ onMounted(() => {
 
     <div class="flex flex-col sm:flex-row gap-8 motion-safe:animate-slide-up animate-fill-both">
       <div class="shrink-0 w-40 sm:w-48">
-        <div class="poster-wrap">
+        <div class="poster-wrap relative">
           <img
             v-if="media.posterPath"
             :src="tmdbImage(media.posterPath, 'w500')"
@@ -252,15 +251,47 @@ onMounted(() => {
           >
             no poster
           </div>
+
+          <!-- The library marker is non-clickable so it cannot compete with favorite. -->
+          <div v-if="user" class="absolute top-2 left-2 flex items-center gap-1.5">
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-full border backdrop-blur-sm transition-colors focus-ring disabled:opacity-50"
+              :class="
+                favorited
+                  ? 'border-red-500/40 bg-red-500/20 text-red-400'
+                  : 'border-border bg-bg/70 text-fg-muted hover:bg-bg hover:text-fg'
+              "
+              :disabled="addingFav"
+              :aria-pressed="favorited"
+              :aria-label="favorited ? 'remove from favorites' : 'add to favorites'"
+              @click="toggleFavorite"
+            >
+              <span
+                :key="favPulse"
+                class="i-lucide:heart w-4 h-4"
+                :style="favAnimStyle"
+                aria-hidden="true"
+              />
+            </button>
+            <span
+              v-if="entry"
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-bg/70 text-fg-muted backdrop-blur-sm"
+              title="in your library"
+              aria-label="in your library"
+            >
+              <span class="i-lucide:library w-4 h-4" aria-hidden="true" />
+            </span>
+          </div>
         </div>
       </div>
 
       <div class="flex flex-col gap-5 flex-1 min-w-0">
-        <div>
-          <div class="flex items-start gap-3 flex-wrap mb-2">
-            <h1 class="text-3xl font-mono font-bold flex-1">{{ media.title }}</h1>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <h1 class="text-3xl font-mono font-bold">{{ media.title }}</h1>
             <span
-              class="shrink-0 text-xs font-mono px-2 py-0.5 rounded-full border border-border bg-bg-subtle text-fg-muted"
+              class="shrink-0 text-xs font-mono lowercase px-2 py-0.5 rounded-full border border-border bg-bg-subtle text-fg-muted"
             >
               {{ media.mediaType }}
             </span>
@@ -277,6 +308,16 @@ onMounted(() => {
             <span v-if="statusLabel" aria-hidden="true">·</span>
             <span v-if="statusLabel">{{ statusLabel }}</span>
           </div>
+
+          <div v-if="genres.length" class="flex flex-wrap gap-1.5 mt-1">
+            <span
+              v-for="g in genres"
+              :key="g.name"
+              class="px-2 py-0.5 rounded-full border border-border bg-bg-subtle text-xs text-fg-muted"
+            >
+              {{ g.name }}
+            </span>
+          </div>
         </div>
 
         <p v-if="media.tagline" class="text-fg-muted text-sm italic font-mono">
@@ -287,129 +328,75 @@ onMounted(() => {
           {{ media.overview }}
         </p>
 
-        <div
-          v-if="entry"
-          class="flex flex-col gap-3 p-4 rounded-xl border border-border bg-bg-subtle"
-        >
-          <div class="flex items-center gap-2 text-xs font-mono text-fg-subtle">
-            <span class="i-lucide:library w-3.5 h-3.5" aria-hidden="true" />
-            in your library
-          </div>
-
-          <div class="flex flex-wrap gap-3">
-            <div class="flex flex-col gap-1">
-              <label class="text-xs font-mono text-fg-subtle">status</label>
-              <select
-                :value="entry.status"
-                :disabled="saving"
-                class="rounded-lg border text-xs font-mono px-2.5 py-1.5 outline-none transition-colors disabled:opacity-60 cursor-pointer bg-bg-elevated text-fg"
-                :class="statusClass[entry.status]"
-                aria-label="status"
-                @change="onStatusChange"
-              >
-                <option value="planned">planned</option>
-                <option value="watching">watching</option>
-                <option value="completed">completed</option>
-                <option value="paused">paused</option>
-                <option value="dropped">dropped</option>
-              </select>
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <label class="text-xs font-mono text-fg-subtle">rating</label>
-              <div class="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  :min="0"
-                  :max="scoreMax"
-                  :value="displayScore ?? ''"
-                  :placeholder="`0`"
-                  :disabled="saving"
-                  class="w-16 bg-bg-elevated border border-border rounded-lg px-2 py-1.5 text-xs font-mono text-fg placeholder:text-fg-subtle outline-none focus:border-accent/50 transition-colors disabled:opacity-60"
-                  aria-label="rating"
-                  @change="onScoreChange"
-                />
-                <span class="text-xs font-mono text-fg-subtle">/ {{ scoreMax }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div
-            v-if="media.mediaType === 'movie'"
-            class="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-elevated px-3 py-2"
-          >
-            <div class="flex items-center gap-2 text-xs font-mono text-fg-subtle">
-              <span class="i-lucide:circle-play w-3.5 h-3.5" aria-hidden="true" />
-              watch activity
-            </div>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-mono text-fg transition-colors hover:bg-accent/15 disabled:opacity-60 focus-ring"
+        <!-- Setting status, rating, or watch progress registers the title in the library. -->
+        <div v-if="user" class="flex flex-wrap items-end gap-3">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-mono text-fg-subtle">status</span>
+            <select
+              :value="entry?.status ?? ''"
               :disabled="saving"
-              @click="logWatch"
+              class="rounded-lg border text-sm font-mono px-3 py-2 outline-none transition-colors disabled:opacity-60 cursor-pointer"
+              :class="
+                entry ? statusClass[entry.status] : 'border-border bg-bg-subtle text-fg-muted'
+              "
+              aria-label="library status"
+              @change="onStatusChange"
             >
-              <span class="i-lucide:check w-3.5 h-3.5" aria-hidden="true" />
-              {{ saving ? "..." : "log watch" }}
-            </button>
-          </div>
+              <option value="" disabled>not tracking</option>
+              <option value="planned">planned</option>
+              <option value="watching">watching</option>
+              <option value="completed">completed</option>
+              <option value="paused">paused</option>
+              <option value="dropped">dropped</option>
+            </select>
+          </label>
 
-          <div
-            v-else
-            class="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-elevated px-3 py-2"
-          >
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-xs font-mono text-fg-subtle">episode progress</span>
-              <span class="text-sm font-mono text-fg">{{ progressText }}</span>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-mono text-fg-subtle">rating</span>
+            <div class="flex items-center gap-1.5">
+              <input
+                type="number"
+                :min="0"
+                :max="scoreMax"
+                :value="displayScore ?? ''"
+                placeholder="0"
+                :disabled="saving"
+                class="w-16 bg-bg-subtle border border-border rounded-lg px-2.5 py-2 text-sm font-mono text-fg placeholder:text-fg-subtle outline-none focus:border-accent/50 transition-colors disabled:opacity-60"
+                aria-label="your rating"
+                @change="onScoreChange"
+              />
+              <span class="text-xs font-mono text-fg-subtle">/ {{ scoreMax }}</span>
             </div>
+          </label>
+
+          <div class="flex flex-col gap-1">
+            <span class="text-xs font-mono text-fg-subtle">
+              {{ media.mediaType === "movie" ? "watch" : (progressText ?? "episodes") }}
+            </span>
             <button
               type="button"
-              class="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-mono text-fg transition-colors hover:bg-accent/15 disabled:opacity-60 focus-ring"
-              :disabled="saving || !canLogEpisode"
-              @click="onQuickLogEpisode"
+              class="inline-flex items-center gap-2 rounded-lg bg-fg px-3.5 py-2 text-sm font-mono text-bg transition-colors hover:bg-fg/80 disabled:opacity-60 focus-ring"
+              :disabled="saving || (media.mediaType === 'show' && !canLogEpisode)"
+              @click="media.mediaType === 'movie' ? logWatch() : onQuickLogEpisode()"
             >
-              <span class="i-lucide:plus w-3.5 h-3.5" aria-hidden="true" />
-              {{ saving ? "..." : "+1 episode" }}
+              <span
+                :class="media.mediaType === 'movie' ? 'i-lucide:check' : 'i-lucide:plus'"
+                class="w-4 h-4"
+                aria-hidden="true"
+              />
+              {{ saving ? "..." : media.mediaType === "movie" ? "log watch" : "+1 episode" }}
             </button>
           </div>
-
-          <a
-            href="/library"
-            class="text-xs font-mono text-fg-subtle hover:text-accent transition-colors"
-          >
-            manage in library →
-          </a>
         </div>
 
-        <div v-else class="flex gap-3 flex-wrap">
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-accent/40 bg-accent/10 text-fg text-sm font-mono hover:bg-accent/15 transition-colors focus-ring"
-            @click="addToLibrary"
-          >
-            <span class="i-lucide:plus w-4 h-4" aria-hidden="true" />
-            add to library
-          </button>
-        </div>
-
-        <button
-          v-if="user"
-          type="button"
-          class="self-start inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-mono transition-colors focus-ring"
-          :class="
-            favorited
-              ? 'border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/15'
-              : 'border-border bg-bg-subtle text-fg-muted hover:border-border-hover hover:text-fg'
-          "
-          :disabled="addingFav"
-          @click="toggleFavorite"
+        <a
+          v-else
+          href="/login"
+          class="self-start inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-bg-subtle text-sm font-mono text-fg-muted hover:text-fg hover:border-border-hover transition-colors focus-ring"
         >
-          <span
-            class="w-4 h-4"
-            :class="favorited ? 'i-lucide:heart-off' : 'i-lucide:heart'"
-            aria-hidden="true"
-          />
-          {{ favorited ? "unfavorite" : "favorite" }}
-        </button>
+          <span class="i-lucide:log-in w-4 h-4" aria-hidden="true" />
+          sign in to track
+        </a>
 
         <p v-if="favError || trackingError" class="text-sm text-red-400 font-mono">
           {{ trackingError || favError }}
@@ -417,21 +404,11 @@ onMounted(() => {
       </div>
     </div>
 
+    <MediaTabs :slug="media.slug" active="overview" />
+
     <section class="flex flex-col gap-4">
       <h2 class="text-sm font-mono text-fg-muted">details</h2>
       <dl class="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-3 text-sm font-mono items-baseline">
-        <template v-if="genres.length">
-          <dt class="text-fg-subtle">genres</dt>
-          <dd class="flex flex-wrap gap-1.5">
-            <span
-              v-for="g in genres"
-              :key="g.name"
-              class="px-2 py-0.5 rounded-full border border-border bg-bg-subtle text-xs text-fg-muted"
-            >
-              {{ g.name }}
-            </span>
-          </dd>
-        </template>
         <template v-if="seasonsText">
           <dt class="text-fg-subtle">episodes</dt>
           <dd class="text-fg">{{ seasonsText }}</dd>
@@ -495,48 +472,39 @@ onMounted(() => {
     </section>
 
     <section v-if="cast.length" class="flex flex-col gap-4">
-      <div class="flex items-center justify-between gap-3">
-        <h2 class="text-sm font-mono text-fg-muted">cast</h2>
+      <div class="flex items-baseline justify-between gap-3">
+        <h2 class="text-sm font-mono text-fg-muted">
+          cast<span v-if="castTotal > cast.length" class="text-fg-subtle">
+            · top {{ cast.length }}</span
+          >
+        </h2>
         <a
           v-if="castTotal > cast.length"
-          :href="creditsHref"
+          :href="`/media/${media.slug}/cast`"
           class="text-xs font-mono text-fg-subtle hover:text-accent transition-colors"
         >
-          show all {{ castTotal }} →
+          all {{ castTotal }} →
         </a>
       </div>
-      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-5">
-        <PersonCredit
-          v-for="c in cast"
-          :key="c.id"
-          :name="c.name"
-          :profile-path="c.profilePath"
-          :subtitle="c.character"
-          :caption="episodeCaption(c.episodeCount)"
-          :href="`/person/${c.slug}`"
-        />
-      </div>
+      <CreditNameList
+        :items="cast.map((c) => ({ id: c.id, name: c.name, slug: c.slug, sub: c.character }))"
+      />
     </section>
 
     <section v-if="keyCrew.length" class="flex flex-col gap-4">
-      <div class="flex items-center justify-between gap-3">
+      <div class="flex items-baseline justify-between gap-3">
         <h2 class="text-sm font-mono text-fg-muted">crew</h2>
         <a
           v-if="crewTotal > keyCrew.length"
-          :href="creditsHref"
+          :href="`/media/${media.slug}/crew`"
           class="text-xs font-mono text-fg-subtle hover:text-accent transition-colors"
         >
-          show all {{ crewTotal }} →
+          all {{ crewTotal }} →
         </a>
       </div>
-      <div class="flex flex-wrap gap-x-8 gap-y-3 text-sm font-mono">
-        <div v-for="c in keyCrew" :key="c.id" class="flex flex-col">
-          <a :href="`/person/${c.slug}`" class="text-fg hover:text-accent transition-colors">
-            {{ c.name }}
-          </a>
-          <span class="text-fg-subtle text-xs">{{ c.job }}</span>
-        </div>
-      </div>
+      <CreditNameList
+        :items="keyCrew.map((c) => ({ id: c.id, name: c.name, slug: c.slug, sub: c.job }))"
+      />
     </section>
 
     <section v-if="showStats" class="flex flex-col gap-4">
@@ -572,3 +540,52 @@ onMounted(() => {
     </section>
   </div>
 </template>
+
+<style>
+/* Heart toggle micro-animation. Unscoped so the inline `animation` reference on
+   the favorite icon resolves to these global keyframe names. */
+@keyframes heart-spring {
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(0.8);
+  }
+  45% {
+    transform: scale(1.4);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes heart-settle {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.85);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes heart-spring {
+    from,
+    to {
+      transform: scale(1);
+    }
+  }
+  @keyframes heart-settle {
+    from,
+    to {
+      transform: scale(1);
+    }
+  }
+}
+</style>

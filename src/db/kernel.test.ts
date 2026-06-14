@@ -7,7 +7,7 @@ import { insertChunks, selectByIds } from "./kernel";
 
 describe("insertChunks", () => {
   it("splits rows so no chunk can exceed the 90-param cap", () => {
-    // 10 bound columns/row → floor(90/10) = 9 rows/statement.
+    // 10 bound columns per row means 9 rows per statement under the 90-param cap.
     const rows = Array.from({ length: 200 }, (_, i) => ({
       a: i,
       b: i,
@@ -28,7 +28,7 @@ describe("insertChunks", () => {
     });
 
     expect(statements).toHaveLength(parts.length);
-    expect(parts).toHaveLength(Math.ceil(200 / 9)); // 23 statements
+    expect(parts).toHaveLength(Math.ceil(200 / 9));
     const columns = 10;
     for (const part of parts) {
       expect(part.length).toBeLessThanOrEqual(9);
@@ -39,7 +39,7 @@ describe("insertChunks", () => {
   });
 
   it("shrinks the chunk as the bound-column count grows", () => {
-    // 30 columns/row → floor(90/30) = 3 rows/statement.
+    // Wider rows reduce the allowed rows per statement.
     const wide = (i: number) =>
       Object.fromEntries(Array.from({ length: 30 }, (_, c) => [`col${c}`, i]));
     const rows = Array.from({ length: 10 }, (_, i) => wide(i));
@@ -74,9 +74,9 @@ describe("selectByIds", () => {
       return batch.map((id) => ({ id }));
     });
 
-    expect(batches).toHaveLength(Math.ceil(250 / 90)); // 3 batches
+    expect(batches).toHaveLength(Math.ceil(250 / 90));
     for (const batch of batches) expect(batch.length).toBeLessThanOrEqual(90);
-    expect(result.map((r) => r.id)).toEqual(ids); // order preserved across chunks
+    expect(result.map((r) => r.id)).toEqual(ids);
   });
 
   it("never calls run for an empty id list", async () => {

@@ -43,8 +43,8 @@ export type HydrationOutcome =
   | { ok: true; skipped: boolean }
   | { ok: false; error: HydrationError };
 
-// Tier-1 hydration. One TMDB detail call, one atomic batch write [scalars,
-// credits, metadata, freshness marker]. Returns outcomes instead of throwing.
+// Tier-1 hydration writes details and freshness together.
+// Failures return outcomes so loaders can render existing data.
 async function hydrateMediaDetails(item: MediaRecord): Promise<HydrationOutcome> {
   if (!tmdbToken()) return { ok: true, skipped: true };
   if (hydrationState(item.detailsHydratedAt, item.detailsError, DETAILS_TTL_MS) === "fresh") {
@@ -89,8 +89,7 @@ async function hydrateMediaDetails(item: MediaRecord): Promise<HydrationOutcome>
   return { ok: true, skipped: false };
 }
 
-// Tier-2 hydration for season episode data [runtime, air date]. Runs in queue
-// consumers.
+// Tier-2 hydration fills season episode data from queue consumers.
 async function hydrateMediaEpisodes(msg: EpisodeHydrationMessage): Promise<HydrationOutcome> {
   if (!tmdbToken()) return { ok: true, skipped: true };
 
@@ -137,8 +136,8 @@ export async function ensureMediaDetails(item: MediaRecord): Promise<MediaRecord
   return refreshed.ok ? refreshed.value : item;
 }
 
-// Reconcile backlog drain for not-fresh media. Bounded per run. Queue retry
-// absorbs pacing and failures. Uses popularity priority.
+// Reconcile enqueues not-fresh media outside the request path.
+// The query owns batch size and priority.
 const RECONCILE_BATCH = 50;
 
 export async function reconcileMediaDetails(): Promise<number> {
