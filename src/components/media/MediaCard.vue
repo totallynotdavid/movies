@@ -19,7 +19,7 @@ const href = computed(() => (props.slug ? `/media/${props.slug}` : undefined));
 </script>
 
 <template>
-  <BaseCard>
+  <BaseCard class="p-0! overflow-hidden">
     <div class="poster-wrap rounded-b-none relative overflow-hidden rounded-t-lg">
       <a :href="href" class="block h-full w-full">
         <img

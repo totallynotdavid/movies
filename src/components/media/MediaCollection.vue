@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { MediaLayout } from "@/composables/useLayoutPreference";
 
-// Keeps grid and list containers width-stable across home and search.
 defineProps<{ layout: MediaLayout }>();
 </script>
 

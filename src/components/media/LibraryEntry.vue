@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import MediaCard from "./MediaCard.vue";
 import type { MediaLayout } from "@/composables/useLayoutPreference";
-import type { LibraryStatus } from "@/shared/tracking";
+import { LIBRARY_STATUSES, statusBg, type LibraryStatus } from "@/shared/library-status";
 import type { RatingSystem } from "@/domain/rating";
 import { tmdbImage } from "@/components/tmdb-image";
 import { useTracking, type TrackedEntry } from "@/composables/useTracking";
 
-// Grid and list branches share tracking writes and emit the same optimistic update.
 const props = defineProps<{
   layout: MediaLayout;
   id: string;
@@ -29,23 +28,23 @@ const emit = defineEmits<{
   update: [entry: TrackedEntry];
 }>();
 
-const { entry, saving, displayScore, scoreMax, canLogEpisode, setStatus, setScore, logWatch } =
-  useTracking({
-    mediaId: props.mediaId,
-    mediaType: props.mediaType,
-    episodeTotal: props.episodeTotal,
-    ratingSystem: props.ratingSystem,
-    initialEntry: {
-      id: props.id,
-      status: props.status,
-      score100: props.score100 ?? null,
-      watchedEpisodeCount: props.watchedEpisodeCount,
-      updatedAt: Date.now(),
-    },
-    onUpdate: (next) => emit("update", { ...next, id: props.id }),
-  });
+const { entry, saving, displayScore, canLogEpisode, setStatus, logWatch } = useTracking({
+  mediaId: props.mediaId,
+  mediaType: props.mediaType,
+  episodeTotal: props.episodeTotal,
+  ratingSystem: props.ratingSystem,
+  initialEntry: {
+    id: props.id,
+    status: props.status,
+    score100: props.score100 ?? null,
+    watchedEpisodeCount: props.watchedEpisodeCount,
+    updatedAt: Date.now(),
+  },
+  onUpdate: (next) => emit("update", { ...next, id: props.id }),
+});
 
 const status = computed(() => entry.value?.status ?? props.status);
+const statusDot = computed(() => statusBg(status.value));
 const year = computed(() => (props.releaseDate ? new Date(props.releaseDate).getFullYear() : null));
 const href = computed(() => (props.slug ? `/media/${props.slug}` : undefined));
 const progress = computed(() => {
@@ -54,20 +53,10 @@ const progress = computed(() => {
   return props.episodeTotal !== null ? `${c}/${props.episodeTotal}` : `${c} ep`;
 });
 
-// The select and score input are occasional edits, not the common path, so in the
-// grid they stay collapsed behind the status badge until the user asks to change.
-const editing = ref(false);
-
 async function onStatusChange(e: Event) {
   const target = e.target as HTMLSelectElement;
   const saved = await setStatus(target.value as LibraryStatus);
   if (!saved) target.value = status.value;
-}
-
-async function onScoreInput(e: Event) {
-  const target = e.target as HTMLInputElement;
-  const saved = await setScore(Number(target.value));
-  if (!saved) target.value = displayScore.value === null ? "" : String(displayScore.value);
 }
 </script>
 
@@ -82,21 +71,18 @@ async function onScoreInput(e: Event) {
     :slug="slug"
   >
     <template #overlay>
-      <button
-        type="button"
-        class="text-[0.6rem] font-mono lowercase px-1.5 py-0.5 rounded-md border border-border/50 bg-bg/75 backdrop-blur-sm text-fg-muted transition-colors hover:text-fg focus-ring"
-        :aria-expanded="editing"
-        aria-label="edit status and rating"
-        @click="editing = !editing"
+      <span
+        class="flex items-center gap-1.5 text-[0.6rem] font-mono lowercase px-1.5 py-0.5 rounded-md bg-bg/75 backdrop-blur-sm text-fg-muted"
       >
+        <span class="w-1.5 h-1.5 rounded-full" :class="statusDot" aria-hidden="true" />
         {{ status }}
-      </button>
+      </span>
     </template>
 
     <template #poster-action>
       <button
         type="button"
-        class="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-bg/80 text-fg-muted backdrop-blur-sm transition-colors hover:border-fg hover:bg-fg hover:text-bg disabled:opacity-40 focus-ring"
+        class="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-bg/80 text-fg-muted backdrop-blur-sm opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100 hover:border-fg hover:bg-fg hover:text-bg disabled:opacity-40 focus-ring"
         :disabled="saving || (mediaType === 'show' && !canLogEpisode)"
         :aria-label="mediaType === 'show' ? 'log next episode' : 'mark watched'"
         @click="logWatch"
@@ -111,42 +97,9 @@ async function onScoreInput(e: Event) {
 
     <template #meta>
       <div class="flex items-center gap-2 text-xs font-mono text-fg-subtle">
-        <span v-if="year">{{ year }}</span>
-        <span v-if="progress">· {{ progress }}</span>
+        <span v-if="progress">{{ progress }}</span>
+        <span v-else-if="year">{{ year }}</span>
         <span v-if="displayScore !== null" class="ml-auto text-fg-muted">★ {{ displayScore }}</span>
-      </div>
-    </template>
-
-    <template #action>
-      <div v-if="editing" class="flex flex-col gap-1.5">
-        <select
-          :value="status"
-          :disabled="saving"
-          class="w-full rounded-lg border border-border text-xs font-mono px-2 py-1.5 outline-none transition-colors disabled:opacity-60 cursor-pointer bg-bg-elevated text-fg-muted"
-          aria-label="status"
-          @change="onStatusChange"
-        >
-          <option value="planned">planned</option>
-          <option value="watching">watching</option>
-          <option value="completed">completed</option>
-          <option value="paused">paused</option>
-          <option value="dropped">dropped</option>
-        </select>
-
-        <div class="flex items-center gap-1.5">
-          <input
-            type="number"
-            :min="0"
-            :max="scoreMax"
-            :value="displayScore ?? ''"
-            :placeholder="`/ ${scoreMax}`"
-            :disabled="saving"
-            class="flex-1 min-w-0 bg-bg-elevated border border-border rounded-lg px-2 py-1 text-xs font-mono text-fg placeholder:text-fg-subtle outline-none focus:border-accent/50 transition-colors disabled:opacity-60"
-            aria-label="rating"
-            @change="onScoreInput"
-          />
-          <span class="text-xs font-mono text-fg-subtle shrink-0">/ {{ scoreMax }}</span>
-        </div>
       </div>
     </template>
   </MediaCard>
@@ -186,11 +139,7 @@ async function onScoreInput(e: Event) {
       aria-label="status"
       @change="onStatusChange"
     >
-      <option value="planned">planned</option>
-      <option value="watching">watching</option>
-      <option value="completed">completed</option>
-      <option value="paused">paused</option>
-      <option value="dropped">dropped</option>
+      <option v-for="s in LIBRARY_STATUSES" :key="s" :value="s">{{ s }}</option>
     </select>
 
     <button

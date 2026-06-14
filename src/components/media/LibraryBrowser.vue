@@ -4,11 +4,11 @@ import MediaCollection from "./MediaCollection.vue";
 import LibraryEntry from "./LibraryEntry.vue";
 import LayoutToggle from "@/components/ui/LayoutToggle.vue";
 import { useLayoutPreference } from "@/composables/useLayoutPreference";
+import { LIBRARY_STATUSES, LIBRARY_STATUS_LABELS } from "@/shared/library-status";
 import type { LibraryEntryWithProgress } from "@/domain/tracking/library-entries";
 import type { RatingSystem } from "@/domain/rating";
 import type { TrackedEntry } from "@/composables/useTracking";
 
-// Owns a local copy of library entries so card edits reflect without a refetch.
 const props = defineProps<{
   entries: LibraryEntryWithProgress[];
   ratingSystem: RatingSystem;
@@ -38,11 +38,7 @@ const typeOptions: { value: "all" | "movie" | "show"; label: string }[] = [
 
 const statusOptions = [
   { value: "all", label: "all" },
-  { value: "watching", label: "watching" },
-  { value: "completed", label: "completed" },
-  { value: "planned", label: "planned" },
-  { value: "paused", label: "paused" },
-  { value: "dropped", label: "dropped" },
+  ...LIBRARY_STATUSES.map((status) => ({ value: status, label: LIBRARY_STATUS_LABELS[status] })),
 ];
 
 const statusOrder: Record<string, number> = {
@@ -85,19 +81,24 @@ function onEntryUpdate(update: TrackedEntry) {
 
 <template>
   <section class="flex flex-col gap-5">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <h2 class="text-sm font-mono text-fg-muted">
-        library
-        <span class="text-fg-subtle ml-1">({{ filteredEntries.length }})</span>
-      </h2>
+    <div class="flex flex-col gap-3">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-sm font-mono text-fg-muted">
+          library
+          <span class="text-fg-subtle ml-1">({{ filteredEntries.length }})</span>
+        </h2>
+        <LayoutToggle v-model="layout" />
+      </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="flex gap-1">
+      <div
+        class="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden"
+      >
+        <div class="flex gap-1 shrink-0">
           <button
             v-for="opt in typeOptions"
             :key="opt.value"
             type="button"
-            class="px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors focus-ring"
+            class="px-3 py-1.5 rounded-lg border text-xs font-mono whitespace-nowrap transition-colors focus-ring"
             :class="
               filterType === opt.value
                 ? 'border-accent/40 bg-accent/10 text-accent'
@@ -109,12 +110,14 @@ function onEntryUpdate(update: TrackedEntry) {
           </button>
         </div>
 
-        <div class="flex gap-1 flex-wrap">
+        <span class="w-px h-5 bg-border shrink-0" aria-hidden="true" />
+
+        <div class="flex gap-1 shrink-0">
           <button
             v-for="opt in statusOptions"
             :key="opt.value"
             type="button"
-            class="px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors focus-ring"
+            class="px-3 py-1.5 rounded-lg border text-xs font-mono whitespace-nowrap transition-colors focus-ring"
             :class="
               filterStatus === opt.value
                 ? 'border-accent/40 bg-accent/10 text-accent'
@@ -126,8 +129,10 @@ function onEntryUpdate(update: TrackedEntry) {
           </button>
         </div>
 
+        <span class="w-px h-5 bg-border shrink-0 hidden sm:block" aria-hidden="true" />
+
         <div
-          class="flex rounded-lg border border-border overflow-hidden"
+          class="flex shrink-0 rounded-lg border border-border overflow-hidden"
           role="group"
           aria-label="sort by"
         >
@@ -135,7 +140,7 @@ function onEntryUpdate(update: TrackedEntry) {
             v-for="opt in sortOptions"
             :key="opt.value"
             type="button"
-            class="px-2.5 py-1 text-xs font-mono transition-colors focus-ring"
+            class="px-3 py-1.5 text-xs font-mono whitespace-nowrap transition-colors focus-ring"
             :class="
               sortKey === opt.value
                 ? 'bg-bg-elevated text-fg'
@@ -146,8 +151,6 @@ function onEntryUpdate(update: TrackedEntry) {
             {{ opt.label }}
           </button>
         </div>
-
-        <LayoutToggle v-model="layout" />
       </div>
     </div>
 
