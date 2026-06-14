@@ -1,21 +1,69 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useShared } from "@void/vue";
 import type { Props } from "./index.server";
-import MediaCard from "@/components/MediaCard.vue";
+import MediaCard from "@/components/media/MediaCard.vue";
+import MediaCollection from "@/components/media/MediaCollection.vue";
+import ContinueCard from "@/components/media/ContinueCard.vue";
+import LibraryBrowser from "@/components/media/LibraryBrowser.vue";
 
 const props = defineProps<Props>();
-const shared = useShared();
-const isGuest = !shared.user;
 
-const movies = computed(() => props.entries.filter((e) => e.mediaType === "movie"));
-const shows = computed(() => props.entries.filter((e) => e.mediaType === "show"));
+// Continue watching is the in-progress slice shown first on a member's home.
+const CONTINUE_LIMIT = 12;
+const continueWatching = computed(() =>
+  props.entries.filter((e) => e.status === "watching").slice(0, CONTINUE_LIMIT),
+);
+
+const movies = computed(() => props.catalog.filter((e) => e.mediaType === "movie"));
+const shows = computed(() => props.catalog.filter((e) => e.mediaType === "show"));
 </script>
 
 <template>
-  <div class="flex flex-col gap-16">
+  <div v-if="props.user" class="flex flex-col gap-12">
     <section
-      v-if="isGuest"
+      v-if="continueWatching.length"
+      class="flex flex-col gap-5 motion-safe:animate-slide-up animate-fill-both"
+    >
+      <h2 class="text-base font-mono text-fg">continue watching</h2>
+      <MediaCollection layout="grid">
+        <ContinueCard
+          v-for="item in continueWatching"
+          :key="item.id"
+          :media-id="item.media.id"
+          :title="item.media.title"
+          :slug="item.media.slug"
+          :media-type="item.media.mediaType"
+          :poster-path="item.media.posterPath"
+          :release-date="item.media.releaseDate"
+          :vote-average="item.media.voteAverage"
+          :watched-episode-count="item.watchedEpisodeCount"
+          :aired-episode-count="item.airedEpisodeCount"
+        />
+      </MediaCollection>
+    </section>
+
+    <section
+      v-if="props.entries.length === 0"
+      class="flex flex-col items-center gap-3 py-12 text-center motion-safe:animate-slide-up animate-fill-both"
+    >
+      <span class="i-lucide:clapperboard w-12 h-12 text-fg-subtle" aria-hidden="true" />
+      <p class="font-mono text-fg-muted">nothing tracked yet</p>
+      <p class="text-sm text-fg-subtle">
+        press <kbd class="font-mono">⌘K</kbd> to search a title and log your first watch
+      </p>
+    </section>
+
+    <LibraryBrowser
+      v-else
+      class="motion-safe:animate-slide-up animate-fill-both"
+      style="animation-delay: 0.05s"
+      :entries="props.entries"
+      :rating-system="props.ratingSystem"
+    />
+  </div>
+
+  <div v-else class="flex flex-col gap-16">
+    <section
       class="flex flex-col gap-5 pt-4 sm:pt-8 motion-safe:animate-slide-up animate-fill-both"
     >
       <div class="flex items-center gap-3">
@@ -51,29 +99,27 @@ const shows = computed(() => props.entries.filter((e) => e.mediaType === "show")
     </section>
 
     <section
-      v-if="entries.length > 0"
+      v-if="catalog.length > 0"
       class="flex flex-col gap-6 motion-safe:animate-slide-up animate-fill-both"
-      :style="isGuest ? 'animation-delay: 0.1s' : ''"
+      style="animation-delay: 0.1s"
     >
       <div class="flex-split">
         <h2 class="text-base font-mono text-fg-muted">catalog</h2>
-        <span class="text-xs font-mono text-fg-subtle">{{ entries.length }} titles</span>
+        <span class="text-xs font-mono text-fg-subtle">{{ catalog.length }} titles</span>
       </div>
 
-      <div
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-      >
+      <MediaCollection layout="grid">
         <MediaCard
-          v-for="entry in entries"
-          :key="entry.id"
-          :title="entry.title"
-          :media-type="entry.mediaType"
-          :poster-path="entry.posterPath"
-          :release-date="entry.releaseDate"
-          :vote-average="entry.voteAverage"
-          :slug="entry.slug"
+          v-for="item in catalog"
+          :key="item.id"
+          :title="item.title"
+          :media-type="item.mediaType"
+          :poster-path="item.posterPath"
+          :release-date="item.releaseDate"
+          :vote-average="item.voteAverage"
+          :slug="item.slug"
         />
-      </div>
+      </MediaCollection>
     </section>
 
     <section v-else class="flex flex-col items-center gap-4 py-16 text-center">

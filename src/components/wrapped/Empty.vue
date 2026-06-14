@@ -21,18 +21,11 @@ defineProps<{ year: number }>();
 
     <div class="flex flex-wrap gap-3">
       <a
-        href="/library"
+        href="/"
         class="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-4 py-2 text-sm font-mono text-fg transition-colors hover:bg-accent/15"
       >
         <span class="i-lucide:library w-4 h-4" aria-hidden="true" />
-        go to library
-      </a>
-      <a
-        href="/profile"
-        class="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-subtle px-4 py-2 text-sm font-mono text-fg-muted transition-colors hover:border-border-hover hover:text-fg"
-      >
-        <span class="i-lucide:user w-4 h-4" aria-hidden="true" />
-        profile
+        go to your library
       </a>
     </div>
   </section>

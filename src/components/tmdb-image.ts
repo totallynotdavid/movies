@@ -3,7 +3,7 @@
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 
-export type TmdbImageSize = "w185" | "w342" | "w500" | "original";
+export type TmdbImageSize = "w92" | "w185" | "w342" | "w500" | "original";
 
 export function tmdbImage(path: string, size: TmdbImageSize): string {
   return `${TMDB_IMAGE_BASE}/${size}${path}`;

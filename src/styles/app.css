@@ -1,4 +1,3 @@
-/* Dark mode (default) */
 :root:not([data-theme="light"]),
 :root[data-theme="dark"] {
   --bg: oklch(0.158 0 0);
@@ -19,7 +18,6 @@
   --status-dropped: oklch(0.65 0.17 25);
 }
 
-/* Light mode */
 :root[data-theme="light"] {
   --bg: oklch(1 0 0);
   --bg-subtle: oklch(0.979 0.001 286.375);
@@ -89,18 +87,15 @@ p {
   margin: 0;
 }
 
-/* Reset dd margin */
 dd {
   margin: 0;
 }
 
-/* Selection */
 ::selection {
   background-color: var(--fg-muted);
   color: var(--bg-subtle);
 }
 
-/* Dialog / modal reset */
 dialog {
   border: none;
   background: transparent;
@@ -120,7 +115,6 @@ html:has(dialog:modal) {
   scrollbar-gutter: stable;
 }
 
-/* Modal open animation */
 dialog[open] {
   animation: scale-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -132,7 +126,6 @@ dialog[open] {
   }
 }
 
-/* Scrollbar */
 * {
   scrollbar-color: var(--border) var(--bg);
 }
@@ -155,14 +148,12 @@ dialog[open] {
   background: var(--border-hover);
 }
 
-/* Focus visible */
 :focus-visible,
 :-moz-focusring {
   outline: 2px solid var(--accent) !important;
   outline-offset: 2px !important;
 }
 
-/* Skip link */
 .skip-link {
   position: fixed;
   top: -120px;
@@ -175,7 +166,6 @@ dialog[open] {
   top: 0.75rem;
 }
 
-/* Poster image aspect ratio */
 .poster-wrap {
   aspect-ratio: 2/3;
   overflow: hidden;
@@ -214,7 +204,6 @@ html[data-kbd-hints="true"] kbd::before {
   opacity: 1;
 }
 
-/* Skeleton animation */
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -236,7 +225,6 @@ html[data-kbd-hints="true"] kbd::before {
   }
 }
 
-/* Transition helpers */
 .fade-in {
   animation: fade-in 0.3s ease-out both;
 }

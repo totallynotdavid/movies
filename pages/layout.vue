@@ -6,25 +6,27 @@ import { Link, useShared, useRouter } from "@void/vue";
 import { auth } from "void/client";
 import Avatar from "@/components/identity/Avatar.vue";
 import CommandPalette from "@/components/CommandPalette.vue";
-import ScrollToTop from "@/components/ScrollToTop.vue";
-import { useColorTheme } from "@/composables/useColorTheme";
+import ScrollToTop from "@/components/ui/ScrollToTop.vue";
+import IconBtn from "@/components/ui/IconBtn.vue";
 
-const { theme, toggle } = useColorTheme();
 const shared = useShared();
 const user = shared.user;
 const router = useRouter();
 
 const paletteRef = ref<InstanceType<typeof CommandPalette> | null>(null);
+const navSearchRef = ref<HTMLInputElement | null>(null);
+const navQuery = ref("");
 const mobileMenuOpen = ref(false);
 const userMenuOpen = ref(false);
 const shortcutsOpen = ref(false);
 
-// Primary destinations live in the top nav; account actions (profile, public
-// profile, settings, sign out) live in the user menu.
-const navLinks = [
-  { href: "/library", label: "library", auth: true },
-  { href: "/wrapped", label: "wrapped", auth: true },
-];
+// The nav search box routes to the browse page; live searching happens there.
+// ⌘K opens the palette for quick navigation and logging.
+function goSearch() {
+  const q = navQuery.value.trim();
+  void router.visit(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
+  navQuery.value = "";
+}
 
 async function signOut() {
   await auth.signOut();
@@ -50,14 +52,8 @@ function onKeydown(e: KeyboardEvent) {
 
   if (e.key === "/" && !isEditable(e.target) && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
-    const searchInput = document.querySelector<HTMLInputElement>(
-      'input[type="search"], input[name="q"]',
-    );
-    if (searchInput) {
-      searchInput.focus();
-    } else {
-      paletteRef.value?.open();
-    }
+    // "/" focuses the nav search box. ⌘K opens the palette.
+    navSearchRef.value?.focus();
     return;
   }
 }
@@ -96,49 +92,36 @@ onUnmounted(() => {
           track
         </Link>
 
-        <div class="hidden sm:flex items-center gap-1 text-sm text-fg-muted flex-1">
-          <template v-for="link in navLinks" :key="link.href">
-            <Link
-              v-if="!link.auth || user"
-              :href="link.href"
-              class="px-3 py-1.5 rounded-lg hover:bg-bg-elevated hover:text-fg transition-colors focus-ring"
-            >
-              {{ link.label }}
-            </Link>
-          </template>
-        </div>
+        <form
+          role="search"
+          class="relative hidden sm:flex items-center flex-1 max-w-xs ml-auto"
+          @submit.prevent="goSearch"
+        >
+          <span
+            class="i-lucide:search absolute left-3 w-4 h-4 text-fg-subtle pointer-events-none"
+            aria-hidden="true"
+          />
+          <input
+            ref="navSearchRef"
+            v-model="navQuery"
+            type="search"
+            placeholder="search titles..."
+            aria-label="search titles"
+            class="w-full rounded-md border border-border bg-bg-subtle pl-9 pr-8 py-1.5 text-sm font-mono text-fg placeholder:text-fg-subtle outline-none hover:border-border-hover focus:border-border-hover transition-colors"
+          />
+          <kbd
+            v-if="!navQuery"
+            class="absolute right-2.5 font-mono text-xs text-fg-subtle pointer-events-none"
+            data-kbd-hint
+            >/</kbd
+          >
+        </form>
 
         <div class="hidden sm:flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-bg-subtle text-fg-muted text-sm hover:border-border-hover hover:text-fg transition-colors focus-ring"
-            aria-label="open command palette"
-            @click="paletteRef?.open()"
-          >
-            <span class="i-lucide:search w-3.5 h-3.5" aria-hidden="true" />
-            <span class="font-mono text-xs">search</span>
-            <span class="hidden lg:flex items-center gap-0.5 text-xs text-fg-subtle" data-kbd-hint>
-              <kbd class="font-mono">⌘</kbd><kbd class="font-mono">K</kbd>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            class="flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-bg-subtle text-fg-muted hover:border-border-hover hover:text-fg transition-colors focus-ring"
-            :aria-label="`switch to ${theme === 'dark' ? 'light' : 'dark'} mode`"
-            @click="toggle"
-          >
-            <span
-              :class="theme === 'dark' ? 'i-lucide:sun' : 'i-lucide:moon'"
-              class="w-4 h-4"
-              aria-hidden="true"
-            />
-          </button>
-
           <Link
             v-if="!user"
             href="/login"
-            class="px-3 py-1.5 rounded-lg border border-border bg-bg-subtle text-fg-muted text-sm hover:border-accent/40 hover:text-fg transition-colors font-mono focus-ring"
+            class="px-3.5 py-2 rounded-md border border-border bg-transparent text-fg text-sm hover:bg-fg/10 transition-colors font-mono focus-ring"
           >
             sign in
           </Link>
@@ -146,83 +129,74 @@ onUnmounted(() => {
           <div v-else class="relative">
             <button
               type="button"
-              class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg border border-border bg-bg-subtle text-fg-muted text-sm hover:border-accent/40 hover:text-fg transition-colors font-mono focus-ring"
+              class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-md border border-border bg-transparent text-fg text-sm hover:bg-fg/10 transition-colors font-mono focus-ring"
               :aria-expanded="userMenuOpen"
               aria-haspopup="menu"
               @click="userMenuOpen = !userMenuOpen"
             >
               <Avatar :emoji="null" :color="null" :name="user.name" :size="24" />
               <span>{{ user.name }}</span>
-              <span class="i-lucide:chevron-down w-3.5 h-3.5" aria-hidden="true" />
+              <span
+                class="i-lucide:chevron-down w-3.5 h-3.5 text-fg-subtle transition-transform duration-200"
+                :class="{ 'rotate-180': userMenuOpen }"
+                aria-hidden="true"
+              />
             </button>
 
-            <template v-if="userMenuOpen">
-              <div class="fixed inset-0 z-40" @click="userMenuOpen = false" />
+            <div v-if="userMenuOpen" class="fixed inset-0 z-40" @click="userMenuOpen = false" />
+            <Transition
+              enter-active-class="transition duration-150 ease-out"
+              enter-from-class="opacity-0 translate-y-1"
+              leave-active-class="transition duration-100 ease-in"
+              leave-to-class="opacity-0 translate-y-1"
+            >
               <div
-                class="absolute right-0 mt-2 z-50 w-48 flex flex-col py-1 rounded-lg border border-border bg-bg-subtle shadow-xl"
+                v-if="userMenuOpen"
+                class="absolute right-0 mt-2 z-50 w-48 flex flex-col p-1 rounded-lg border border-border bg-bg-subtle shadow-xl"
                 role="menu"
               >
                 <Link
-                  href="/profile"
-                  class="px-3 py-2 text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                  v-if="user.username"
+                  :href="`/u/${user.username}`"
+                  class="px-3 py-2 rounded-md text-sm font-mono text-fg-muted hover:bg-fg/10 hover:text-fg transition-colors"
                   @click="userMenuOpen = false"
                 >
                   profile
                 </Link>
                 <Link
-                  v-if="user.username"
-                  :href="`/u/${user.username}`"
-                  class="px-3 py-2 text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
-                  @click="userMenuOpen = false"
-                >
-                  public profile
-                </Link>
-                <Link
                   href="/settings"
-                  class="px-3 py-2 text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                  class="px-3 py-2 rounded-md text-sm font-mono text-fg-muted hover:bg-fg/10 hover:text-fg transition-colors"
                   @click="userMenuOpen = false"
                 >
                   settings
                 </Link>
                 <button
                   type="button"
-                  class="px-3 py-2 text-left text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                  class="px-3 py-2 rounded-md text-left text-sm font-mono text-fg-muted hover:bg-fg/10 hover:text-fg transition-colors"
                   @click="signOut"
                 >
                   sign out
                 </button>
               </div>
-            </template>
+            </Transition>
           </div>
         </div>
 
         <div class="ml-auto sm:hidden flex items-center gap-2">
-          <button
-            type="button"
-            class="flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-bg-subtle text-fg-muted hover:border-border-hover hover:text-fg transition-colors"
-            :aria-label="`switch to ${theme === 'dark' ? 'light' : 'dark'} mode`"
-            @click="toggle"
+          <Link
+            href="/search"
+            class="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-fg-muted hover:bg-fg/10 hover:text-fg transition-colors focus-ring"
+            aria-label="search"
           >
-            <span
-              :class="theme === 'dark' ? 'i-lucide:sun' : 'i-lucide:moon'"
-              class="w-4 h-4"
-              aria-hidden="true"
-            />
-          </button>
+            <span class="i-lucide:search w-4 h-4" aria-hidden="true" />
+          </Link>
 
-          <button
-            type="button"
-            class="flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-bg-subtle text-fg-muted hover:border-border-hover hover:text-fg transition-colors"
+          <IconBtn
+            :icon="mobileMenuOpen ? 'i-lucide:x' : 'i-lucide:menu'"
             :aria-label="mobileMenuOpen ? 'close menu' : 'open menu'"
             :aria-expanded="mobileMenuOpen"
             @click="mobileMenuOpen = !mobileMenuOpen"
-          >
-            <span
-              :class="mobileMenuOpen ? 'i-lucide:x' : 'i-lucide:menu'"
-              class="w-4 h-4"
-              aria-hidden="true"
-            />
-          </button>
+          />
         </div>
       </nav>
 
@@ -241,41 +215,17 @@ onUnmounted(() => {
           <div class="container py-3 flex flex-col gap-1">
             <template v-if="user">
               <Link
-                href="/library"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
-                @click="mobileMenuOpen = false"
-              >
-                <span class="i-lucide:library w-4 h-4" aria-hidden="true" />
-                library
-              </Link>
-              <Link
-                href="/wrapped"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
-                @click="mobileMenuOpen = false"
-              >
-                <span class="i-lucide:sparkles w-4 h-4" aria-hidden="true" />
-                wrapped
-              </Link>
-              <Link
-                href="/profile"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                v-if="user.username"
+                :href="`/u/${user.username}`"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-mono text-fg-muted hover:bg-fg/10 hover:text-fg transition-colors"
                 @click="mobileMenuOpen = false"
               >
                 <span class="i-lucide:user w-4 h-4" aria-hidden="true" />
                 profile
               </Link>
               <Link
-                v-if="user.username"
-                :href="`/u/${user.username}`"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
-                @click="mobileMenuOpen = false"
-              >
-                <span class="i-lucide:globe w-4 h-4" aria-hidden="true" />
-                public profile
-              </Link>
-              <Link
                 href="/settings"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-mono text-fg-muted hover:bg-fg/10 hover:text-fg transition-colors"
                 @click="mobileMenuOpen = false"
               >
                 <span class="i-lucide:settings w-4 h-4" aria-hidden="true" />
@@ -283,7 +233,7 @@ onUnmounted(() => {
               </Link>
               <button
                 type="button"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-mono text-fg-muted hover:bg-fg/10 hover:text-fg transition-colors"
                 @click="signOut"
               >
                 <span class="i-lucide:log-out w-4 h-4" aria-hidden="true" />
@@ -293,7 +243,7 @@ onUnmounted(() => {
             <Link
               v-else
               href="/login"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-mono text-fg-muted hover:bg-fg/10 hover:text-fg transition-colors"
               @click="mobileMenuOpen = false"
             >
               <span class="i-lucide:log-in w-4 h-4" aria-hidden="true" />
@@ -341,7 +291,7 @@ onUnmounted(() => {
           <h2 class="font-mono text-sm text-fg">keyboard shortcuts</h2>
           <button
             type="button"
-            class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-elevated text-fg-subtle hover:text-fg transition-colors focus-ring"
+            class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-fg/10 text-fg-subtle hover:text-fg transition-colors focus-ring"
             aria-label="close"
             @click="shortcutsOpen = false"
           >
