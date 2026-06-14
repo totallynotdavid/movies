@@ -7,6 +7,7 @@ import MediaResultRow from "@/components/media/MediaResultRow.vue";
 import MediaCollection from "@/components/media/MediaCollection.vue";
 import LayoutToggle from "@/components/ui/LayoutToggle.vue";
 import { useLayoutPreference } from "@/composables/useLayoutPreference";
+import { useUrlState } from "@/composables/useUrlState";
 import type { MediaRef } from "@/shared/tracking";
 
 const props = defineProps<Props>();
@@ -23,10 +24,12 @@ if (props.query) search.hasSearched.value = true;
 const inputRef = ref<HTMLInputElement | null>(null);
 const queryInput = ref(props.query);
 const { layout } = useLayoutPreference();
-const typeFilter = ref<"all" | "movie" | "show">("all");
+// Filter and sort live in the URL so a refresh or a shared link restores the
+// exact view, not just the query. useUrlState seeds these from the URL on mount.
+const typeFilter = ref("all");
+const sortKey = ref("relevance");
+useUrlState({ q: queryInput, type: typeFilter, sort: sortKey }, { type: "all", sort: "relevance" });
 
-type SortKey = "relevance" | "year" | "rating" | "title";
-const sortKey = ref<SortKey>("relevance");
 const sortOptions = [
   { value: "relevance", label: "relevance" },
   { value: "year", label: "year" },
@@ -105,28 +108,17 @@ const items = computed<Item[]>(() => {
 const trimmed = computed(() => queryInput.value.trim());
 const hasResults = computed(() => items.value.length > 0);
 
-// Debounced re-search; mirror the active query into a shareable URL.
+// Debounced re-search; the URL mirroring is owned by useUrlState.
 let debounce: ReturnType<typeof setTimeout> | undefined;
 watch(queryInput, (q) => {
   search.query.value = q;
   clearTimeout(debounce);
-  const next = q.trim();
-  if (!next) {
+  if (!q.trim()) {
     search.clear();
-    syncUrl("");
     return;
   }
-  debounce = setTimeout(() => {
-    void search.run();
-    syncUrl(next);
-  }, 250);
+  debounce = setTimeout(() => void search.run(), 250);
 });
-
-function syncUrl(q: string) {
-  if (typeof window === "undefined") return;
-  const url = q ? `/search?q=${encodeURIComponent(q)}` : "/search";
-  window.history.replaceState(window.history.state, "", url);
-}
 
 onMounted(() => {
   if (!props.query) inputRef.value?.focus();
@@ -161,7 +153,7 @@ onMounted(() => {
 
     <template v-if="trimmed">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 class="text-sm font-mono text-fg-muted">
+        <h2 class="text-sm font-mono text-fg-muted" aria-live="polite">
           results
           <span class="text-fg-subtle ml-1">({{ items.length }})</span>
         </h2>
