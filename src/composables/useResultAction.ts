@@ -1,5 +1,3 @@
-// Inline result action policy: movies log a watch, shows add a plan.
-
 import { computed, ref } from "vue";
 import { addToPlan, logWatch } from "@/composables/useMediaActions";
 import type { MediaRef } from "@/shared/tracking";

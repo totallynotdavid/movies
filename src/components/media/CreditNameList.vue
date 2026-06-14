@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// Plain-text credit list for the overview. Faces live on the Cast and Crew tabs.
 defineProps<{
   items: { id: string; name: string; slug: string; sub?: string | null }[];
 }>();

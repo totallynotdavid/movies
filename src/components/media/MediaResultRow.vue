@@ -4,8 +4,6 @@ import { useResultAction } from "@/composables/useResultAction";
 import type { MediaRef } from "@/shared/tracking";
 import { tmdbImage } from "@/components/tmdb-image";
 
-// Search result row shared by the palette and search page list view.
-// The trailing action uses the same candidate-aware media reference as tracking.
 const props = defineProps<{
   title: string;
   mediaType: "movie" | "show";

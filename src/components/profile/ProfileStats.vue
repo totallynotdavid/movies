@@ -3,9 +3,6 @@ import { computed } from "vue";
 import type { ProfileFormatStats } from "@/domain/insights/profile";
 import { formatScore, type RatingSystem } from "@/domain/rating";
 
-// Per-format headline stats (tracked / watch days / average score), shared by the
-// public portrait and the private dashboard. Average score renders in the given
-// system; on a public profile that is the profile's fixed score100.
 const props = defineProps<{ formatStats: ProfileFormatStats; ratingSystem: RatingSystem }>();
 
 const panels = computed(() => [

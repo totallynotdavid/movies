@@ -18,8 +18,6 @@ import FavoritePeople from "./FavoritePeople.vue";
 import ProfileActivityHeatmap from "./ProfileActivityHeatmap.vue";
 import ProfileActivityFeed from "./ProfileActivityFeed.vue";
 
-// Shared profile surface for owners and visitors.
-// Owner-only data stays behind explicit owner branches below.
 const props = defineProps<{
   displayName: string;
   username: string | null;

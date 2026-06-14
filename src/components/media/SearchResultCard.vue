@@ -3,7 +3,6 @@ import MediaCard from "@/components/media/MediaCard.vue";
 import { useResultAction } from "@/composables/useResultAction";
 import type { MediaRef } from "@/shared/tracking";
 
-// Shares tracking behavior with the row view.
 const props = defineProps<{
   title: string;
   mediaType: "movie" | "show";

@@ -13,9 +13,6 @@ type Body = {
   watchedAt?: unknown;
 };
 
-// Fact surface: records a watch. A movie completes; a show logs the requested
-// episode, or quick-logs the next aired one when no episode is given. `media`
-// is a catalog id or a search candidate the system caches on demand.
 export const POST = defineHandler(async (c) => {
   const user = requireAuth(c);
   const body = await c.req.json<Body>();

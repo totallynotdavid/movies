@@ -125,8 +125,7 @@ export function parseMediaRef(value: unknown): Result<MediaRef, TrackingError> {
   });
 }
 
-// Resolve a reference to a catalog id, caching an uncached candidate on demand.
-// A bare id passes through; downstream commands assert it exists via findMedia.
+// Search candidates are cached on demand; bare ids are validated by commands.
 export async function resolveMediaId(ref: MediaRef): Promise<string> {
   if (typeof ref === "string") return ref;
   if (ref.cachedMediaId) return ref.cachedMediaId;

@@ -17,8 +17,6 @@ function toAvatarColor(value: string | null): AvatarColor | null {
   return isAvatarColor(value) ? value : null;
 }
 
-// Lean identity read for request middleware and shared client context.
-// Includes role for auth gating, plus username and visibility for public-profile nav.
 export type UserContext = {
   role: UserRole;
   username: string | null;
@@ -112,8 +110,6 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   };
 }
 
-// Identity fields needed by profile routes to gate visibility and resolve
-// owner-local recap years.
 export type ProfileIdentity = {
   id: string;
   username: string;

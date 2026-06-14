@@ -1,6 +1,3 @@
-// Shared identity vocabulary for domain reads, settings UI, and public profile.
-// Includes visibility, avatar palette, and UI-side username validation rules.
-
 export type Visibility = "public" | "private";
 
 export type AvatarColor = "sky" | "coral" | "amber" | "emerald" | "violet" | "magenta" | "neutral";

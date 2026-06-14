@@ -1,6 +1,4 @@
-// One owner of the show page's per-load read, called by both the SSR loader and
-// the poll route so they never drift. Anonymous viewers cost only the public
-// episode read; per-user watch reads are skipped entirely.
+// Anonymous viewers receive public episode data without per-user watch reads.
 
 import type { MediaRecord } from "@/domain/catalog/media";
 import { listEpisodesBySeason } from "@/domain/catalog/episodes";

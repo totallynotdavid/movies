@@ -144,8 +144,7 @@ export function wrappedYearWindow(year: number): { since: string; until: string 
   return { since: `${year}-01-01`, until: `${year + 1}-01-01` };
 }
 
-// Calendar year and month (1-12) in a timezone, falling back to UTC for an
-// unknown zone. The one owner of the Intl zone extraction the recap logic needs.
+// Invalid or missing IANA zones fall back to UTC.
 export function zonedYearMonth(
   today: Date,
   timeZone: string | null,
@@ -629,8 +628,6 @@ export async function getWrappedSummary(
   );
 }
 
-// Distinct years with watch activity, newest first, for the year navigation on a
-// public profile. Delegates the watch_events read to the history seam.
 export async function wrappedYearsForUser(userId: string): Promise<number[]> {
   return listWatchYears(userId);
 }

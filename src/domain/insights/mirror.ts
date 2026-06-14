@@ -1,11 +1,6 @@
 import type { LibraryEntryWithProgress } from "@/domain/tracking/library-entries";
-import type { LibraryStatus } from "@/shared/tracking";
+import type { LibraryStatus } from "@/shared/library-status";
 import type { WatchHistoryRow } from "@/domain/tracking/watch-history";
-
-// Mirror detectors derive interpretive patterns from watch history.
-//
-// This module is pure: every export is a function of its inputs with no DB
-// access.
 
 const WEEKDAY_LABELS = [
   "sunday",
@@ -308,7 +303,6 @@ export function buildLedger(entries: LedgerEntry[], now: number): Ledger {
   return { droppedCount, ghosted: ghosted.slice(0, GHOSTED_LIMIT) };
 }
 
-// Pure assembler over watch history, genre mapping, and library progress.
 export function buildMirror(
   history: WatchHistoryRow[],
   genresByMedia: Map<string, string[]>,

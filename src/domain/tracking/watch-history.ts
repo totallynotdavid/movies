@@ -3,8 +3,6 @@ import { db } from "void/db";
 import { libraryEntries, media, watchEvents } from "@schema";
 import type { MediaType } from "@/domain/catalog/media";
 
-// Reads behavior history joined with media and score fields.
-// Keep this as the single join/filter owner for history reads.
 export type WatchHistoryRow = {
   id: string;
   mediaId: string;
@@ -58,8 +56,6 @@ export async function listWatchHistory(
     .where(and(...filters));
 }
 
-// Distinct years (from the local watch day) with activity, newest first. The
-// single owner of any year-bucketing read over the event log.
 export async function listWatchYears(userId: string): Promise<number[]> {
   const yearExpr = sql<string>`substr(${watchEvents.watchedOn}, 1, 4)`;
   const rows = await db

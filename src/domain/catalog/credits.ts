@@ -49,10 +49,6 @@ export function mediaCreditsWrite(
   ];
 }
 
-// One row shape per credit kind, carrying every column a reader needs: the media
-// page reads character/ordering, the wrapped recap reads billingOrder/mediaId.
-// Single-media and bulk-by-ids reads share these columns, so there is one source
-// of truth for "what a credit row looks like".
 export type CastRow = {
   id: string;
   mediaId: string;
@@ -82,7 +78,6 @@ export type CrewGroup<T> = {
   members: T[];
 };
 
-// Crew jobs surfaced on the media page before "show all".
 const KEY_CREW_JOBS = [
   "Director",
   "Creator",

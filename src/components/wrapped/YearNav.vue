@@ -1,8 +1,4 @@
 <script setup lang="ts">
-// Year switcher shared by the public portrait and the public year-recap page.
-// `year` is the active (highlighted) recap, omitted on the portrait where no
-// single year is selected. `lockedYear` renders one year as a non-link chip (the
-// current year before its recap unlocks in December).
 const props = defineProps<{
   username: string;
   years: number[];

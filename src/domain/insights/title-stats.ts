@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "void/db";
 import { favoriteMedia, libraryEntries } from "@schema";
-import type { LibraryStatus } from "@/shared/tracking";
+import type { LibraryStatus } from "@/shared/library-status";
 
 // Platform-native stats only render once enough users engage, so a tiny user
 // base never shows an embarrassing "score 80 from 1 person".

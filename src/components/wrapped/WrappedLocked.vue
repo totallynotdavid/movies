@@ -1,6 +1,4 @@
 <script setup lang="ts">
-// Soft-lock state for a public year recap that has not unlocked yet.
-// Applies to the current year before December.
 // The owner still accesses the in-progress recap at /wrapped.
 const props = defineProps<{ year: number; displayName: string }>();
 </script>

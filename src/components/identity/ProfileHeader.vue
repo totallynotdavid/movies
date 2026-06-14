@@ -3,8 +3,6 @@ import { computed } from "vue";
 import Avatar from "./Avatar.vue";
 import type { AvatarColor } from "@/shared/types/identity";
 
-// Identity header shared by the public portrait (/u/{username}) and the private
-// dashboard (/profile). Username is nullable: a new account has no handle yet.
 const props = defineProps<{
   displayName: string;
   username: string | null;

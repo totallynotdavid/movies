@@ -7,10 +7,6 @@ import TopTitles from "./TopTitles.vue";
 import People from "./People.vue";
 import Distribution from "./Distribution.vue";
 
-// The shared recap body: the same year-in-review for the private live /wrapped
-// and the public year snapshot. Rating display is a prop (the owner's system on
-// the private page, the fixed score100 on a public profile), and the headline
-// name comes from whoever owns the recap.
 const props = defineProps<{
   wrapped: WrappedSummary;
   ratingSystem: RatingSystem;

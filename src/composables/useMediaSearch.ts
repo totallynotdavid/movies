@@ -1,5 +1,3 @@
-// Client media search state shared by the search page and command palette.
-
 import { ref } from "vue";
 import type { MediaSearchCandidate } from "@/shared/tracking";
 
@@ -13,7 +11,6 @@ export type LocalResult = {
   slug?: string | null;
 };
 
-// Remote candidates are the wire shape the tracking endpoints resolve on demand.
 export type RemoteResult = MediaSearchCandidate;
 
 type SearchResponse = {

@@ -1,6 +1,3 @@
-// Persisted media collection layout preference shared by home and search.
-// Defaults to grid when no preference is stored.
-
 import { onMounted, ref, watch } from "vue";
 
 export type MediaLayout = "grid" | "list";

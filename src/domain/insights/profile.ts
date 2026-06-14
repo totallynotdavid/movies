@@ -45,8 +45,6 @@ export type ProfileActivityItem = {
   episodeNumber: number | null;
 };
 
-// Public-safe subset of the profile read model.
-// Excludes behavioral mirror analysis and watch timestamps.
 export type PublicProfileOverview = {
   formatStats: ProfileFormatStats;
   activityCalendar: ProfileCalendarDay[];
@@ -119,7 +117,6 @@ export function buildActivityCalendar(
   });
 }
 
-// Recent activity is the latest N watches from history.
 function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileActivityItem[] {
   return [...history]
     .sort((a, b) => b.watchedAt - a.watchedAt)
@@ -136,7 +133,6 @@ function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileActivityI
     }));
 }
 
-// Projections safe to expose on a public profile.
 function buildPublicProfile(
   history: WatchHistoryRow[],
   entries: { media: { mediaType: MediaType }; score100: number | null }[],
@@ -153,8 +149,7 @@ function buildPublicProfile(
   };
 }
 
-// Public profile read model. Genres are not read here because only the private
-// mirror needs them, so a public view skips that work entirely.
+// Public profile reads skip genre data because only the private mirror uses it.
 export async function getPublicProfileOverview(userId: string): Promise<PublicProfileOverview> {
   const [history, entries] = await Promise.all([
     listWatchHistory(userId),
@@ -163,9 +158,6 @@ export async function getPublicProfileOverview(userId: string): Promise<PublicPr
   return buildPublicProfile(history, entries);
 }
 
-// Full profile read model built from one shared gather.
-// Projections are pure functions of history, entries, and genre data.
-// Tracked counts come from library intent; watch-day counts come from history.
 export async function getProfileOverview(userId: string): Promise<ProfileOverview> {
   const history = await listWatchHistory(userId);
   const mediaIds = [...new Set(history.map((row) => row.mediaId))];

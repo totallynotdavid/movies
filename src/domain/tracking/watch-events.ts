@@ -1,7 +1,3 @@
-// Fact seam: watch_events is append-only. This module is the sole writer of the
-// table and owns the raw reads the progress derive core consumes. It never
-// touches library_entries (intent) or derives anything.
-
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "void/db";
 import { watchEvents } from "@schema";
@@ -41,8 +37,6 @@ export function watchEventInsertWrite(event: WatchEventInsert): Statement {
 
 export type WatchedEpisodes = { watched: EpisodeRef[]; provisionalCount: number };
 
-// Episode-tagged rows build the explicit watched set.
-// Null-episode rows count as provisional watches until progress maps them to aired rows.
 export async function watchedAndProvisional(
   userId: string,
   mediaIds: readonly string[],

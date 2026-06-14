@@ -16,8 +16,6 @@ export function listMediaGenres(mediaId: string): Promise<GenreView[]> {
     .where(eq(mediaGenres.mediaId, mediaId));
 }
 
-// Bulk genre names grouped per title, for aggregation across a set of media
-// (wrapped recap, mirror). Single source for the mediaGenres⋈genres join.
 export async function genresByMedia(mediaIds: readonly string[]): Promise<Map<string, string[]>> {
   const rows = await selectByIds(mediaIds, (batch) =>
     db

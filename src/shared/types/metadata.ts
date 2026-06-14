@@ -1,6 +1,3 @@
-// Normalized DTOs produced by the TMDB integration and consumed by domain upserts.
-// Kept provider-neutral and DB-free so both layers can depend on them.
-
 export type PersonStubInput = {
   tmdbId: number;
   name: string;
@@ -81,9 +78,6 @@ export type MediaDetail = {
   seasonNumbers: number[];
 };
 
-// Off-request hydration jobs. One queue, discriminated by kind: `media-details`
-// is a stale/failed background refresh of Tier-1; `media-episodes` is the
-// Tier-2 season fan-out.
 export type MediaDetailsRefreshMessage = { kind: "media-details"; mediaId: string };
 
 export type EpisodeHydrationMessage = {

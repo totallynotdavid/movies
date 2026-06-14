@@ -1,11 +1,7 @@
-// Command seam: composes the intent writer (library-entries) and the fact
-// writer (watch-events) into the user-facing actions. Each command commits at
-// most one fact and one intent row in a single atomic batch.
-//
 // Intent and fact are kept distinct on purpose. Filing a status (including
 // "completed") is intent only and never fabricates a watch date, so cataloging
 // an old movie does not pollute the timeline. Recording a watch is the only
-// thing that writes a dated fact, and it is the sole writer of a movie watch.
+// thing that writes a dated fact.
 
 import { attempt, ok, type Result } from "@/result";
 import { runBatch } from "@/db/kernel";
@@ -69,10 +65,8 @@ async function commit(
   return ok(entry);
 }
 
-// The sole watch-fact writer. One media lookup dispatches to the movie or show
-// path; a movie completes on a single watch, a show derives its status and
-// progress from the post-write episode set. `watchedAt` lets a watch be
-// back-dated; it defaults to now.
+// A movie completes on a single watch. A show derives its status from the
+// post-write episode set so repeated watches do not over-count progress.
 export async function recordWatch(
   userId: string,
   mediaId: string,

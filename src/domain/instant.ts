@@ -1,17 +1,10 @@
-// Time seam for UTC to local conversion.
-//
-// This module computes `watchedOn` and `utcOffsetMinutes` at write time from a
-// UTC instant. Other modules should consume stored values and avoid timezone
-// math.
-
 export type WatchInstant = {
   watchedAt: number;
   watchedOn: string;
   utcOffsetMinutes: number;
 };
 
-// Returns local Y-M-D and UTC offset for a UTC instant in an IANA zone. Falls
-// back to UTC when the zone is null or invalid.
+// Invalid or missing IANA zones fall back to UTC.
 function localParts(
   watchedAt: number,
   timeZone: string | null,
