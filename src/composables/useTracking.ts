@@ -1,7 +1,8 @@
 import { computed, ref, unref, type Ref } from "vue";
 import type { MediaType } from "@/domain/catalog/media";
 import { toDisplayScore, scoreMax, toScore100, type RatingSystem } from "@/domain/rating";
-import type { LibraryStatus, TrackedEntryDto } from "@/shared/tracking";
+import type { TrackedEntryDto } from "@/shared/tracking";
+import type { LibraryStatus } from "@/shared/library-status";
 
 export type TrackedEntry = {
   id: string;
@@ -130,13 +131,11 @@ export function useTracking(options: Options) {
     });
   }
 
-  // Records a watch: a movie completes, a show quick-logs the next aired episode.
   function logWatch() {
     return post("/api/tracking/watch", { media: options.mediaId });
   }
 
-  // Log a specific episode (the picker path), as opposed to quick-logging the
-  // next aired one. Updates the shared entry + derived episode count.
+  // Explicit episode logging must not fall through to quick-log selection.
   function logEpisode(seasonNumber: number, episodeNumber: number) {
     return post("/api/tracking/watch", {
       media: options.mediaId,

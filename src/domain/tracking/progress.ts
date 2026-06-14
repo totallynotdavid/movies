@@ -1,13 +1,9 @@
-// Derived seam for show progress. Progress is a pure function of watched events
-// and aired episodes, never a stored counter. The pure core (deriveShowProgress,
-// pickEpisodeToLog, statusForShowProgress) carries the rules; the read helpers
-// compose the fact reads (watch-events) with the catalog reads (episodes).
-
 import type { TrackingError } from "@/domain/errors";
 import { airedEpisodeRefs } from "@/domain/catalog/episodes";
 import { watchedAndProvisional } from "./watch-events";
 import { err, ok, type Result } from "@/result";
-import { episodeKey, type EpisodeRef, type LibraryStatus } from "@/shared/tracking";
+import { episodeKey, type EpisodeRef } from "@/shared/tracking";
+import type { LibraryStatus } from "@/shared/library-status";
 
 export type ShowProgress = {
   // Distinct aired episodes the user has watched.
@@ -63,7 +59,7 @@ export function resolveWatchedEpisodes(
   return resolved;
 }
 
-// Pure core. `aired` must be ordered by [season, episode].
+// `aired` must be ordered by [season, episode].
 export function deriveShowProgress(
   watched: EpisodeRef[],
   aired: EpisodeRef[],
@@ -139,8 +135,6 @@ export function pickEpisodeToLog(
 
 export type ShowEpisodes = { watched: EpisodeRef[]; aired: EpisodeRef[]; provisionalCount: number };
 
-// Raw watched + aired refs for one show. Write paths derive pre-write and
-// post-write progress from this single fetch.
 export async function loadShowEpisodes(userId: string, mediaId: string): Promise<ShowEpisodes> {
   const [byUser, aired] = await Promise.all([
     watchedAndProvisional(userId, [mediaId]),

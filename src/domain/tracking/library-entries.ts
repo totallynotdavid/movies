@@ -1,8 +1,3 @@
-// Intent seam: library_entries holds the user-editable fields (status, score,
-// notes) plus a derived lastWatchedAt cache. This module is the sole writer of
-// the table. There is exactly one row builder and one upsert conflict set, so
-// every command (intent change or watch) writes the row the same way.
-
 import { db } from "void/db";
 import { and, desc, eq } from "drizzle-orm";
 import { libraryEntries, media } from "@schema";
@@ -11,12 +6,10 @@ import type { Statement } from "@/db/kernel";
 import type { MediaRecord } from "@/domain/catalog/media";
 import type { TrackingError } from "@/domain/errors";
 import { listShowProgress } from "./progress";
-import type { LibraryStatus } from "@/shared/tracking";
+import type { LibraryStatus } from "@/shared/library-status";
 
 export type LibraryEntryRecord = typeof libraryEntries.$inferSelect;
 
-// Library entry joined with media and derived progress. Shared per-user intent
-// read shape for library/profile views.
 export type LibraryEntryWithProgress = LibraryEntryRecord & {
   media: MediaRecord;
   watchedEpisodeCount: number;
@@ -88,8 +81,6 @@ export async function findEntry(
   return ok(rows.value[0] ?? null);
 }
 
-// Single-statement write for intent-only changes. Watch commands compose
-// entryUpsertWrite into a batch with the event insert instead.
 export async function upsertEntry(
   row: LibraryEntryRecord,
 ): Promise<Result<LibraryEntryRecord, TrackingError>> {
@@ -101,7 +92,6 @@ export async function upsertEntry(
   return ok(row);
 }
 
-// Per-user intent read. Progress is derived once per show.
 export async function entriesWithProgress(userId: string): Promise<LibraryEntryWithProgress[]> {
   const rows = await db
     .select({ entry: libraryEntries, media })

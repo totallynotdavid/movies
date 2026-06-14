@@ -6,7 +6,8 @@ import { httpStatusFor } from "@/domain/errors";
 import { entriesWithProgress } from "@/domain/tracking/library-entries";
 import { saveEntry } from "@/domain/tracking/commands";
 import { parseMediaRef, resolveMediaId } from "@/services/media-catalog";
-import { parseLibraryStatus, type LibraryStatus, type MediaRef } from "@/shared/tracking";
+import type { MediaRef } from "@/shared/tracking";
+import { parseLibraryStatus, type LibraryStatus } from "@/shared/library-status";
 
 type LibraryBody = {
   media: MediaRef;
@@ -43,8 +44,7 @@ export const GET = defineHandler(async (c) => {
   return { entries };
 });
 
-// Intent surface: status/score changes and adding to the library. Filing a
-// status never logs a watch; recording a watch lives on /api/tracking/watch.
+// Filing a status never logs a watch; recording a watch lives on /api/tracking/watch.
 export const POST = defineHandler(async (c) => {
   const user = requireAuth(c);
   const body = await c.req.json<Record<string, unknown>>();
