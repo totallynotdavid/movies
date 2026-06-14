@@ -5,8 +5,7 @@ defineProps<{
   items: ProfileActivityItem[];
 }>();
 
-// Day granularity only: the feed renders the calendar day of a watch, never a
-// timestamp, so it is safe on a public profile (see ProfileActivityItem).
+// Public activity exposes day-granular watch history, not exact timestamps.
 const dayFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",

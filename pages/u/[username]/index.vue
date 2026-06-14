@@ -4,10 +4,6 @@ import ProfilePortrait from "@/components/profile/ProfilePortrait.vue";
 import YearNav from "@/components/wrapped/YearNav.vue";
 
 const props = defineProps<Props>();
-
-// Public profiles render the owner's stats in a fixed system; the viewer's own
-// rating preference does not apply to someone else's profile.
-const ratingSystem = "score100" as const;
 </script>
 
 <template>
@@ -17,12 +13,15 @@ const ratingSystem = "score100" as const;
     :avatar-emoji="props.profile.avatarEmoji"
     :avatar-color="props.profile.avatarColor"
     :joined-at="props.profile.joinedAt"
-    :rating-system="ratingSystem"
+    :rating-system="props.ratingSystem"
     :format-stats="props.formatStats"
     :activity-calendar="props.activityCalendar"
     :recent-activity="props.recentActivity"
     :favorite-media="props.favoriteMedia"
     :favorite-people="props.favoritePeople"
+    :owner="props.owner"
+    :is-private="props.isPrivate"
+    :mirror="props.mirror"
   >
     <template #recap>
       <section v-if="props.years.length > 0" class="flex flex-col gap-3">

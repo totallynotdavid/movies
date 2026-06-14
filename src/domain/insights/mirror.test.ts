@@ -8,9 +8,9 @@ describe("weekdayPattern", () => {
 
     expect(pattern.totalWatches).toBe(4);
     expect(pattern.busiest).toEqual({ weekday: 6, label: "saturday", watchCount: 2 });
-    expect(pattern.weekendShare).toBeCloseTo(3 / 4); // 2 Sat + 1 Sun
+    expect(pattern.weekendShare).toBeCloseTo(3 / 4);
     expect(pattern.byWeekday).toHaveLength(7);
-    expect(pattern.byWeekday[1].watchCount).toBe(1); // Monday
+    expect(pattern.byWeekday[1].watchCount).toBe(1);
   });
 
   it("is empty without activity", () => {
@@ -28,7 +28,7 @@ describe("dayPartPattern", () => {
       // 02:00 UTC at -300 (EST) is 21:00 local the day before.
       { watchedAt: at("2026-01-15T02:00:00Z"), utcOffsetMinutes: -300 },
       { watchedAt: at("2026-01-16T02:00:00Z"), utcOffsetMinutes: -300 },
-      // 03:00 UTC at +0 is 03:00 local — after midnight.
+      // 03:00 UTC at +0 is 03:00 local, after midnight.
       { watchedAt: at("2026-01-15T03:00:00Z"), utcOffsetMinutes: 0 },
     ]);
 
@@ -41,14 +41,14 @@ describe("dayPartPattern", () => {
 describe("genreTiming", () => {
   it("separates weekend genres from weeknight genres", () => {
     const rows = [
-      { weekday: 6, genres: ["Comedy"] }, // Saturday
-      { weekday: 0, genres: ["Comedy"] }, // Sunday
       { weekday: 6, genres: ["Comedy"] },
-      { weekday: 2, genres: ["Comedy"] }, // one weeknight comedy
-      { weekday: 2, genres: ["Drama"] }, // Tue
-      { weekday: 3, genres: ["Drama"] }, // Wed
-      { weekday: 4, genres: ["Drama"] }, // Thu
-      { weekday: 1, genres: ["Drama"] }, // Mon
+      { weekday: 0, genres: ["Comedy"] },
+      { weekday: 6, genres: ["Comedy"] },
+      { weekday: 2, genres: ["Comedy"] },
+      { weekday: 2, genres: ["Drama"] },
+      { weekday: 3, genres: ["Drama"] },
+      { weekday: 4, genres: ["Drama"] },
+      { weekday: 1, genres: ["Drama"] },
     ];
     const timing = genreTiming(rows);
     expect(timing.weekendGenre?.genre).toBe("Comedy");
@@ -67,10 +67,10 @@ describe("genreTiming", () => {
 describe("strongestPhase", () => {
   it("finds a month a genre dominated above its baseline", () => {
     const rows = [
-      // March: 6 watches, 5 of them sci-fi → 83% vs a much lower baseline.
+      // March is the spike month: 5 of 6 watches are sci-fi against a lower baseline.
       ...Array.from({ length: 5 }, () => ({ month: "2026-03", genres: ["Sci-Fi"] })),
       { month: "2026-03", genres: ["Drama"] },
-      // Other months: drama-heavy, little sci-fi → keeps the baseline low.
+      // Other months keep the sci-fi baseline low.
       ...Array.from({ length: 8 }, () => ({ month: "2026-01", genres: ["Drama"] })),
       ...Array.from({ length: 8 }, () => ({ month: "2026-02", genres: ["Drama"] })),
     ];
@@ -101,7 +101,7 @@ describe("buildLedger", () => {
           title: "Show A",
           slug: "show-a",
           status: "watching",
-          lastWatchedAt: now - 90 * day, // long stale
+          lastWatchedAt: now - 90 * day,
           watchedEpisodeCount: 3,
           airedEpisodeCount: 10,
         },
@@ -110,7 +110,7 @@ describe("buildLedger", () => {
           title: "Show B",
           slug: "show-b",
           status: "watching",
-          lastWatchedAt: now - 2 * day, // recent — not ghosted
+          lastWatchedAt: now - 2 * day,
           watchedEpisodeCount: 1,
           airedEpisodeCount: 10,
         },

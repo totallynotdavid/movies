@@ -1,6 +1,7 @@
 import { defineHandler } from "void";
 import type { InferProps } from "void";
-import { findPublicProfile } from "@/domain/user";
+import { getUser } from "void/auth";
+import { findProfileByUsername } from "@/domain/user";
 import {
   getWrappedSummary,
   isYearRecapPublic,
@@ -14,8 +15,12 @@ export const loader = defineHandler(async (c) => {
   const username = c.req.param("username");
   if (!username) return c.notFound();
 
-  const profile = await findPublicProfile(username);
+  const profile = await findProfileByUsername(username);
   if (!profile) return c.notFound();
+
+  const viewer = getUser();
+  const owner = viewer?.id === profile.id;
+  if (profile.visibility !== "public" && !owner) return c.notFound();
 
   const year = Number(c.req.param("year"));
   if (!Number.isInteger(year) || year < 2000) return c.notFound();
@@ -26,18 +31,22 @@ export const loader = defineHandler(async (c) => {
 
   const activityYears = await wrappedYearsForUser(profile.id);
 
-  // The current year is locked (soft-locked, not 404) until its December unlock;
-  // a completed year with no activity simply has no recap.
-  const locked = year === currentYear && !isYearRecapPublic(year, today, profile.timeZone);
-  if (!locked && !activityYears.includes(year)) return c.notFound();
+  // The owner can preview their in-progress current year. Visitors see it locked
+  // until December. Completed years with no activity have no recap.
+  const locked =
+    !owner && year === currentYear && !isYearRecapPublic(year, today, profile.timeZone);
+  if (!locked && !activityYears.includes(year) && !(owner && year === currentYear)) {
+    return c.notFound();
+  }
 
   const wrapped = locked ? null : await getWrappedSummary(profile.id, { year });
 
-  const lockedYear = isYearRecapPublic(currentYear, today, profile.timeZone) ? null : currentYear;
+  const lockedYear =
+    owner || isYearRecapPublic(currentYear, today, profile.timeZone) ? null : currentYear;
   const years =
-    lockedYear && !activityYears.includes(lockedYear)
+    !owner && lockedYear && !activityYears.includes(lockedYear)
       ? [lockedYear, ...activityYears]
       : activityYears;
 
-  return { profile, year, locked, wrapped, years, lockedYear };
+  return { profile, owner, year, locked, wrapped, years, lockedYear };
 });

@@ -9,8 +9,8 @@ import { formatScore, type RatingSystem } from "@/domain/rating";
 const props = defineProps<{ formatStats: ProfileFormatStats; ratingSystem: RatingSystem }>();
 
 const panels = computed(() => [
-  { key: "movie", label: "Movies", stats: props.formatStats.movie },
-  { key: "show", label: "Shows", stats: props.formatStats.show },
+  { key: "movie", label: "Movies", icon: "i-lucide:clapperboard", stats: props.formatStats.movie },
+  { key: "show", label: "Shows", icon: "i-lucide:tv", stats: props.formatStats.show },
 ]);
 </script>
 
@@ -21,14 +21,10 @@ const panels = computed(() => [
       :key="panel.key"
       class="flex flex-col gap-4 rounded-xl border border-border bg-bg-subtle p-5"
     >
-      <div class="flex items-center justify-between gap-3">
-        <h2 class="text-sm font-mono text-fg-muted">{{ panel.label }}</h2>
-        <span
-          class="rounded-full border border-border bg-bg-elevated px-2 py-0.5 text-[0.65rem] font-mono text-fg-subtle"
-        >
-          {{ panel.stats.tracked }} tracked
-        </span>
-      </div>
+      <h2 class="flex items-center gap-2 text-sm font-mono text-fg-muted">
+        <span :class="panel.icon" class="w-4 h-4 text-fg-subtle" aria-hidden="true" />
+        {{ panel.label }}
+      </h2>
 
       <div class="grid grid-cols-3 gap-3">
         <div class="flex flex-col gap-1">
