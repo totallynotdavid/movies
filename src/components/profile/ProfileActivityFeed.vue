@@ -5,7 +5,6 @@ defineProps<{
   items: ProfileActivityItem[];
 }>();
 
-// Public activity exposes day-granular watch history, not exact timestamps.
 const dayFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
@@ -30,14 +29,14 @@ function formatDay(watchedOn: string) {
 <template>
   <div
     v-if="items.length === 0"
-    class="rounded-xl border border-dashed border-border px-4 py-6 text-sm font-mono text-fg-subtle"
+    class="rounded-lg border border-dashed border-border px-4 py-6 text-sm font-mono text-fg-subtle"
   >
     Activity will appear here after you log a watch.
   </div>
 
   <div
     v-else
-    class="flex flex-col divide-y divide-border rounded-xl border border-border bg-bg-subtle"
+    class="flex flex-col divide-y divide-border rounded-lg border border-border bg-bg-subtle"
   >
     <div v-for="item in items" :key="item.id" class="flex items-start gap-3 px-4 py-3">
       <span

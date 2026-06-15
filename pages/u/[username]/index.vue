@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Props } from "./index.server";
-import ProfilePortrait from "@/components/profile/ProfilePortrait.vue";
+import ProfileCard from "@/components/profile/ProfileCard.vue";
+import ProfileOwnerControls from "@/components/profile/ProfileOwnerControls.vue";
+import InsightsDashboard from "@/components/insights/Dashboard.vue";
 import YearNav from "@/components/wrapped/YearNav.vue";
 
 const props = defineProps<Props>();
@@ -8,32 +10,15 @@ const props = defineProps<Props>();
 
 <template>
   <main class="container py-8 sm:py-12">
-    <ProfilePortrait
-      :display-name="props.profile.displayName"
-      :username="props.profile.username"
-      :avatar-emoji="props.profile.avatarEmoji"
-      :avatar-color="props.profile.avatarColor"
-      :joined-at="props.profile.joinedAt"
-      :rating-system="props.ratingSystem"
-      :format-stats="props.formatStats"
-      :activity-calendar="props.activityCalendar"
-      :recent-activity="props.recentActivity"
-      :favorite-media="props.favoriteMedia"
-      :favorite-people="props.favoritePeople"
-      :owner="props.owner"
-      :is-private="props.isPrivate"
-      :mirror="props.mirror"
-    >
-      <template #recap>
-        <section v-if="props.years.length > 0" class="flex flex-col gap-3">
-          <h2 class="text-sm font-mono text-fg-muted">year in review</h2>
-          <YearNav
-            :username="props.profile.username"
-            :years="props.years"
-            :locked-year="props.lockedYear"
-          />
-        </section>
-      </template>
-    </ProfilePortrait>
+    <div class="flex flex-col gap-10">
+      <ProfileCard :card="props.card">
+        <template #header-aside>
+          <ProfileOwnerControls v-if="props.viewer.owner" :is-private="props.isPrivate" />
+          <YearNav :username="props.card.identity.username" :items="props.recapYears" />
+        </template>
+      </ProfileCard>
+
+      <InsightsDashboard v-if="props.insights" :insights="props.insights" />
+    </div>
   </main>
 </template>

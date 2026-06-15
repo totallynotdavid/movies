@@ -11,23 +11,12 @@ const ratingSystem = "score100" as const;
 
 <template>
   <main class="container flex flex-col gap-12 py-8 sm:py-12">
-    <ProfileHeader
-      :display-name="props.profile.displayName"
-      :username="props.profile.username"
-      :avatar-emoji="props.profile.avatarEmoji"
-      :avatar-color="props.profile.avatarColor"
-      :joined-at="props.profile.joinedAt"
-    />
+    <ProfileHeader :identity="props.profile" />
 
-    <YearNav
-      :username="props.profile.username"
-      :years="props.years"
-      :year="props.year"
-      :locked-year="props.lockedYear"
-    />
+    <YearNav :username="props.profile.username" :items="props.recapYears" :year="props.year" />
 
     <WrappedLocked
-      v-if="props.locked"
+      v-if="props.recapAccess === 'locked'"
       :year="props.year"
       :display-name="props.profile.displayName"
     />

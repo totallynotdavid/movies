@@ -18,30 +18,54 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
+type CalendarWeek = {
+  key: string;
+  label: string;
+  days: Array<ProfileCalendarDay | null>;
+};
+
+const intensitySteps = [
+  { floor: 0.67, className: "border-fg/60 bg-fg/60" },
+  { floor: 0.34, className: "border-fg/35 bg-fg/35" },
+  { floor: 0, className: "border-fg/15 bg-fg/15" },
+];
+
 const maxCount = computed(() => Math.max(...props.days.map((day) => day.count), 0));
 
-const weeks = computed(() => {
-  const columns: Array<{ label: string; days: Array<ProfileCalendarDay | null> }> = [];
+const weeks = computed(() => buildWeeks(props.days));
 
-  for (const day of props.days) {
-    const weekday = new Date(`${day.date}T00:00:00Z`).getUTCDay();
-    if (columns.length === 0 || weekday === 0) {
-      columns.push({ label: "", days: Array.from({ length: 7 }, () => null) });
-    }
+function buildWeeks(days: ProfileCalendarDay[]): CalendarWeek[] {
+  const columns = days.reduce(appendDay, [] as CalendarWeek[]);
+  labelWeeks(columns);
+  return columns;
+}
 
-    columns.at(-1)!.days[weekday] = day;
-  }
-
+function labelWeeks(columns: CalendarWeek[]) {
   let previousMonth = "";
   for (const column of columns) {
-    const firstDay = column.days.find((day) => day !== null);
-    const month = firstDay ? monthFormatter.format(new Date(`${firstDay.date}T00:00:00Z`)) : "";
+    const month = weekMonth(column);
     column.label = month !== previousMonth ? month : "";
     if (month) previousMonth = month;
   }
+}
 
+function appendDay(columns: CalendarWeek[], day: ProfileCalendarDay): CalendarWeek[] {
+  const weekday = utcWeekday(day.date);
+  if (columns.length === 0 || weekday === 0) columns.push(emptyWeek());
+  const column = columns.at(-1)!;
+  if (!column.key) column.key = day.date;
+  column.days[weekday] = day;
   return columns;
-});
+}
+
+function emptyWeek(): CalendarWeek {
+  return { key: "", label: "", days: Array.from({ length: 7 }, () => null) };
+}
+
+function weekMonth(column: CalendarWeek): string {
+  const firstDay = column.days.find((day) => day !== null);
+  return firstDay ? monthFormatter.format(utcDate(firstDay.date)) : "";
+}
 
 function intensityClass(count: number) {
   if (count === 0 || maxCount.value === 0) {
@@ -49,24 +73,30 @@ function intensityClass(count: number) {
   }
 
   const ratio = count / maxCount.value;
-  if (ratio < 0.34) return "border-emerald-500/25 bg-emerald-500/25";
-  if (ratio < 0.67) return "border-emerald-500/40 bg-emerald-500/45";
-  return "border-emerald-400/50 bg-emerald-400/70";
+  return intensitySteps.find((step) => ratio >= step.floor)!.className;
 }
 
 function describeDay(day: ProfileCalendarDay) {
-  const formattedDate = dateFormatter.format(new Date(`${day.date}T00:00:00Z`));
+  const formattedDate = dateFormatter.format(utcDate(day.date));
   const noun = day.count === 1 ? "watch" : "watches";
   return `${formattedDate}: ${day.count} ${noun}`;
+}
+
+function utcDate(date: string): Date {
+  return new Date(`${date}T00:00:00Z`);
+}
+
+function utcWeekday(date: string): number {
+  return utcDate(date).getUTCDay();
 }
 </script>
 
 <template>
-  <div v-if="maxCount === 0" class="rounded-xl border border-dashed border-border px-4 py-6">
+  <div v-if="maxCount === 0" class="rounded-lg border border-dashed border-border px-4 py-6">
     <p class="text-sm font-mono text-fg-subtle">No watch activity yet</p>
   </div>
 
-  <div v-else class="overflow-x-auto">
+  <div v-else class="overflow-x-auto rounded-lg border border-border bg-bg-subtle p-4">
     <div class="inline-flex gap-3 min-w-max">
       <div class="grid grid-rows-[1rem_repeat(7,minmax(0,0.875rem))] gap-1 pt-1">
         <span />
@@ -81,8 +111,8 @@ function describeDay(day: ProfileCalendarDay) {
 
       <div class="flex gap-1">
         <div
-          v-for="(week, index) in weeks"
-          :key="index"
+          v-for="week in weeks"
+          :key="week.key"
           class="grid grid-rows-[1rem_repeat(7,minmax(0,0.875rem))] gap-1"
         >
           <span class="text-[0.65rem] font-mono text-fg-subtle">{{ week.label }}</span>

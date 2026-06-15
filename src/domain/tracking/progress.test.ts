@@ -30,6 +30,11 @@ describe("deriveShowProgress", () => {
     expect(progress.nextEpisode).toEqual(ep(1, 2));
   });
 
+  it("orders aired input before deriving the next episode", () => {
+    const progress = deriveShowProgress([ep(1, 1)], [ep(1, 3), ep(1, 1), ep(1, 2)]);
+    expect(progress.nextEpisode).toEqual(ep(1, 2));
+  });
+
   it("marks completion when every aired episode is watched", () => {
     const progress = deriveShowProgress([ep(1, 1), ep(1, 2), ep(1, 3)], aired);
     expect(progress.allAiredWatched).toBe(true);

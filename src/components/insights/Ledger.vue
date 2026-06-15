@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { Ledger } from "@/domain/insights/mirror";
+import ProfileSection from "@/components/identity/ProfileSection.vue";
 
 const props = defineProps<{
   ledger: Ledger;
 }>();
 
-// The honest mirror: only worth a section if there's something honest to show.
 const hasLedger = computed(() => props.ledger.droppedCount > 0 || props.ledger.ghosted.length > 0);
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -28,16 +28,13 @@ const droppedText = computed(() => {
 </script>
 
 <template>
-  <section
+  <ProfileSection
     v-if="hasLedger"
-    class="flex flex-col gap-4 motion-safe:animate-slide-up animate-fill-both"
+    title="the honest ledger"
+    subtitle="The shows you drifted away from, no judgement."
+    class="motion-safe:animate-slide-up animate-fill-both"
     style="animation-delay: 0.175s"
   >
-    <div class="flex flex-col gap-1">
-      <h2 class="text-sm font-mono text-fg-muted">the honest ledger</h2>
-      <p class="text-sm text-fg-subtle">The shows you drifted away from — no judgement.</p>
-    </div>
-
     <div class="flex flex-col gap-3">
       <p v-if="droppedText" class="text-[0.8rem] font-mono text-fg-subtle">{{ droppedText }}.</p>
 
@@ -71,5 +68,5 @@ const droppedText = computed(() => {
         </li>
       </ul>
     </div>
-  </section>
+  </ProfileSection>
 </template>

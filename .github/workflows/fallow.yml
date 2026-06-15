@@ -22,13 +22,13 @@ jobs:
           # attribute findings as new-vs-inherited. A shallow clone breaks this.
           fetch-depth: 0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: voidzero-dev/setup-vp@v1
         with:
-          bun-version: "1.3.14"
+          node-version: "24"
+          cache: true
 
-      # --ignore-scripts skips the `vp config` postinstall (vp is not installed
-      # in this bun-only job). The audit does not need it.
-      - run: bun install --frozen-lockfile --ignore-scripts
+      - run: vp install
+      - run: vp exec void prepare
 
       # One audit run produces the PR-comment body and carries the gate verdict
       # in its exit code. Capture the code here, enforce it after commenting so a

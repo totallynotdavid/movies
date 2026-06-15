@@ -4,7 +4,6 @@ import { findMedia } from "@/domain/catalog/media";
 import { httpStatusFor, type TrackingError } from "@/domain/errors";
 import { buildShowView } from "@/domain/tracking/show-view";
 
-// Polling read for the show page.
 // Public endpoint: signed-out viewers receive episode data without per-user marks.
 export const GET = defineHandler(async (c) => {
   const mediaId = c.req.query("mediaId");

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildWrappedSummary, resolveWrappedYear, wrappedYearWindow } from "./wrapped";
+import { resolveWrappedYear } from "@/domain/recaps";
+import { buildWrappedSummary, wrappedYearWindow } from "./wrapped";
 
 describe("wrappedYearWindow", () => {
   it("is a half-open local-day range for the year", () => {

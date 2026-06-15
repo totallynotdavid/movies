@@ -1,8 +1,4 @@
 import type { MediaType } from "@/domain/catalog/media";
-import { genresByMedia } from "@/domain/catalog/metadata";
-import { entriesWithProgress } from "@/domain/tracking/library-entries";
-import { listWatchHistory, type WatchHistoryRow } from "@/domain/tracking/watch-history";
-import { buildMirror, type Mirror } from "./mirror";
 
 type FormatStatsSource = {
   mediaType: MediaType;
@@ -18,14 +14,35 @@ type CalendarSource = {
   watchedOn: string;
 };
 
-export type ProfileFormatStats = Record<
-  MediaType,
-  {
-    tracked: number;
-    watchDays: number;
-    averageScore100: number | null;
-  }
->;
+type ProfileActivitySource = {
+  id: string;
+  mediaId: string;
+  mediaType: MediaType;
+  title: string;
+  slug: string;
+  watchedAt: number;
+  watchedOn: string;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+};
+
+export type ProfileFormatStat = {
+  tracked: number;
+  watchDays: number;
+  averageScore100: number | null;
+};
+
+// Headline numbers plus the per-format split, from one pass over the rows. The
+// totals are NOT sums of the per-format values: watch days are distinct across
+// formats (a day with both a movie and a show counts once), and the average is
+// over all rated rows, not an average of two averages. Both fall out of the same
+// tallies the per-format buckets are built from, so a single pass owns all of it.
+export type ProfileStats = {
+  tracked: number;
+  watchDays: number;
+  averageScore100: number | null;
+  byFormat: Record<MediaType, ProfileFormatStat>;
+};
 
 export type ProfileCalendarDay = {
   date: string;
@@ -45,50 +62,61 @@ export type ProfileActivityItem = {
   episodeNumber: number | null;
 };
 
-export type PublicProfileOverview = {
-  formatStats: ProfileFormatStats;
-  activityCalendar: ProfileCalendarDay[];
-  recentActivity: ProfileActivityItem[];
+export type ProfileActivity = {
+  calendar: ProfileCalendarDay[];
+  recent: ProfileActivityItem[];
 };
 
-export type ProfileOverview = PublicProfileOverview & { mirror: Mirror };
+function average(sum: number, count: number): number | null {
+  return count > 0 ? sum / count : null;
+}
 
-export function buildProfileFormatStats(
+export function buildProfileStats(
   libraryRows: FormatStatsSource[],
   watchRows: WatchDaySource[],
-): ProfileFormatStats {
-  const totals = {
-    movie: { tracked: 0, watchDays: 0, averageScore100: null as number | null },
-    show: { tracked: 0, watchDays: 0, averageScore100: null as number | null },
-  };
-  const ratingSums = { movie: 0, show: 0 };
-  const ratingCounts = { movie: 0, show: 0 };
-  const watchDays = {
-    movie: new Set<string>(),
-    show: new Set<string>(),
+): ProfileStats {
+  const tally = {
+    movie: { tracked: 0, days: new Set<string>(), sum: 0, count: 0 },
+    show: { tracked: 0, days: new Set<string>(), sum: 0, count: 0 },
   };
 
   for (const row of libraryRows) {
-    const bucket = totals[row.mediaType];
+    const bucket = tally[row.mediaType];
     bucket.tracked += 1;
-
     if (row.score100 !== null) {
-      ratingSums[row.mediaType] += row.score100;
-      ratingCounts[row.mediaType] += 1;
+      bucket.sum += row.score100;
+      bucket.count += 1;
     }
   }
 
   for (const row of watchRows) {
-    watchDays[row.mediaType].add(row.watchedOn);
+    tally[row.mediaType].days.add(row.watchedOn);
   }
 
-  for (const mediaType of ["movie", "show"] as const) {
-    totals[mediaType].watchDays = watchDays[mediaType].size;
-    totals[mediaType].averageScore100 =
-      ratingCounts[mediaType] > 0 ? ratingSums[mediaType] / ratingCounts[mediaType] : null;
-  }
+  const byFormat: Record<MediaType, ProfileFormatStat> = {
+    movie: {
+      tracked: tally.movie.tracked,
+      watchDays: tally.movie.days.size,
+      averageScore100: average(tally.movie.sum, tally.movie.count),
+    },
+    show: {
+      tracked: tally.show.tracked,
+      watchDays: tally.show.days.size,
+      averageScore100: average(tally.show.sum, tally.show.count),
+    },
+  };
 
-  return totals;
+  const distinctDays = new Set<string>([...tally.movie.days, ...tally.show.days]);
+
+  return {
+    tracked: tally.movie.tracked + tally.show.tracked,
+    watchDays: distinctDays.size,
+    averageScore100: average(
+      tally.movie.sum + tally.show.sum,
+      tally.movie.count + tally.show.count,
+    ),
+    byFormat,
+  };
 }
 
 export function calendarStartDate(days: number, today = new Date()): string {
@@ -117,7 +145,7 @@ export function buildActivityCalendar(
   });
 }
 
-function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileActivityItem[] {
+function recentWatches(history: ProfileActivitySource[], limit = 20): ProfileActivityItem[] {
   return [...history]
     .sort((a, b) => b.watchedAt - a.watchedAt)
     .slice(0, limit)
@@ -133,42 +161,17 @@ function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileActivityI
     }));
 }
 
-function buildPublicProfile(
-  history: WatchHistoryRow[],
-  entries: { media: { mediaType: MediaType }; score100: number | null }[],
-): PublicProfileOverview {
-  const formatSource: FormatStatsSource[] = entries.map((entry) => ({
-    mediaType: entry.media.mediaType,
-    score100: entry.score100,
-  }));
-
+// The public projection: stats and activity, no ratings system and no genre data.
+export function buildProfileActivity(
+  library: FormatStatsSource[],
+  history: ProfileActivitySource[],
+  today = new Date(),
+): { stats: ProfileStats; activity: ProfileActivity } {
   return {
-    formatStats: buildProfileFormatStats(formatSource, history),
-    activityCalendar: buildActivityCalendar(history),
-    recentActivity: recentWatches(history),
-  };
-}
-
-// Public profile reads skip genre data because only the private mirror uses it.
-export async function getPublicProfileOverview(userId: string): Promise<PublicProfileOverview> {
-  const [history, entries] = await Promise.all([
-    listWatchHistory(userId),
-    entriesWithProgress(userId),
-  ]);
-  return buildPublicProfile(history, entries);
-}
-
-export async function getProfileOverview(userId: string): Promise<ProfileOverview> {
-  const history = await listWatchHistory(userId);
-  const mediaIds = [...new Set(history.map((row) => row.mediaId))];
-
-  const [entries, genres] = await Promise.all([
-    entriesWithProgress(userId),
-    genresByMedia(mediaIds),
-  ]);
-
-  return {
-    ...buildPublicProfile(history, entries),
-    mirror: buildMirror(history, genres, entries, Date.now()),
+    stats: buildProfileStats(library, history),
+    activity: {
+      calendar: buildActivityCalendar(history, 365, today),
+      recent: recentWatches(history),
+    },
   };
 }

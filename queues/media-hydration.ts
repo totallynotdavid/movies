@@ -3,9 +3,9 @@ import { logger } from "void/log";
 import { runHydrationMessage } from "@/services/media-hydration";
 import type { HydrationMessage } from "@/shared/types/metadata";
 
-// maxRetries must be >= this cap or Void (default 3) would stop
-// redelivering before we reach it.
-export const maxRetries = 5;
+const RETRY_EXHAUSTION_ATTEMPTS = 5;
+
+export const maxRetries = RETRY_EXHAUSTION_ATTEMPTS;
 
 export default defineQueue<HydrationMessage>(async (batch) => {
   for (const msg of batch.messages) {
@@ -21,7 +21,7 @@ export default defineQueue<HydrationMessage>(async (batch) => {
       error: outcome.error,
     });
 
-    if (msg.attempts >= maxRetries) {
+    if (msg.attempts >= RETRY_EXHAUSTION_ATTEMPTS) {
       logger.error("hydration job exhausted retries", { body: msg.body, error: outcome.error });
       msg.ack();
     } else {
