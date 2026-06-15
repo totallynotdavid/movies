@@ -13,12 +13,8 @@ const props = defineProps<Props>();
     <div class="flex flex-col gap-10">
       <ProfileCard :card="props.card">
         <template #header-aside>
-          <ProfileOwnerControls v-if="props.owner" :is-private="props.isPrivate" />
-          <YearNav
-            :username="props.card.identity.username"
-            :years="props.recap.years"
-            :locked-year="props.recap.lockedYear"
-          />
+          <ProfileOwnerControls v-if="props.viewer.owner" :is-private="props.isPrivate" />
+          <YearNav :username="props.card.identity.username" :items="props.recapYears" />
         </template>
       </ProfileCard>
 

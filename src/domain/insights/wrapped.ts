@@ -7,6 +7,7 @@ import {
   type WatchHistoryRow,
 } from "@/domain/tracking/watch-history";
 import type { MediaType } from "@/domain/catalog/media";
+import { resolveWrappedYear } from "@/domain/recaps";
 
 const ACTOR_LIMIT_PER_TITLE = 5;
 const DIRECTOR_LIMIT_PER_TITLE = 2;
@@ -142,46 +143,6 @@ type WrappedBuildInput = {
 // half-open string range; no timezone math is needed for the window itself.
 export function wrappedYearWindow(year: number): { since: string; until: string } {
   return { since: `${year}-01-01`, until: `${year + 1}-01-01` };
-}
-
-// Invalid or missing IANA zones fall back to UTC.
-export function zonedYearMonth(
-  today: Date,
-  timeZone: string | null,
-): { year: number; month: number } {
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: timeZone ?? "UTC",
-      year: "numeric",
-      month: "numeric",
-    }).formatToParts(today);
-    return {
-      year: Number(parts.find((p) => p.type === "year")?.value),
-      month: Number(parts.find((p) => p.type === "month")?.value),
-    };
-  } catch {
-    return { year: today.getUTCFullYear(), month: today.getUTCMonth() + 1 };
-  }
-}
-
-// Which year a bare /wrapped (or public profile root) should default to. Resolved
-// in the user's zone so a New Year's-Eve watch lands in the right year. During
-// January we surface the just-completed year (full and shareable) instead of a
-// near-empty current year; explicit ?year navigation overrides this.
-export function resolveWrappedYear(today: Date, timeZone: string | null): number {
-  const { year, month } = zonedYearMonth(today, timeZone);
-  return month === 1 ? year - 1 : year;
-}
-
-// A public year recap is shareable once the year is complete enough to be worth
-// sharing: any past year always, the current year only from December (so a
-// mid-year recap is never half-empty), never a future year. The owner still sees
-// the live, in-progress current year on the private /wrapped regardless.
-export function isYearRecapPublic(year: number, today: Date, timeZone: string | null): boolean {
-  const { year: current, month } = zonedYearMonth(today, timeZone);
-  if (year > current) return false;
-  if (year < current) return true;
-  return month >= 12;
 }
 
 function emptyWrappedSummary(year: number): WrappedSummary {

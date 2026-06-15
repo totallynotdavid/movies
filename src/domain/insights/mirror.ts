@@ -1,10 +1,6 @@
-import { genresByMedia } from "@/domain/catalog/metadata";
-import {
-  entriesWithProgress,
-  type LibraryEntryWithProgress,
-} from "@/domain/tracking/library-entries";
+import type { LibraryEntryWithProgress } from "@/domain/tracking/library-entries";
 import type { LibraryStatus } from "@/shared/library-status";
-import { listWatchHistory, type WatchHistoryRow } from "@/domain/tracking/watch-history";
+import type { WatchHistoryRow } from "@/domain/tracking/watch-history";
 
 const WEEKDAY_LABELS = [
   "sunday",
@@ -94,6 +90,22 @@ export type Mirror = {
   genreTiming: GenreTiming;
   phase: Phase | null;
   ledger: Ledger;
+};
+
+type PhaseRow = {
+  month: string;
+  genres: string[];
+};
+
+type PhaseMonth = {
+  total: number;
+  genres: Map<string, number>;
+};
+
+type PhaseStats = {
+  overall: Map<string, number>;
+  months: Map<string, PhaseMonth>;
+  overallTotal: number;
 };
 
 // `watchedOn` is local day [YYYY-MM-DD]. Parsing as UTC midnight and reading
@@ -211,9 +223,23 @@ function monthLabel(month: string): string {
 
 // Finds the month where one genre most exceeded its all-time baseline.
 // Returns null when thresholds are not met.
-export function strongestPhase(rows: { month: string; genres: string[] }[]): Phase | null {
+export function strongestPhase(rows: PhaseRow[]): Phase | null {
+  const stats = collectPhaseStats(rows);
+  if (stats.overallTotal === 0) return null;
+
+  let best: Phase | null = null;
+  for (const [month, data] of stats.months) {
+    const candidates = phaseCandidates(month, data, stats);
+    for (const candidate of candidates) {
+      if (isStrongerPhase(candidate, best)) best = candidate;
+    }
+  }
+  return best;
+}
+
+function collectPhaseStats(rows: PhaseRow[]): PhaseStats {
   const overall = new Map<string, number>();
-  const months = new Map<string, { total: number; genres: Map<string, number> }>();
+  const months = new Map<string, PhaseMonth>();
   let overallTotal = 0;
 
   for (const row of rows) {
@@ -226,40 +252,54 @@ export function strongestPhase(rows: { month: string; genres: string[] }[]): Pha
     }
     months.set(row.month, month);
   }
-  if (overallTotal === 0) return null;
 
-  let best: Phase | null = null;
-  let bestLift = -Infinity;
-  for (const [month, data] of months) {
-    if (data.total < PHASE_MIN_MONTH_WATCHES) continue;
-    for (const [genre, count] of data.genres) {
-      if (count < PHASE_MIN_GENRE_WATCHES) continue;
-      const monthShare = count / data.total;
-      if (monthShare < PHASE_MONTH_FLOOR) continue;
+  return { overall, months, overallTotal };
+}
 
-      const baselineShare = (overall.get(genre) ?? 0) / overallTotal;
-      const lift = monthShare - baselineShare;
-      if (lift < PHASE_SPIKE_DELTA) continue;
+function phaseCandidates(month: string, data: PhaseMonth, stats: PhaseStats): Phase[] {
+  if (data.total < PHASE_MIN_MONTH_WATCHES) return [];
 
-      const wins =
-        lift > bestLift ||
-        (lift === bestLift &&
-          best !== null &&
-          (count > best.watchCount || (count === best.watchCount && month > best.month)));
-      if (best === null || wins) {
-        best = {
-          month,
-          label: monthLabel(month),
-          genre,
-          watchCount: count,
-          monthShare,
-          baselineShare,
-        };
-        bestLift = lift;
-      }
-    }
+  const candidates: Phase[] = [];
+  for (const [genre, count] of data.genres) {
+    const candidate = toPhaseCandidate(month, data, genre, count, stats);
+    if (candidate) candidates.push(candidate);
   }
-  return best;
+  return candidates;
+}
+
+function toPhaseCandidate(
+  month: string,
+  data: PhaseMonth,
+  genre: string,
+  watchCount: number,
+  stats: PhaseStats,
+): Phase | null {
+  if (watchCount < PHASE_MIN_GENRE_WATCHES) return null;
+
+  const monthShare = watchCount / data.total;
+  if (monthShare < PHASE_MONTH_FLOOR) return null;
+
+  const baselineShare = (stats.overall.get(genre) ?? 0) / stats.overallTotal;
+  if (monthShare - baselineShare < PHASE_SPIKE_DELTA) return null;
+
+  return {
+    month,
+    label: monthLabel(month),
+    genre,
+    watchCount,
+    monthShare,
+    baselineShare,
+  };
+}
+
+function isStrongerPhase(candidate: Phase, current: Phase | null): boolean {
+  if (current === null) return true;
+
+  const candidateLift = candidate.monthShare - candidate.baselineShare;
+  const currentLift = current.monthShare - current.baselineShare;
+  if (candidateLift !== currentLift) return candidateLift > currentLift;
+  if (candidate.watchCount !== current.watchCount) return candidate.watchCount > current.watchCount;
+  return candidate.month > current.month;
 }
 
 type LedgerEntry = {
@@ -339,16 +379,4 @@ export function buildMirror(
     phase: strongestPhase(genreRows),
     ledger,
   };
-}
-
-export async function getOwnerInsights(userId: string, now = Date.now()): Promise<Mirror> {
-  const history = await listWatchHistory(userId);
-  const mediaIds = [...new Set(history.map((row) => row.mediaId))];
-
-  const [entries, genres] = await Promise.all([
-    entriesWithProgress(userId),
-    genresByMedia(mediaIds),
-  ]);
-
-  return buildMirror(history, genres, entries, now);
 }

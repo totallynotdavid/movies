@@ -1,6 +1,4 @@
 import type { MediaType } from "@/domain/catalog/media";
-import { entriesWithProgress } from "@/domain/tracking/library-entries";
-import { listWatchHistory, type WatchHistoryRow } from "@/domain/tracking/watch-history";
 
 type FormatStatsSource = {
   mediaType: MediaType;
@@ -14,6 +12,18 @@ type WatchDaySource = {
 
 type CalendarSource = {
   watchedOn: string;
+};
+
+type ProfileActivitySource = {
+  id: string;
+  mediaId: string;
+  mediaType: MediaType;
+  title: string;
+  slug: string;
+  watchedAt: number;
+  watchedOn: string;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
 };
 
 export type ProfileFormatStat = {
@@ -135,7 +145,7 @@ export function buildActivityCalendar(
   });
 }
 
-function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileActivityItem[] {
+function recentWatches(history: ProfileActivitySource[], limit = 20): ProfileActivityItem[] {
   return [...history]
     .sort((a, b) => b.watchedAt - a.watchedAt)
     .slice(0, limit)
@@ -151,25 +161,16 @@ function recentWatches(history: WatchHistoryRow[], limit = 20): ProfileActivityI
     }));
 }
 
-// The public projection: stats and activity, no ratings system and no genre data
-// (only the owner's private insights use those). Safe to render for any viewer.
-export async function getProfileActivity(
-  userId: string,
-): Promise<{ stats: ProfileStats; activity: ProfileActivity }> {
-  const [history, entries] = await Promise.all([
-    listWatchHistory(userId),
-    entriesWithProgress(userId),
-  ]);
-
-  const library: FormatStatsSource[] = entries.map((entry) => ({
-    mediaType: entry.media.mediaType,
-    score100: entry.score100,
-  }));
-
+// The public projection: stats and activity, no ratings system and no genre data.
+export function buildProfileActivity(
+  library: FormatStatsSource[],
+  history: ProfileActivitySource[],
+  today = new Date(),
+): { stats: ProfileStats; activity: ProfileActivity } {
   return {
     stats: buildProfileStats(library, history),
     activity: {
-      calendar: buildActivityCalendar(history),
+      calendar: buildActivityCalendar(history, 365, today),
       recent: recentWatches(history),
     },
   };

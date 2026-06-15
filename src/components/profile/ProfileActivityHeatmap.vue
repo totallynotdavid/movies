@@ -18,30 +18,54 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
+type CalendarWeek = {
+  key: string;
+  label: string;
+  days: Array<ProfileCalendarDay | null>;
+};
+
+const intensitySteps = [
+  { floor: 0.67, className: "border-fg/60 bg-fg/60" },
+  { floor: 0.34, className: "border-fg/35 bg-fg/35" },
+  { floor: 0, className: "border-fg/15 bg-fg/15" },
+];
+
 const maxCount = computed(() => Math.max(...props.days.map((day) => day.count), 0));
 
-const weeks = computed(() => {
-  const columns: Array<{ label: string; days: Array<ProfileCalendarDay | null> }> = [];
+const weeks = computed(() => buildWeeks(props.days));
 
-  for (const day of props.days) {
-    const weekday = new Date(`${day.date}T00:00:00Z`).getUTCDay();
-    if (columns.length === 0 || weekday === 0) {
-      columns.push({ label: "", days: Array.from({ length: 7 }, () => null) });
-    }
+function buildWeeks(days: ProfileCalendarDay[]): CalendarWeek[] {
+  const columns = days.reduce(appendDay, [] as CalendarWeek[]);
+  labelWeeks(columns);
+  return columns;
+}
 
-    columns.at(-1)!.days[weekday] = day;
-  }
-
+function labelWeeks(columns: CalendarWeek[]) {
   let previousMonth = "";
   for (const column of columns) {
-    const firstDay = column.days.find((day) => day !== null);
-    const month = firstDay ? monthFormatter.format(new Date(`${firstDay.date}T00:00:00Z`)) : "";
+    const month = weekMonth(column);
     column.label = month !== previousMonth ? month : "";
     if (month) previousMonth = month;
   }
+}
 
+function appendDay(columns: CalendarWeek[], day: ProfileCalendarDay): CalendarWeek[] {
+  const weekday = utcWeekday(day.date);
+  if (columns.length === 0 || weekday === 0) columns.push(emptyWeek());
+  const column = columns.at(-1)!;
+  if (!column.key) column.key = day.date;
+  column.days[weekday] = day;
   return columns;
-});
+}
+
+function emptyWeek(): CalendarWeek {
+  return { key: "", label: "", days: Array.from({ length: 7 }, () => null) };
+}
+
+function weekMonth(column: CalendarWeek): string {
+  const firstDay = column.days.find((day) => day !== null);
+  return firstDay ? monthFormatter.format(utcDate(firstDay.date)) : "";
+}
 
 // One neutral magnitude language across the page (matching the fg-based bars in
 // stats): intensity is fg opacity, not a separate hue.
@@ -51,15 +75,21 @@ function intensityClass(count: number) {
   }
 
   const ratio = count / maxCount.value;
-  if (ratio < 0.34) return "border-fg/15 bg-fg/15";
-  if (ratio < 0.67) return "border-fg/35 bg-fg/35";
-  return "border-fg/60 bg-fg/60";
+  return intensitySteps.find((step) => ratio >= step.floor)!.className;
 }
 
 function describeDay(day: ProfileCalendarDay) {
-  const formattedDate = dateFormatter.format(new Date(`${day.date}T00:00:00Z`));
+  const formattedDate = dateFormatter.format(utcDate(day.date));
   const noun = day.count === 1 ? "watch" : "watches";
   return `${formattedDate}: ${day.count} ${noun}`;
+}
+
+function utcDate(date: string): Date {
+  return new Date(`${date}T00:00:00Z`);
+}
+
+function utcWeekday(date: string): number {
+  return utcDate(date).getUTCDay();
 }
 </script>
 
@@ -83,8 +113,8 @@ function describeDay(day: ProfileCalendarDay) {
 
       <div class="flex gap-1">
         <div
-          v-for="(week, index) in weeks"
-          :key="index"
+          v-for="week in weeks"
+          :key="week.key"
           class="grid grid-rows-[1rem_repeat(7,minmax(0,0.875rem))] gap-1"
         >
           <span class="text-[0.65rem] font-mono text-fg-subtle">{{ week.label }}</span>

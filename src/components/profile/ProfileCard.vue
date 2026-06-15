@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProfileCard } from "@/services/profile-page";
+import type { ProfileCardModel } from "@/domain/profile-card";
 import ProfileHeader from "@/components/identity/ProfileHeader.vue";
 import ProfileSection from "@/components/identity/ProfileSection.vue";
 import ProfileStatStrip from "./ProfileStatStrip.vue";
@@ -8,7 +8,7 @@ import FavoritePeople from "./FavoritePeople.vue";
 import ProfileActivityHeatmap from "./ProfileActivityHeatmap.vue";
 import ProfileActivityFeed from "./ProfileActivityFeed.vue";
 
-const props = defineProps<{ card: ProfileCard }>();
+const props = defineProps<{ card: ProfileCardModel }>();
 </script>
 
 <template>
