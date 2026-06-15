@@ -7,7 +7,6 @@ const props = defineProps<{
   ledger: Ledger;
 }>();
 
-// The honest mirror: only worth a section if there's something honest to show.
 const hasLedger = computed(() => props.ledger.droppedCount > 0 || props.ledger.ghosted.length > 0);
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {

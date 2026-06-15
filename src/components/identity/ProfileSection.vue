@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// The one section seam, shared by the public card and the owner dashboard so the
-// whole page reads as a single system. title is a lowercase label; subtitle is
-// optional sentence-case prose for insight sections (patterns, ledger).
 defineProps<{ title: string; subtitle?: string }>();
 </script>
 

@@ -39,9 +39,6 @@ const joined = computed(() =>
         <slot name="meta" />
       </div>
     </div>
-    <!-- Right-side meta column, npmx's ms-auto/text-end slot: a pure pass-through the
-         page fills with owner controls and the year switcher. Quiet, secondary to
-         the identity block. -->
     <div v-if="$slots.aside" class="ml-auto flex flex-col items-end gap-2">
       <slot name="aside" />
     </div>

@@ -8,9 +8,6 @@ const props = defineProps<{
   ratingSystem: RatingSystem;
 }>();
 
-// Headline magnitude lives in the identity block, npmx-style: the numbers carry,
-// the labels stay quiet. avg is omitted entirely when nothing is rated rather
-// than rendered as an empty dash.
 const items = computed(() => {
   const out: { value: string; label: string }[] = [
     { value: String(props.stats.tracked), label: "tracked" },

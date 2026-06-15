@@ -10,8 +10,7 @@ const props = defineProps<{
   phase: Phase | null;
 }>();
 
-// Earn the insight: a couple of watches isn't a pattern. Below this, say nothing
-// rather than over-claim.
+// Avoid rendering timing claims until the sample has enough watches.
 const MIN_WATCHES = 7;
 const NIGHT_OWL_SHARE = 0.3;
 

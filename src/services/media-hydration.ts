@@ -150,7 +150,6 @@ export async function reconcileMediaDetails(): Promise<number> {
   return due.length;
 }
 
-// Dispatch queued hydration jobs to the matching operation.
 export async function runHydrationMessage(message: HydrationMessage): Promise<HydrationOutcome> {
   if (message.kind === "media-episodes") return hydrateMediaEpisodes(message);
 

@@ -67,8 +67,6 @@ function weekMonth(column: CalendarWeek): string {
   return firstDay ? monthFormatter.format(utcDate(firstDay.date)) : "";
 }
 
-// One neutral magnitude language across the page (matching the fg-based bars in
-// stats): intensity is fg opacity, not a separate hue.
 function intensityClass(count: number) {
   if (count === 0 || maxCount.value === 0) {
     return "border-border bg-bg-elevated";
