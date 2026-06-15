@@ -1,25 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { buildActivityCalendar, buildProfileFormatStats, calendarStartDate } from "./profile";
+import { buildActivityCalendar, buildProfileStats, calendarStartDate } from "./profile";
 
-describe("buildProfileFormatStats", () => {
-  it("aggregates by media type with distinct watch days and average score", () => {
-    const stats = buildProfileFormatStats(
+describe("buildProfileStats", () => {
+  it("splits by format and combines totals without double-counting cross-format days", () => {
+    const stats = buildProfileStats(
       [
         { mediaType: "movie", score100: 80 },
         { mediaType: "movie", score100: null },
         { mediaType: "show", score100: 90 },
-        { mediaType: "show", score100: 70 },
       ],
       [
-        { mediaType: "movie", watchedOn: "2024-05-30" },
-        { mediaType: "movie", watchedOn: "2024-05-30" },
+        // 2024-05-31 has both a movie and a show watch; the combined total counts it
+        // once, while each per-format bucket counts its own day.
         { mediaType: "movie", watchedOn: "2024-05-31" },
         { mediaType: "show", watchedOn: "2024-05-31" },
+        { mediaType: "movie", watchedOn: "2024-06-01" },
       ],
     );
 
-    expect(stats.movie).toEqual({ tracked: 2, watchDays: 2, averageScore100: 80 });
-    expect(stats.show).toEqual({ tracked: 2, watchDays: 1, averageScore100: 80 });
+    expect(stats.byFormat.movie).toEqual({ tracked: 2, watchDays: 2, averageScore100: 80 });
+    expect(stats.byFormat.show).toEqual({ tracked: 1, watchDays: 1, averageScore100: 90 });
+
+    expect(stats.tracked).toBe(3);
+    expect(stats.watchDays).toBe(2); // 2024-05-31 counted once across formats
+    expect(stats.averageScore100).toBe(85); // (80 + 90) / 2, over rated rows only
+  });
+
+  it("reports null averages when nothing is rated", () => {
+    const stats = buildProfileStats([{ mediaType: "movie", score100: null }], []);
+
+    expect(stats.tracked).toBe(1);
+    expect(stats.watchDays).toBe(0);
+    expect(stats.averageScore100).toBeNull();
+    expect(stats.byFormat.movie.averageScore100).toBeNull();
   });
 });
 
