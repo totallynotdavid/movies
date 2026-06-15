@@ -2,20 +2,15 @@ import { defineHandler } from "void";
 import type { InferProps } from "void";
 import { getUser } from "void/auth";
 import { findProfileByUsername, getUserSettings } from "@/domain/user";
-import {
-  getProfileOverview,
-  getPublicProfileOverview,
-  type PublicProfileOverview,
-} from "@/domain/insights/profile";
-import type { Mirror } from "@/domain/insights/mirror";
-import { favoriteMediaForUser, favoritePeopleForUser } from "@/domain/tracking/favorites";
+import { getProfileCard } from "@/services/profile-page";
+import { getOwnerInsights } from "@/domain/insights/mirror";
 import { isYearRecapPublic, wrappedYearsForUser, zonedYearMonth } from "@/domain/insights/wrapped";
 import type { RatingSystem } from "@/domain/rating";
 
 export type Props = InferProps<typeof loader>;
 
 // Private profiles are hard 404s for everyone except the owner.
-// Owners get private analysis and personal ratings; visitors get the public projection.
+// Owners get the private insights dashboard; visitors get only the public card.
 export const loader = defineHandler(async (c) => {
   const username = c.req.param("username");
   if (!username) return c.notFound();
@@ -27,22 +22,18 @@ export const loader = defineHandler(async (c) => {
   const owner = viewer?.id === profile.id;
   if (profile.visibility !== "public" && !owner) return c.notFound();
 
-  const [favoriteMedia, favoritePeople, activityYears, settings] = await Promise.all([
-    favoriteMediaForUser(profile.id),
-    favoritePeopleForUser(profile.id),
+  const [activityYears, settings] = await Promise.all([
     wrappedYearsForUser(profile.id),
     owner ? getUserSettings(profile.id) : Promise.resolve(null),
   ]);
+  const ratingSystem = (settings?.ratingSystem ?? "score100") as RatingSystem;
 
-  let overview: PublicProfileOverview;
-  let mirror: Mirror | null = null;
-  if (owner) {
-    const full = await getProfileOverview(profile.id);
-    overview = full;
-    mirror = full.mirror;
-  } else {
-    overview = await getPublicProfileOverview(profile.id);
-  }
+  // The owner is the only viewer whose insights we build; for everyone else it is
+  // null by construction, so nothing downstream re-checks visibility.
+  const [card, insights] = await Promise.all([
+    getProfileCard(profile, ratingSystem),
+    owner ? getOwnerInsights(profile.id) : Promise.resolve(null),
+  ]);
 
   // The owner can always open the in-progress current year; a visitor sees it as a
   // locked chip until its December unlock.
@@ -56,17 +47,10 @@ export const loader = defineHandler(async (c) => {
       : activityYears;
 
   return {
-    profile,
     owner,
     isPrivate: profile.visibility !== "public",
-    ratingSystem: (settings?.ratingSystem ?? "score100") as RatingSystem,
-    mirror,
-    favoriteMedia,
-    favoritePeople,
-    formatStats: overview.formatStats,
-    activityCalendar: overview.activityCalendar,
-    recentActivity: overview.recentActivity,
-    years,
-    lockedYear,
+    card,
+    insights,
+    recap: { years, lockedYear },
   };
 });

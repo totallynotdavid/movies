@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// The owner still accesses the in-progress recap at /wrapped.
 const props = defineProps<{ year: number; displayName: string }>();
 </script>
 

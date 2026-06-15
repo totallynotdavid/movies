@@ -1,6 +1,10 @@
-import type { LibraryEntryWithProgress } from "@/domain/tracking/library-entries";
+import { genresByMedia } from "@/domain/catalog/metadata";
+import {
+  entriesWithProgress,
+  type LibraryEntryWithProgress,
+} from "@/domain/tracking/library-entries";
 import type { LibraryStatus } from "@/shared/library-status";
-import type { WatchHistoryRow } from "@/domain/tracking/watch-history";
+import { listWatchHistory, type WatchHistoryRow } from "@/domain/tracking/watch-history";
 
 const WEEKDAY_LABELS = [
   "sunday",
@@ -335,4 +339,16 @@ export function buildMirror(
     phase: strongestPhase(genreRows),
     ledger,
   };
+}
+
+export async function getOwnerInsights(userId: string, now = Date.now()): Promise<Mirror> {
+  const history = await listWatchHistory(userId);
+  const mediaIds = [...new Set(history.map((row) => row.mediaId))];
+
+  const [entries, genres] = await Promise.all([
+    entriesWithProgress(userId),
+    genresByMedia(mediaIds),
+  ]);
+
+  return buildMirror(history, genres, entries, now);
 }

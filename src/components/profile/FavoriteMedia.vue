@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MediaCard from "@/components/media/MediaCard.vue";
-import ProfileSection from "./ProfileSection.vue";
+import ProfileSection from "@/components/identity/ProfileSection.vue";
 import type { MediaRecord } from "@/domain/catalog/media";
 
 defineProps<{ items: { mediaId: string; media: MediaRecord }[] }>();

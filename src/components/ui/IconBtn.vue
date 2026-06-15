@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// Icon-only chrome actions must pass an aria-label via attrs.
 withDefaults(
   defineProps<{
+    ariaLabel: string;
     icon: string;
     variant?: "primary" | "secondary";
     size?: "sm" | "md";
@@ -16,6 +16,7 @@ withDefaults(
   <button
     :type="type"
     :disabled="disabled"
+    :aria-label="ariaLabel"
     class="inline-flex items-center justify-center border rounded-md transition-colors duration-200 focus-ring disabled:opacity-40 disabled:pointer-events-none"
     :class="[
       size === 'sm' ? 'w-7 h-7' : 'w-8 h-8',

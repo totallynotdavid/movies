@@ -43,15 +43,17 @@ const weeks = computed(() => {
   return columns;
 });
 
+// One neutral magnitude language across the page (matching the fg-based bars in
+// stats): intensity is fg opacity, not a separate hue.
 function intensityClass(count: number) {
   if (count === 0 || maxCount.value === 0) {
     return "border-border bg-bg-elevated";
   }
 
   const ratio = count / maxCount.value;
-  if (ratio < 0.34) return "border-emerald-500/25 bg-emerald-500/25";
-  if (ratio < 0.67) return "border-emerald-500/40 bg-emerald-500/45";
-  return "border-emerald-400/50 bg-emerald-400/70";
+  if (ratio < 0.34) return "border-fg/15 bg-fg/15";
+  if (ratio < 0.67) return "border-fg/35 bg-fg/35";
+  return "border-fg/60 bg-fg/60";
 }
 
 function describeDay(day: ProfileCalendarDay) {
@@ -62,11 +64,11 @@ function describeDay(day: ProfileCalendarDay) {
 </script>
 
 <template>
-  <div v-if="maxCount === 0" class="rounded-xl border border-dashed border-border px-4 py-6">
+  <div v-if="maxCount === 0" class="rounded-lg border border-dashed border-border px-4 py-6">
     <p class="text-sm font-mono text-fg-subtle">No watch activity yet</p>
   </div>
 
-  <div v-else class="overflow-x-auto">
+  <div v-else class="overflow-x-auto rounded-lg border border-border bg-bg-subtle p-4">
     <div class="inline-flex gap-3 min-w-max">
       <div class="grid grid-rows-[1rem_repeat(7,minmax(0,0.875rem))] gap-1 pt-1">
         <span />

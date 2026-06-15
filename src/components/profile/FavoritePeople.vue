@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import PersonChip from "@/components/PersonChip.vue";
-import ProfileSection from "./ProfileSection.vue";
+import ProfileSection from "@/components/identity/ProfileSection.vue";
 
 defineProps<{
   people: { personId: string; name: string; slug: string; profilePath: string | null }[];

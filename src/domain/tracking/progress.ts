@@ -23,6 +23,10 @@ function uniqueEpisodes(items: EpisodeRef[]): EpisodeRef[] {
   );
 }
 
+function episodeAsc(a: EpisodeRef, b: EpisodeRef): number {
+  return a.seasonNumber - b.seasonNumber || a.episodeNumber - b.episodeNumber;
+}
+
 // Maps provisional (null-episode) watches onto the earliest unwatched aired
 // episodes, in airing order, so the count reflects what was watched even before
 // the catalog named the episodes.
@@ -32,7 +36,8 @@ export function resolveWatchedEpisodes(
   provisionalCount = 0,
 ): EpisodeRef[] {
   const explicit = uniqueEpisodes(watched);
-  if (aired.length === 0) return explicit;
+  const orderedAired = [...aired].sort(episodeAsc);
+  if (orderedAired.length === 0) return explicit;
 
   const explicitKeys = new Set(
     explicit.map((episode) => episodeKey(episode.seasonNumber, episode.episodeNumber)),
@@ -41,7 +46,7 @@ export function resolveWatchedEpisodes(
   const resolved: EpisodeRef[] = [];
   let remainingProvisional = provisionalCount;
 
-  for (const episode of aired) {
+  for (const episode of orderedAired) {
     const key = episodeKey(episode.seasonNumber, episode.episodeNumber);
     if (explicitKeys.has(key)) {
       resolved.push(episode);
@@ -56,15 +61,15 @@ export function resolveWatchedEpisodes(
   return resolved;
 }
 
-// `aired` must be ordered by [season, episode].
 export function deriveShowProgress(
   watched: EpisodeRef[],
   aired: EpisodeRef[],
   provisionalCount = 0,
 ): ShowProgress {
   const explicitCount = uniqueEpisodes(watched).length;
+  const orderedAired = [...aired].sort(episodeAsc);
 
-  if (aired.length === 0) {
+  if (orderedAired.length === 0) {
     return {
       watchedEpisodeCount: explicitCount + provisionalCount,
       airedEpisodeCount: null,
@@ -74,14 +79,14 @@ export function deriveShowProgress(
   }
 
   const watchedKeys = new Set(
-    resolveWatchedEpisodes(watched, aired, provisionalCount).map((episode) =>
+    resolveWatchedEpisodes(watched, orderedAired, provisionalCount).map((episode) =>
       episodeKey(episode.seasonNumber, episode.episodeNumber),
     ),
   );
 
   let watchedEpisodeCount = 0;
   let nextEpisode: EpisodeRef | null = null;
-  for (const episode of aired) {
+  for (const episode of orderedAired) {
     if (watchedKeys.has(episodeKey(episode.seasonNumber, episode.episodeNumber))) {
       watchedEpisodeCount += 1;
     } else if (nextEpisode === null) {
@@ -91,7 +96,7 @@ export function deriveShowProgress(
 
   return {
     watchedEpisodeCount,
-    airedEpisodeCount: aired.length,
+    airedEpisodeCount: orderedAired.length,
     nextEpisode,
     allAiredWatched: nextEpisode === null,
   };

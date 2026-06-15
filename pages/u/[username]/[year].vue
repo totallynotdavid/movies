@@ -11,13 +11,7 @@ const ratingSystem = "score100" as const;
 
 <template>
   <main class="container flex flex-col gap-12 py-8 sm:py-12">
-    <ProfileHeader
-      :display-name="props.profile.displayName"
-      :username="props.profile.username"
-      :avatar-emoji="props.profile.avatarEmoji"
-      :avatar-color="props.profile.avatarColor"
-      :joined-at="props.profile.joinedAt"
-    />
+    <ProfileHeader :identity="props.profile" />
 
     <YearNav
       :username="props.profile.username"
