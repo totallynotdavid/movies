@@ -21,7 +21,7 @@
     "@void/vue": "^0.9.3",
     "drizzle-orm": "^0.45.2",
     "valibot": "^1.4.1",
-    "void": "^0.9.3",
+    "void": "^0.10.3",
     "vue": "^3.5.38"
   },
   "devDependencies": {
