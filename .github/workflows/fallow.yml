@@ -37,7 +37,7 @@ jobs:
         id: audit
         run: |
           set +e
-          bunx fallow audit --format pr-comment-github --quiet > fallow-comment.md
+          vp dlx fallow audit --format pr-comment-github --quiet > fallow-comment.md
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           set -e
 
