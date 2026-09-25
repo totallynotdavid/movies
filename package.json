@@ -20,7 +20,7 @@
   "dependencies": {
     "@void/vue": "^0.9.3",
     "drizzle-orm": "^0.45.2",
-    "valibot": "^1.4.1",
+    "valibot": "^1.5.0",
     "void": "^0.9.3",
     "vue": "^3.5.38"
   },
