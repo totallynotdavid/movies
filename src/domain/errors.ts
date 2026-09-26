@@ -1,4 +1,4 @@
-import type { MediaType } from "./catalog/media";
+import type { MediaType } from "@/domain/catalog/media";
 
 export type TrackingError =
   | { kind: "media_not_found"; mediaId: string }
