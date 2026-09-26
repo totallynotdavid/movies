@@ -145,8 +145,9 @@ ownership and boundary constraints above are what enforce them.
    persistence write returns `persistence_failed` without recording anything, so
    the row keeps its previous freshness state. Person pages are the exception:
    `src/services/person-hydration.ts` calls TMDB on every view because the
-   filmography is not persisted, persists only the bio scalars, logs a failed
-   persist, and returns a `PersonView` instead of an outcome.
+   filmography is not persisted, persists only the bio scalars, records a TMDB
+   fetch failure durably (logging, not throwing, if that record fails), logs a
+   failed bio persist, and returns a `PersonView` instead of an outcome.
 4. Persistence kernel (`src/db/kernel.ts`), in app runtime code (`src/`) every
    bulk insert and every user-sized `inArray` routes through `insertChunks` /
    `selectByIds` / `runBatch`. Chunk size derives from the row's bound-column
