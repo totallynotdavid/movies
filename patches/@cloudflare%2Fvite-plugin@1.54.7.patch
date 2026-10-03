@@ -1,0 +1,22 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 535e42522e2788386f22d8a3343de6c9db3edbb9..82143e12682efe2bd51bbd24e463aa7fb9c61723 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -81989,9 +81989,14 @@ const nodeJsCompatPlugin = createPlugin("nodejs-compat", (ctx) => {
+ 				const result = nodeJsCompat.resolveNodeJsImport(source);
+ 				if (!result) return;
+ 				if (this.environment.mode === "dev") {
+-					assert2(this.environment.depsOptimizer, "depsOptimizer is required in dev mode");
+-					const { id } = this.environment.depsOptimizer.registerMissingImport(result.unresolved, result.resolved);
+-					return this.resolve(id, importer, options);
++					const depsOptimizer = this.environment.depsOptimizer;
++					if (depsOptimizer) {
++						const { id } = depsOptimizer.registerMissingImport(result.unresolved, result.resolved);
++						return this.resolve(id, importer, options);
++					}
++					// Vitest and module runners can disable optimizeDeps in dev-like mode.
++					// Resolve the compatibility target directly in that case.
++					return this.resolve(result.resolved, importer, options);
+ 				}
+ 				return this.resolve(result.resolved, importer, options);
+ 			}
