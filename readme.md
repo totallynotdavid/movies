@@ -8,15 +8,16 @@ Vite · Vue 3 · Drizzle ORM · UnoCSS
 
 ## Running locally
 
+Local configuration lives in a single `.env` file (see `env.ts` for the names).
+Create it before starting the dev server, with `BETTER_AUTH_SECRET` set
+(`openssl rand -base64 48`). `TMDB_READ_ACCESS_TOKEN` is optional and only
+needed for TMDB remote search and cache-on-select.
+
 ```sh
+echo "BETTER_AUTH_SECRET=$(openssl rand -base64 48)" > .env
 bun install
 bun dev
 ```
-
-Local configuration lives in a single `.env` file (see `env.ts` for the names).
-Set `BETTER_AUTH_SECRET` there (`openssl rand -base64 48`).
-`TMDB_READ_ACCESS_TOKEN` is optional and only needed for TMDB remote search and
-cache-on-select.
 
 Migrations and seeding run automatically before the dev server starts. The seed
 pulls from committed fixtures in `db/fixtures/media.json`, so no API keys are
