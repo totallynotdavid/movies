@@ -12,7 +12,6 @@ node_modules
 # Local env files
 .env
 .env.*
-!.env.example
 server/middleware/__void-dev-trigger.ts
 .void
 .wrangler
