@@ -1,0 +1,7 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -90136,2 +90136,3 @@ const nodeJsCompatPlugin = createPlugin("nodejs-compat", (ctx) => {
+ 				if (this.environment.mode === "dev") {
++					if (!this.environment.depsOptimizer) return this.resolve(result.resolved, importer, options);
+ 					assert(this.environment.depsOptimizer, "depsOptimizer is required in dev mode");

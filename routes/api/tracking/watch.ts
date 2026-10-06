@@ -20,10 +20,11 @@ export const POST = defineHandler(async (c) => {
   const ref = parseMediaRef(body.media);
   if (!ref.ok) return c.json({ error: ref.error }, httpStatusFor(ref.error));
 
-  const resolved = await attempt(
-    resolveMediaId(ref.value),
-    (cause): TrackingError => ({ kind: "invalid_payload", field: "media", reason: String(cause) }),
-  );
+  const resolved = await attempt(resolveMediaId(ref.value), (cause): TrackingError => ({
+    kind: "invalid_payload",
+    field: "media",
+    reason: String(cause),
+  }));
   if (!resolved.ok) return c.json({ error: resolved.error }, httpStatusFor(resolved.error));
 
   // An explicit episode is optional; both numbers must be present together.
@@ -72,10 +73,11 @@ export const DELETE = defineHandler(async (c) => {
     return c.json({ error }, httpStatusFor(error));
   }
 
-  const resolved = await attempt(
-    resolveMediaId(ref.value),
-    (cause): TrackingError => ({ kind: "invalid_payload", field: "media", reason: String(cause) }),
-  );
+  const resolved = await attempt(resolveMediaId(ref.value), (cause): TrackingError => ({
+    kind: "invalid_payload",
+    field: "media",
+    reason: String(cause),
+  }));
   if (!resolved.ok) return c.json({ error: resolved.error }, httpStatusFor(resolved.error));
 
   const result = await unwatchEpisode(user.id, resolved.value, {

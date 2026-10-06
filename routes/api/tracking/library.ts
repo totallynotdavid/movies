@@ -61,10 +61,11 @@ export const POST = defineHandler(async (c) => {
   }
 
   const { media, filedStatus, score100 } = parsed.value;
-  const resolved = await attempt(
-    resolveMediaId(media),
-    (cause): TrackingError => ({ kind: "invalid_payload", field: "media", reason: String(cause) }),
-  );
+  const resolved = await attempt(resolveMediaId(media), (cause): TrackingError => ({
+    kind: "invalid_payload",
+    field: "media",
+    reason: String(cause),
+  }));
   if (!resolved.ok) return c.json({ error: resolved.error }, httpStatusFor(resolved.error));
 
   const result = await saveEntry(user.id, resolved.value, { filedStatus, score100 });
@@ -81,10 +82,11 @@ export const DELETE = defineHandler(async (c) => {
   const ref = parseMediaRef(body.media);
   if (!ref.ok) return c.json({ error: ref.error }, httpStatusFor(ref.error));
 
-  const resolved = await attempt(
-    resolveMediaId(ref.value),
-    (cause): TrackingError => ({ kind: "invalid_payload", field: "media", reason: String(cause) }),
-  );
+  const resolved = await attempt(resolveMediaId(ref.value), (cause): TrackingError => ({
+    kind: "invalid_payload",
+    field: "media",
+    reason: String(cause),
+  }));
   if (!resolved.ok) return c.json({ error: resolved.error }, httpStatusFor(resolved.error));
 
   const result = await removeEntry(user.id, resolved.value);

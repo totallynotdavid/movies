@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { ProfileIdentity } from "@/domain/user";
 import { findProfileByUsername } from "@/domain/user";
 import { findViewableProfile } from "./viewable-profile";

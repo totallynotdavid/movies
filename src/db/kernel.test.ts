@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { insertChunks, selectByIds } from "./kernel";
 
 // The kernel exists to keep every bulk write under D1's 100-bound-parameter cap

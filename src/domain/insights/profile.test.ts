@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { buildActivityCalendar, buildProfileStats, calendarStartDate } from "./profile";
 
 describe("buildProfileStats", () => {

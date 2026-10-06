@@ -8,12 +8,19 @@ export default defineConfig({
   // `@/*` -> src/* mirrors the tsconfig path alias for the bundler. voidPlugin
   // already wires `@schema`; this covers the rest of the app source.
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // Vitest 5 cannot attach a second server to Void's worker and page plugins.
+      // Unit tests do not load route modules, so they only need the schema alias.
+      ...(process.env.VITEST
+        ? { "@schema": fileURLToPath(new URL("./db/schema.ts", import.meta.url)) }
+        : {}),
+    },
   },
   fmt: {
     ignorePatterns: [],
   },
-  plugins: lazyPlugins(() => [voidPlugin(), UnoCSS(), ...voidVue()]),
+  plugins: lazyPlugins(() => (process.env.VITEST ? [] : [voidPlugin(), UnoCSS(), ...voidVue()])),
   staged: {
     "*": "vp check --fix",
   },

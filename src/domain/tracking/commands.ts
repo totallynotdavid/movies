@@ -131,10 +131,10 @@ export async function unwatchEpisode(
 }
 
 async function write(statements: Statement[]): Promise<Result<void, TrackingError>> {
-  const result = await attempt(
-    runBatch(statements),
-    (cause): TrackingError => ({ kind: "persistence_failed", cause }),
-  );
+  const result = await attempt(runBatch(statements), (cause): TrackingError => ({
+    kind: "persistence_failed",
+    cause,
+  }));
   if (!result.ok) return result;
   return ok(undefined);
 }

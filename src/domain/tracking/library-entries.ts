@@ -88,10 +88,10 @@ export async function findEntry(
 export async function upsertEntry(
   row: LibraryEntryRecord,
 ): Promise<Result<LibraryEntryRecord, TrackingError>> {
-  const result = await attempt(
-    db.batch([entryUpsertWrite(row)]),
-    (cause): TrackingError => ({ kind: "persistence_failed", cause }),
-  );
+  const result = await attempt(db.batch([entryUpsertWrite(row)]), (cause): TrackingError => ({
+    kind: "persistence_failed",
+    cause,
+  }));
   if (!result.ok) return result;
   return ok(row);
 }
