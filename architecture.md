@@ -78,9 +78,7 @@ events are an immutable log. Displayed library status and recency are derived
 from that log and the user-filed status. Movies use a null episode identity;
 shows use season and episode identity.
 
-Do not add RBAC tables (`roles`, `permissions`, `role_permissions`, or
-`user_roles`) unless the feature explicitly requires them. Seed data uses
-committed local fixtures and never needs network access.
+Seed data uses committed local fixtures and never needs network access.
 
 ## TMDB boundary
 

@@ -35,13 +35,6 @@ This setup does not need an API key.
 - Browse title metadata, cast, crew, people, and public watch activity.
 - View private profiles, public profiles, activity summaries, and yearly recaps.
 
-## Non-goals
-
-- The app does not stream, download, or host movies or shows.
-- The app does not require TMDB access for its committed local catalog.
-- The app does not treat remote metadata as a replacement for user watch
-  history.
-
 ## Read next
 
 - [Manual](docs/readme.md) for local development, database, fixture, and
