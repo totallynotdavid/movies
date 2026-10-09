@@ -179,9 +179,8 @@ endpoint with `POST /__void/scheduled` when testing a cron locally.
 
 The title page reads public episode data and per-user watch marks separately.
 Profile reads go through `src/read-models/viewable-profile.ts`, so a private
-profile is visible only to its owner. `profilePage` loads the profile owner's
-settings for both private and public profiles. The public `ProfileCard` receives
-that `ratingSystem` and uses it to format the displayed average score. As a
-result, a public viewer can infer the profile owner's selected rating system
-from the formatted score. The code does not omit this value from the public
-projection.
+profile is visible only to its owner. `profilePage` formats the displayed
+average score in the viewer's own rating system (the default system for an
+anonymous viewer) and never reads the profile owner's settings, so
+`ProfileCardModel` has no rating system field and a public profile reveals
+nothing about the owner's choice.
