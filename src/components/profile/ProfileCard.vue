@@ -15,7 +15,7 @@ const props = defineProps<{ card: ProfileCardModel }>();
   <div class="flex flex-col gap-10">
     <ProfileHeader :identity="props.card.identity">
       <template #meta>
-        <ProfileStatStrip :stats="props.card.stats" :rating-system="props.card.ratingSystem" />
+        <ProfileStatStrip :stats="props.card.stats" :average-score="props.card.averageScore" />
       </template>
       <template #aside>
         <slot name="header-aside" />

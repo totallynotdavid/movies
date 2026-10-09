@@ -3,6 +3,7 @@ import { buildMirror, type Mirror } from "@/domain/insights/mirror";
 import { buildProfileActivity } from "@/domain/insights/profile";
 import { wrappedYearsForUser } from "@/domain/insights/wrapped";
 import { buildProfileCard, type ProfileCardModel } from "@/domain/profile-card";
+import type { RatingSystem } from "@/domain/rating";
 import { buildRecapYears, type RecapYear } from "@/domain/recaps";
 import { favoriteMediaForUser, favoritePeopleForUser } from "@/domain/tracking/favorites";
 import { entriesWithProgress } from "@/domain/tracking/library-entries";
@@ -32,9 +33,9 @@ export async function profilePage(input: {
   const { profile, owner } = visible;
   const today = input.today ?? new Date();
 
-  const [settings, history, entries, favoriteMedia, favoritePeople, activityYears] =
+  const [viewerRatingSystem, history, entries, favoriteMedia, favoritePeople, activityYears] =
     await Promise.all([
-      getUserSettings(profile.id),
+      viewerRatingSystemFor(input.viewerId),
       listWatchHistory(profile.id),
       entriesWithProgress(profile.id),
       favoriteMediaForUser(profile.id),
@@ -58,7 +59,7 @@ export async function profilePage(input: {
     isPrivate: profile.visibility !== "public",
     card: buildProfileCard({
       profile,
-      ratingSystem: settings.ratingSystem,
+      viewerRatingSystem,
       stats,
       activity,
       favorites: { media: favoriteMedia, people: favoritePeople },
@@ -66,6 +67,11 @@ export async function profilePage(input: {
     insights,
     recapYears,
   };
+}
+
+async function viewerRatingSystemFor(viewerId: string | null): Promise<RatingSystem> {
+  if (!viewerId) return "score100";
+  return (await getUserSettings(viewerId)).ratingSystem;
 }
 
 async function genresForHistory(history: { mediaId: string }[]): Promise<Map<string, string[]>> {

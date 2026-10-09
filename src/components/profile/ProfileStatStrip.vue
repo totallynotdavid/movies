@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { ProfileStats } from "@/domain/insights/profile";
-import { formatScore, type RatingSystem } from "@/domain/rating";
 
 const props = defineProps<{
   stats: ProfileStats;
-  ratingSystem: RatingSystem;
+  averageScore: string | null;
 }>();
 
 const items = computed(() => {
@@ -13,11 +12,8 @@ const items = computed(() => {
     { value: String(props.stats.tracked), label: "tracked" },
     { value: String(props.stats.watchDays), label: "watch days" },
   ];
-  if (props.stats.averageScore100 !== null) {
-    out.push({
-      value: formatScore(props.stats.averageScore100, props.ratingSystem),
-      label: "avg",
-    });
+  if (props.averageScore !== null) {
+    out.push({ value: props.averageScore, label: "avg" });
   }
   return out;
 });

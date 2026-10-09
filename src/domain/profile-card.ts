@@ -1,9 +1,11 @@
 import type { MediaRecord } from "@/domain/catalog/media";
-import type { RatingSystem } from "@/domain/rating";
+import { formatScore, type RatingSystem } from "@/domain/rating";
 import type { ProfileIdentity } from "@/domain/user";
 import type { AvatarColor } from "@/shared/types/identity";
 import type { ProfileActivity, ProfileStats } from "@/domain/insights/profile";
 
+// The card is public. It carries scores already formatted for the viewer and
+// no rating system, so the owner's setting has nowhere to travel.
 export type ProfileCardModel = {
   identity: {
     displayName: string;
@@ -12,7 +14,7 @@ export type ProfileCardModel = {
     avatarColor: AvatarColor | null;
     joinedAt: number;
   };
-  ratingSystem: RatingSystem;
+  averageScore: string | null;
   stats: ProfileStats;
   activity: ProfileActivity;
   favorites: {
@@ -23,12 +25,12 @@ export type ProfileCardModel = {
 
 export function buildProfileCard(input: {
   profile: ProfileIdentity;
-  ratingSystem: RatingSystem;
+  viewerRatingSystem: RatingSystem;
   stats: ProfileStats;
   activity: ProfileActivity;
   favorites: ProfileCardModel["favorites"];
 }): ProfileCardModel {
-  const { profile, ratingSystem, stats, activity, favorites } = input;
+  const { profile, viewerRatingSystem, stats, activity, favorites } = input;
 
   return {
     identity: {
@@ -38,7 +40,10 @@ export function buildProfileCard(input: {
       avatarColor: profile.avatarColor,
       joinedAt: profile.joinedAt,
     },
-    ratingSystem,
+    averageScore:
+      stats.averageScore100 === null
+        ? null
+        : formatScore(stats.averageScore100, viewerRatingSystem),
     stats,
     activity,
     favorites,
