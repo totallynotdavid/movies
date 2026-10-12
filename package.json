@@ -18,7 +18,7 @@
     "postinstall": "vp config"
   },
   "dependencies": {
-    "@void/vue": "^0.25.0",
+    "@void/vue": "^0.26.1",
     "drizzle-orm": "^0.45.3",
     "valibot": "^1.5.0",
     "void": "^0.25.0",
