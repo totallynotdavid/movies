@@ -1,0 +1,12 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index d70d6a5a8c5d7b021d08c9cf70d62fb8666875ad..37e289262da4691722eaff09c2f9c8cd20eff814 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -96170,6 +96170,7 @@ const nodeJsCompatPlugin = createPlugin("nodejs-compat", (ctx) => {
+ 				const result = nodeJsCompat.resolveNodeJsImport(source);
+ 				if (!result) return;
+ 				if (this.environment.mode === "dev") {
++					if (!this.environment.depsOptimizer) return this.resolve(result.resolved, importer, options);
+ 					assert(this.environment.depsOptimizer, "depsOptimizer is required in dev mode");
+ 					const { id } = this.environment.depsOptimizer.registerMissingImport(result.unresolved, result.resolved);
+ 					return this.resolve(id, importer, options);
