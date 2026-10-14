@@ -8,8 +8,8 @@ The repository pins Node and Vite+ in `mise.toml`:
 
 ```toml
 [tools]
-node = "26.2.0"
-vp = "1.0.0"
+node = "26.11.1"
+vp = "1.1.0"
 ```
 
 Use Bun for package scripts. Vite+ is the project workflow tool.
