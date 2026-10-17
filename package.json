@@ -1,20 +1,6 @@
 {
   "type": "module",
   "scripts": {
-    "dev": "vp dev",
-    "predev": "bun scripts/setup.ts",
-    "build": "vp build",
-    "preview": "vp preview",
-    "check": "vp check",
-    "lint": "vp lint && vp fmt --check",
-    "lint:fix": "vp lint --fix && vp fmt",
-    "db:migrate": "vp exec void db migrate",
-    "db:migrate:remote": "vp exec void db migrate --remote",
-    "db:seed": "vp exec void db seed",
-    "fixtures:fetch": "bun --env-file .env scripts/fetch-metadata.ts --all",
-    "fixtures:trending": "bun --env-file .env scripts/fetch-metadata.ts --trending",
-    "release": "vp check && vp exec void db migrate --remote && vp exec void deploy",
-    "recover": "vp exec void db migrate --remote && vp exec void db seed && vp exec void deploy",
     "postinstall": "vp config"
   },
   "dependencies": {
