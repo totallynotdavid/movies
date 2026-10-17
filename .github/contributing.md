@@ -2,14 +2,15 @@
 
 Owner: project maintainers.
 
-Read the [architecture](architecture.md) before changing a boundary and the
-[development manual](docs/development.md) before running project commands.
+Read the [architecture](../docs/architecture.md) before changing a boundary and
+the [development manual](../docs/development.md) before running project
+commands.
 
 ## Set up
 
 Create `.env`, install dependencies, and start the local app as described in the
-[local setup guide](docs/development.md#local-setup). The setup uses committed
-fixtures and does not need a TMDB token.
+[local setup guide](../docs/development.md#local-setup). The setup uses
+committed fixtures and does not need a TMDB token.
 
 ## Verify changes
 
