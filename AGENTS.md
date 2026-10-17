@@ -5,11 +5,12 @@ Owner: project maintainers.
 This file contains rules for agents working in this repository. The user
 documentation owns the explanation of the system and its operational procedures:
 
-- [Architecture](architecture.md) owns module boundaries, data ownership,
+- [Architecture](docs/architecture.md) owns module boundaries, data ownership,
   hydration, persistence, and verified runtime constraints.
 - [Development manual](docs/development.md) owns setup, commands, database,
   fixtures, deployment, and local troubleshooting.
-- [Contributing](CONTRIBUTING.md) owns the contributor workflow and checks.
+- [Contributing](.github/contributing.md) owns the contributor workflow and
+  checks.
 
 ## Readability
 

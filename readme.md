@@ -40,5 +40,7 @@ This setup does not need an API key.
 
 - [Manual](docs/readme.md) for local development, database, fixture, and
   deployment procedures.
-- [Architecture](architecture.md) for the module map and data-flow contracts.
-- [Contributing](CONTRIBUTING.md) for the contributor workflow and checks.
+- [Architecture](docs/architecture.md) for the module map and data-flow
+  contracts.
+- [Contributing](.github/contributing.md) for the contributor workflow and
+  checks.
