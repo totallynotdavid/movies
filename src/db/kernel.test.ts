@@ -1,25 +1,17 @@
 import { describe, expect, it } from "vite-plus/test";
 import { insertChunks, selectByIds } from "./kernel";
 
-// The kernel exists to keep every bulk write under D1's 100-bound-parameter cap
-// without per-call-site magic constants. These tests lock the chunk math: the
-// thing that regresses *silently* when a column is added to a write path.
+// Bulk writes must stay under D1's 100-bound-parameter cap. A column added to a
+// write path shrinks the chunk silently, so these lock the chunk math.
 
 describe("insertChunks", () => {
-  it("splits rows so no chunk can exceed the 90-param cap", () => {
-    // 10 bound columns per row means 9 rows per statement under the 90-param cap.
-    const rows = Array.from({ length: 200 }, (_, i) => ({
-      a: i,
-      b: i,
-      c: i,
-      d: i,
-      e: i,
-      f: i,
-      g: i,
-      h: i,
-      j: i,
-      k: i,
-    }));
+  it.each([
+    { columns: 10, rowCount: 200, maxRows: 9 },
+    { columns: 30, rowCount: 10, maxRows: 3 },
+  ])("keeps $columns-column rows under the 90-param cap", ({ columns, rowCount, maxRows }) => {
+    const rows = Array.from({ length: rowCount }, (_, i) =>
+      Object.fromEntries(Array.from({ length: columns }, (_, c) => [`col${c}`, i])),
+    );
 
     const parts: (typeof rows)[] = [];
     const statements = insertChunks(rows, (part) => {
@@ -28,29 +20,9 @@ describe("insertChunks", () => {
     });
 
     expect(statements).toHaveLength(parts.length);
-    expect(parts).toHaveLength(Math.ceil(200 / 9));
-    const columns = 10;
-    for (const part of parts) {
-      expect(part.length).toBeLessThanOrEqual(9);
-      expect(part.length * columns).toBeLessThanOrEqual(90);
-    }
-    // Every row lands exactly once, in order.
+    expect(parts).toHaveLength(Math.ceil(rowCount / maxRows));
+    for (const part of parts) expect(part.length).toBeLessThanOrEqual(maxRows);
     expect(parts.flat()).toEqual(rows);
-  });
-
-  it("shrinks the chunk as the bound-column count grows", () => {
-    // Wider rows reduce the allowed rows per statement.
-    const wide = (i: number) =>
-      Object.fromEntries(Array.from({ length: 30 }, (_, c) => [`col${c}`, i]));
-    const rows = Array.from({ length: 10 }, (_, i) => wide(i));
-
-    const parts: (typeof rows)[] = [];
-    insertChunks(rows, (part) => {
-      parts.push(part);
-      return part as never;
-    });
-
-    for (const part of parts) expect(part.length).toBeLessThanOrEqual(3);
   });
 
   it("returns no statements for an empty payload", () => {

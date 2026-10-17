@@ -2,22 +2,40 @@ import { describe, expect, it } from "vite-plus/test";
 import { instantFor } from "./instant";
 
 describe("instantFor", () => {
-  it("falls back to UTC when no timezone is set", () => {
-    const result = instantFor(Date.parse("2024-01-15T23:30:00Z"), null);
-    expect(result.watchedOn).toBe("2024-01-15");
-    expect(result.utcOffsetMinutes).toBe(0);
-  });
-
-  it("stamps the local day and offset for a zone", () => {
-    const result = instantFor(Date.parse("2024-01-15T12:00:00Z"), "America/New_York");
-    expect(result.watchedOn).toBe("2024-01-15");
-    expect(result.utcOffsetMinutes).toBe(-300); // EST = UTC-5
-  });
-
-  it("rolls the local day back when the instant is past midnight UTC but not local", () => {
-    // 02:00 UTC is 21:00 the previous day in New York.
-    const result = instantFor(Date.parse("2024-01-15T02:00:00Z"), "America/New_York");
-    expect(result.watchedOn).toBe("2024-01-14");
-    expect(result.utcOffsetMinutes).toBe(-300);
+  it.each([
+    {
+      name: "falls back to UTC when no timezone is set",
+      at: "2024-01-15T23:30:00Z",
+      zone: null,
+      watchedOn: "2024-01-15",
+      utcOffsetMinutes: 0,
+    },
+    {
+      name: "falls back to UTC for an unknown timezone",
+      at: "2024-01-15T23:30:00Z",
+      zone: "Not/AZone",
+      watchedOn: "2024-01-15",
+      utcOffsetMinutes: 0,
+    },
+    {
+      name: "stamps the local day and offset for a zone",
+      at: "2024-01-15T12:00:00Z",
+      zone: "America/New_York",
+      watchedOn: "2024-01-15",
+      utcOffsetMinutes: -300,
+    },
+    {
+      name: "rolls the local day back when the instant is past midnight UTC but not local",
+      at: "2024-01-15T02:00:00Z",
+      zone: "America/New_York",
+      watchedOn: "2024-01-14",
+      utcOffsetMinutes: -300,
+    },
+  ])("$name", ({ at, zone, watchedOn, utcOffsetMinutes }) => {
+    expect(instantFor(Date.parse(at), zone)).toEqual({
+      watchedAt: Date.parse(at),
+      watchedOn,
+      utcOffsetMinutes,
+    });
   });
 });

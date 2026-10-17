@@ -15,68 +15,104 @@ const ep = (seasonNumber: number, episodeNumber: number): EpisodeRef => ({
 const aired = [ep(1, 1), ep(1, 2), ep(1, 3)];
 
 describe("deriveShowProgress", () => {
-  it("counts watched aired episodes and points at the next one", () => {
-    const progress = deriveShowProgress([ep(1, 1), ep(1, 2)], aired);
-    expect(progress.watchedEpisodeCount).toBe(2);
-    expect(progress.airedEpisodeCount).toBe(3);
-    expect(progress.nextEpisode).toEqual(ep(1, 3));
-    expect(progress.allAiredWatched).toBe(false);
+  it.each([
+    {
+      name: "counts watched aired episodes and points at the next one",
+      watched: [ep(1, 1), ep(1, 2)],
+      catalog: aired,
+      expected: {
+        watchedEpisodeCount: 2,
+        airedEpisodeCount: 3,
+        nextEpisode: ep(1, 3),
+        allAiredWatched: false,
+      },
+    },
+    {
+      name: "ignores gaps and rewatches, so next is the first unwatched in airing order",
+      watched: [ep(1, 3), ep(1, 1), ep(1, 1)],
+      catalog: aired,
+      expected: {
+        watchedEpisodeCount: 2,
+        airedEpisodeCount: 3,
+        nextEpisode: ep(1, 2),
+        allAiredWatched: false,
+      },
+    },
+    {
+      name: "orders aired input before deriving the next episode",
+      watched: [ep(1, 1)],
+      catalog: [ep(1, 3), ep(1, 1), ep(1, 2)],
+      expected: {
+        watchedEpisodeCount: 1,
+        airedEpisodeCount: 3,
+        nextEpisode: ep(1, 2),
+        allAiredWatched: false,
+      },
+    },
+    {
+      name: "marks completion when every aired episode is watched",
+      watched: [ep(1, 1), ep(1, 2), ep(1, 3)],
+      catalog: aired,
+      expected: {
+        watchedEpisodeCount: 3,
+        airedEpisodeCount: 3,
+        nextEpisode: null,
+        allAiredWatched: true,
+      },
+    },
+    {
+      name: "counts watched but cannot project next when the catalog is empty",
+      watched: [ep(1, 1), ep(1, 2)],
+      catalog: [],
+      expected: {
+        watchedEpisodeCount: 2,
+        airedEpisodeCount: null,
+        nextEpisode: null,
+        allAiredWatched: false,
+      },
+    },
+    {
+      name: "advances progress with provisional watches until the episode list hydrates",
+      watched: [],
+      catalog: [],
+      provisional: 2,
+      expected: {
+        watchedEpisodeCount: 2,
+        airedEpisodeCount: null,
+        nextEpisode: null,
+        allAiredWatched: false,
+      },
+    },
+    {
+      name: "reconciles provisional watches onto the earliest unwatched aired episodes",
+      watched: [ep(1, 2)],
+      catalog: aired,
+      provisional: 1,
+      expected: {
+        watchedEpisodeCount: 2,
+        airedEpisodeCount: 3,
+        nextEpisode: ep(1, 3),
+        allAiredWatched: false,
+      },
+    },
+    {
+      name: "caps reconciled provisional watches at the aired episode list",
+      watched: [],
+      catalog: aired,
+      provisional: 10,
+      expected: {
+        watchedEpisodeCount: 3,
+        airedEpisodeCount: 3,
+        nextEpisode: null,
+        allAiredWatched: true,
+      },
+    },
+  ])("$name", ({ watched, catalog, provisional, expected }) => {
+    expect(deriveShowProgress(watched, catalog, provisional)).toEqual(expected);
   });
 
-  it("ignores gaps and rewatches (next is the first unwatched in airing order)", () => {
-    // Out of order with a duplicate watch. Episode 2 remains the next unwatched.
-    const progress = deriveShowProgress([ep(1, 3), ep(1, 1), ep(1, 1)], aired);
-    expect(progress.watchedEpisodeCount).toBe(2);
-    expect(progress.nextEpisode).toEqual(ep(1, 2));
-  });
-
-  it("orders aired input before deriving the next episode", () => {
-    const progress = deriveShowProgress([ep(1, 1)], [ep(1, 3), ep(1, 1), ep(1, 2)]);
-    expect(progress.nextEpisode).toEqual(ep(1, 2));
-  });
-
-  it("marks completion when every aired episode is watched", () => {
-    const progress = deriveShowProgress([ep(1, 1), ep(1, 2), ep(1, 3)], aired);
-    expect(progress.allAiredWatched).toBe(true);
-    expect(progress.nextEpisode).toBeNull();
-  });
-
-  it("a rewatch of an earlier episode does not complete the show", () => {
-    // Two of three aired are watched, then episode 1 is logged again.
-    // Completion must stay false because episode 3 is still unwatched.
-    const progress = deriveShowProgress([ep(1, 1), ep(1, 2), ep(1, 1)], aired);
-    expect(progress.allAiredWatched).toBe(false);
-    expect(progress.watchedEpisodeCount).toBe(2);
-    expect(progress.nextEpisode).toEqual(ep(1, 3));
-  });
-
-  it("counts watched but cannot project next when the catalog is empty", () => {
-    const progress = deriveShowProgress([ep(1, 1), ep(1, 2)], []);
-    expect(progress.watchedEpisodeCount).toBe(2);
-    expect(progress.airedEpisodeCount).toBeNull();
-    expect(progress.nextEpisode).toBeNull();
-    expect(progress.allAiredWatched).toBe(false);
-  });
-
-  it("advances progress with provisional watches until the episode list hydrates", () => {
-    const progress = deriveShowProgress([], [], 2);
-    expect(progress.watchedEpisodeCount).toBe(2);
-    expect(progress.airedEpisodeCount).toBeNull();
-    expect(progress.nextEpisode).toBeNull();
-  });
-
-  it("reconciles provisional watches onto the earliest unwatched aired episodes", () => {
-    const progress = deriveShowProgress([ep(1, 2)], aired, 1);
-    expect(progress.watchedEpisodeCount).toBe(2);
-    expect(progress.nextEpisode).toEqual(ep(1, 3));
+  it("resolves provisional watches to the earliest unwatched episodes", () => {
     expect(resolveWatchedEpisodes([ep(1, 2)], aired, 1)).toEqual([ep(1, 1), ep(1, 2)]);
-  });
-
-  it("caps reconciled provisional watches at the aired episode list", () => {
-    const progress = deriveShowProgress([], aired, 10);
-    expect(progress.watchedEpisodeCount).toBe(3);
-    expect(progress.allAiredWatched).toBe(true);
-    expect(progress.nextEpisode).toBeNull();
   });
 });
 
@@ -89,53 +125,51 @@ const progressOf = (overrides: Partial<ShowProgress> = {}): ShowProgress => ({
 });
 
 describe("pickEpisodeToLog", () => {
-  it("uses the requested explicit episode when present", () => {
-    const result = pickEpisodeToLog(progressOf(), 8, { seasonNumber: 2, episodeNumber: 3 });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value).toEqual({ seasonNumber: 2, episodeNumber: 3 });
-  });
-
-  it("falls back to the next aired episode when the catalog is loaded", () => {
-    const result = pickEpisodeToLog(
-      progressOf({
+  it.each([
+    {
+      name: "uses the requested explicit episode when present",
+      progress: progressOf(),
+      total: 8,
+      requested: ep(2, 3),
+      expected: { ok: true, value: ep(2, 3) },
+    },
+    {
+      name: "uses the next aired episode when the catalog is loaded",
+      progress: progressOf({
         watchedEpisodeCount: 2,
         airedEpisodeCount: 4,
-        nextEpisode: { seasonNumber: 1, episodeNumber: 3 },
+        nextEpisode: ep(1, 3),
       }),
-      8,
-    );
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value).toEqual({ seasonNumber: 1, episodeNumber: 3 });
-  });
-
-  it("allows a provisional quick-log while the episode list is still empty", () => {
-    const result = pickEpisodeToLog(progressOf({ watchedEpisodeCount: 1 }), null);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value).toBeNull();
-  });
-
-  it("stops provisional quick-logs at the known episode total", () => {
-    const result = pickEpisodeToLog(progressOf({ watchedEpisodeCount: 8 }), 8);
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error).toEqual({ kind: "already_at_episode_total", total: 8 });
-  });
-
-  it("stops quick-logs when every aired episode is already watched", () => {
-    const result = pickEpisodeToLog(
-      progressOf({
+      total: 8,
+      requested: undefined,
+      expected: { ok: true, value: ep(1, 3) },
+    },
+    {
+      name: "allows a provisional quick-log while the episode list is still empty",
+      progress: progressOf({ watchedEpisodeCount: 1 }),
+      total: null,
+      requested: undefined,
+      expected: { ok: true, value: null },
+    },
+    {
+      name: "stops provisional quick-logs at the known episode total",
+      progress: progressOf({ watchedEpisodeCount: 8 }),
+      total: 8,
+      requested: undefined,
+      expected: { ok: false, error: { kind: "already_at_episode_total", total: 8 } },
+    },
+    {
+      name: "stops quick-logs when every aired episode is already watched",
+      progress: progressOf({
         watchedEpisodeCount: 3,
         airedEpisodeCount: 3,
-        nextEpisode: null,
         allAiredWatched: true,
       }),
-      8,
-    );
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error).toEqual({ kind: "already_at_episode_total", total: 3 });
+      total: 8,
+      requested: undefined,
+      expected: { ok: false, error: { kind: "already_at_episode_total", total: 3 } },
+    },
+  ])("$name", ({ progress, total, requested, expected }) => {
+    expect(pickEpisodeToLog(progress, total, requested)).toEqual(expected);
   });
 });

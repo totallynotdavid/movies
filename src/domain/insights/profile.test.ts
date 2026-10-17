@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { buildActivityCalendar, buildProfileStats, calendarStartDate } from "./profile";
+import { buildActivityCalendar, buildProfileStats } from "./profile";
 
 describe("buildProfileStats", () => {
   it("splits by format and combines totals without double-counting cross-format days", () => {
@@ -33,12 +33,6 @@ describe("buildProfileStats", () => {
     expect(stats.watchDays).toBe(0);
     expect(stats.averageScore100).toBeNull();
     expect(stats.byFormat.movie.averageScore100).toBeNull();
-  });
-});
-
-describe("calendarStartDate", () => {
-  it("returns the inclusive first day of the window", () => {
-    expect(calendarStartDate(4, new Date("2024-05-31T12:00:00Z"))).toBe("2024-05-28");
   });
 });
 

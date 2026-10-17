@@ -68,20 +68,16 @@ describe("profilePage rating system", () => {
     vi.mocked(wrappedYearsForUser).mockResolvedValue([]);
   });
 
-  it("formats the average in the viewer's system and never carries the owner's", async () => {
-    const page = await viewProfile("viewer-1");
+  it.each([
+    { name: "the viewer's system", viewerId: "viewer-1", averageScore: "4/5" },
+    { name: "the default system for an anonymous viewer", viewerId: null, averageScore: "80/100" },
+  ])("formats the average in $name and never carries the owner's", async (c) => {
+    const page = await viewProfile(c.viewerId);
     const payload = JSON.stringify(page);
 
     expect(payload).not.toContain("score10");
     expect(payload).not.toContain("8/10");
-    expect(page).toMatchObject({ kind: "profile", card: { averageScore: "4/5" } });
-  });
-
-  it("formats the average in the default system for an anonymous viewer", async () => {
-    const page = await viewProfile(null);
-
-    expect(JSON.stringify(page)).not.toContain("score10");
-    expect(page).toMatchObject({ card: { averageScore: "80/100" } });
+    expect(page).toMatchObject({ kind: "profile", card: { averageScore: c.averageScore } });
   });
 
   it("shows the owner their own system", async () => {

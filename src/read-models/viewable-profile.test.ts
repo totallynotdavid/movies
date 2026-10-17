@@ -32,29 +32,20 @@ describe("findViewableProfile", () => {
     expect(findProfileByUsernameMock).not.toHaveBeenCalled();
   });
 
-  it("returns public profiles for visitors", async () => {
-    const publicProfile = profile("public");
-    findProfileByUsernameMock.mockResolvedValue(publicProfile);
+  it.each([
+    { visibility: "public", viewerId: null, owner: false },
+    { visibility: "private", viewerId: "user-1", owner: true },
+    { visibility: "private", viewerId: "someone-else", owner: null },
+    { visibility: "private", viewerId: null, owner: null },
+  ] as const)(
+    "$visibility profile for viewer $viewerId",
+    async ({ visibility, viewerId, owner }) => {
+      const found = profile(visibility);
+      findProfileByUsernameMock.mockResolvedValue(found);
 
-    await expect(findViewableProfile("dubu", null)).resolves.toEqual({
-      profile: publicProfile,
-      owner: false,
-    });
-  });
-
-  it("hides private profiles from visitors", async () => {
-    findProfileByUsernameMock.mockResolvedValue(profile("private"));
-
-    await expect(findViewableProfile("dubu", "someone-else")).resolves.toBeNull();
-  });
-
-  it("returns private profiles for their owner", async () => {
-    const privateProfile = profile("private");
-    findProfileByUsernameMock.mockResolvedValue(privateProfile);
-
-    await expect(findViewableProfile("dubu", "user-1")).resolves.toEqual({
-      profile: privateProfile,
-      owner: true,
-    });
-  });
+      await expect(findViewableProfile("dubu", viewerId)).resolves.toEqual(
+        owner === null ? null : { profile: found, owner },
+      );
+    },
+  );
 });
