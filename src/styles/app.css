@@ -278,7 +278,6 @@ dialog::backdrop {
   background: color-mix(in oklch, var(--bg-elevated) 70%, transparent);
 }
 
-/* Scroll lock when any modal is open */
 html:has(dialog:modal) {
   overflow: hidden;
   scrollbar-gutter: stable;
@@ -364,7 +363,6 @@ dialog[open] {
   transform: scale(1.04);
 }
 
-/* Keyboard hint glow on "?" hold */
 kbd {
   position: relative;
 }
@@ -422,27 +420,6 @@ input[type="search"]::-webkit-search-results-decoration {
 ::view-transition-new(search-box) {
   animation-duration: 0.3s;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--bg-elevated) 25%,
-    var(--bg-muted) 50%,
-    var(--bg-elevated) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s infinite;
-  border-radius: 0.4rem;
-}
-
-@keyframes skeleton-shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
 }
 
 .fade-in {

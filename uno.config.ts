@@ -80,7 +80,6 @@ export default defineConfig({
     },
     animation: {
       keyframes: {
-        "skeleton-pulse": "{0%, 100% { opacity: 0.4 } 50% { opacity: 0.7 }}",
         "fade-in": "{from { opacity: 0 } to { opacity: 1 }}",
         "slide-up":
           "{from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) }}",
@@ -88,19 +87,14 @@ export default defineConfig({
           "{from { opacity: 0; transform: scale(0.95) } to { opacity: 1; transform: scale(1) }}",
       },
       durations: {
-        "skeleton-pulse": "2s",
         "fade-in": "0.3s",
         "slide-up": "0.4s",
         "scale-in": "0.2s",
       },
       timingFns: {
-        "skeleton-pulse": "ease-in-out",
         "fade-in": "ease-out",
         "slide-up": "cubic-bezier(0.22, 1, 0.36, 1)",
         "scale-in": "cubic-bezier(0.22, 1, 0.36, 1)",
-      },
-      counts: {
-        "skeleton-pulse": "infinite",
       },
     },
   },
