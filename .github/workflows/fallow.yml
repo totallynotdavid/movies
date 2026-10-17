@@ -22,13 +22,9 @@ jobs:
           # attribute findings as new-vs-inherited. A shallow clone breaks this.
           fetch-depth: 0
 
-      - uses: voidzero-dev/setup-vp@v1.21.2
-        with:
-          node-version: "24"
-          cache: true
-
-      - run: vp install
-      - run: vp exec void prepare
+      - uses: jdx/mise-action@v5
+      - run: mise run install
+      - run: mise run prepare
 
       # One audit run produces the PR-comment body and carries the gate verdict
       # in its exit code. Capture the code here, enforce it after commenting so a
@@ -37,7 +33,7 @@ jobs:
         id: audit
         run: |
           set +e
-          vp dlx fallow audit --format pr-comment-github --quiet > fallow-comment.md
+          mise run --quiet audit > fallow-comment.md
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           set -e
 
@@ -63,4 +59,6 @@ jobs:
 
       - name: Enforce gate
         if: always()
-        run: exit ${{ steps.audit.outputs.exit_code }}
+        env:
+          EXIT_CODE: ${{ steps.audit.outputs.exit_code }}
+        run: exit "$EXIT_CODE"
