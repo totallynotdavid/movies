@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "void/db";
 import { castCredits, crewCredits, people } from "@schema";
 import { insertChunks, selectByIds, type Statement } from "@/db/kernel";
@@ -78,15 +78,6 @@ export type CrewGroup<T> = {
   members: T[];
 };
 
-const KEY_CREW_JOBS = [
-  "Director",
-  "Creator",
-  "Writer",
-  "Screenplay",
-  "Story",
-  "Original Music Composer",
-];
-
 const castColumns = {
   id: castCredits.id,
   mediaId: castCredits.mediaId,
@@ -133,18 +124,6 @@ export async function listCast(
   return query;
 }
 
-const KEY_CREW_PREVIEW = 8;
-
-export async function listKeyCrew(mediaId: string): Promise<CrewRow[]> {
-  return db
-    .select(crewColumns)
-    .from(crewCredits)
-    .innerJoin(people, eq(crewCredits.personId, people.id))
-    .where(and(eq(crewCredits.mediaId, mediaId), inArray(crewCredits.job, KEY_CREW_JOBS)))
-    .orderBy(desc(crewCredits.episodeCount))
-    .limit(KEY_CREW_PREVIEW);
-}
-
 export async function listAllCrew(mediaId: string): Promise<CrewRow[]> {
   return db
     .select(crewColumns)
@@ -184,20 +163,4 @@ export function groupByDepartment<T extends { department: string }>(items: T[]):
     byDepartment.set(item.department, list);
   }
   return Array.from(byDepartment, ([department, members]) => ({ department, members }));
-}
-
-async function countRows(table: typeof castCredits | typeof crewCredits, mediaId: string) {
-  const rows = await db
-    .select({ n: sql<number>`count(*)` })
-    .from(table)
-    .where(eq(table.mediaId, mediaId));
-  return rows[0]?.n ?? 0;
-}
-
-export function countCast(mediaId: string) {
-  return countRows(castCredits, mediaId);
-}
-
-export function countCrew(mediaId: string) {
-  return countRows(crewCredits, mediaId);
 }
