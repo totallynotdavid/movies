@@ -6,7 +6,6 @@ defineProps<{
   subtitle?: string | null;
   year?: string | null;
   posterPath?: string | null;
-  mediaType?: "movie" | "show";
   slug?: string | null;
 }>();
 </script>

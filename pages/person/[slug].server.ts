@@ -16,7 +16,6 @@ type FilmographyView = {
   subtitle: string | null;
   year: string | null;
   posterPath: string | null;
-  mediaType: "movie" | "show";
   slug: string | null;
 };
 
@@ -29,7 +28,6 @@ export const loader = defineHandler(async (c) => {
 
   const { person, acting, crew } = await ensurePersonDetails(existing);
 
-  // Link filmography entries that exist in our catalog to their media page.
   const entries = [...acting, ...crew];
   const catalogRows =
     entries.length > 0
@@ -43,7 +41,6 @@ export const loader = defineHandler(async (c) => {
     subtitle: e.subtitle,
     year: e.date ? e.date.slice(0, 4) : null,
     posterPath: e.posterPath,
-    mediaType: e.mediaType,
     slug: slugByKey.get(`${e.mediaType}:${e.tmdbId}`) ?? null,
   });
 
