@@ -1,6 +1,11 @@
 {
   "extends": "./.void/tsconfig.json",
-  "files": ["./.void/db.d.ts", "./.void/routes.d.ts", "./.void/queues.d.ts", "./.void/env.d.ts"],
+  "files": [
+    "./.void/db.d.ts",
+    "./.void/routes.d.ts",
+    "./.void/queues.d.ts",
+    "./.void/env.d.ts"
+  ],
   "compilerOptions": {
     "types": ["void/env"],
     "module": "preserve",

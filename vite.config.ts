@@ -19,6 +19,12 @@ export default defineConfig({
   },
   fmt: {
     ignorePatterns: [],
+    overrides: [
+      {
+        files: ["**/*.md", "**/*.yml", "**/*.json", "**/*.jsonc"],
+        options: { printWidth: 80, proseWrap: "always" },
+      },
+    ],
   },
   plugins: lazyPlugins(() => (process.env.VITEST ? [] : [voidPlugin(), UnoCSS(), ...voidVue()])),
   staged: {
