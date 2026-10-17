@@ -38,7 +38,6 @@ const href = computed(() => (props.slug ? `/media/${props.slug}` : undefined));
         </div>
       </a>
 
-      <!-- Marker slot defaults to media type. Callers may replace it with status or progress. -->
       <div class="absolute top-1.5 left-1.5 z-10">
         <slot name="overlay">
           <span

@@ -1,5 +1,3 @@
-// Anonymous viewers receive public episode data without per-user watch reads.
-
 import type { MediaRecord } from "@/domain/catalog/media";
 import { listEpisodesBySeason } from "@/domain/catalog/episodes";
 import { EPISODES_TTL_MS, hydrationState } from "@/domain/hydration";

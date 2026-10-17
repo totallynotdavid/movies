@@ -160,10 +160,8 @@ export async function upsertMediaFromTmdb(input: UpsertMediaInput) {
   return id;
 }
 
-// Writes the Tier-1 detail scalars onto an existing media row, stamps the
-// freshness marker, and clears any prior error, all as one statement so the
-// hydration batch commits the row and its marker atomically. Cast/crew/genres/
-// companies/titles are separate statements in the same batch.
+// One statement writes the scalars, stamps the freshness marker and clears any
+// prior error, so the marker can never land without its data.
 export function mediaScalarsWrite(mediaId: string, scalars: MediaDetailScalars): Statement[] {
   const now = Date.now();
   return [
@@ -197,8 +195,6 @@ export function mediaScalarsWrite(mediaId: string, scalars: MediaDetailScalars):
   ];
 }
 
-// Records a Tier-1 hydration failure durably so it becomes observable state
-// rather than a swallowed exception.
 export function markDetailsFailedWrite(mediaId: string, error: string): Statement[] {
   const now = Date.now();
   return [

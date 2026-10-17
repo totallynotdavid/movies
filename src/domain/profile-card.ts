@@ -4,8 +4,6 @@ import type { ProfileIdentity } from "@/domain/user";
 import type { AvatarColor } from "@/shared/types/identity";
 import type { ProfileActivity, ProfileStats } from "@/domain/insights/profile";
 
-// The card is public. It carries scores already formatted for the viewer and
-// no rating system, so the owner's setting has nowhere to travel.
 export type ProfileCardModel = {
   identity: {
     displayName: string;

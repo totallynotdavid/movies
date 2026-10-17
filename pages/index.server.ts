@@ -8,8 +8,6 @@ import type { RatingSystem } from "@/domain/rating";
 
 export type Props = InferProps<typeof loader>;
 
-// Home is the library for a signed-in user; a pitch over the catalog for a guest.
-// Continue watching is derived from the same entries.
 export const loader = defineHandler(async () => {
   const user = getUser();
 

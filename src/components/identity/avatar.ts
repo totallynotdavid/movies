@@ -14,7 +14,6 @@ export const AVATAR_COLOR_HEX: Record<AvatarColor, string> = {
 
 export const DEFAULT_AVATAR_COLOR: AvatarColor = "neutral";
 
-// Fallback glyph when no emoji is set: first character of the display name.
 export function avatarInitial(displayName: string): string {
   return displayName.trim().charAt(0).toUpperCase() || "?";
 }

@@ -12,8 +12,6 @@ import type { MediaRef } from "@/shared/tracking";
 
 const props = defineProps<Props>();
 
-// Reuse the one search composable, seeded from the server-rendered results so the
-// first paint already has hits; typing re-runs it client-side.
 const search = useMediaSearch({ limit: 40 });
 search.query.value = props.query;
 search.local.value = props.results.local;
@@ -24,8 +22,6 @@ if (props.query) search.hasSearched.value = true;
 const inputRef = ref<HTMLInputElement | null>(null);
 const queryInput = ref(props.query);
 const { layout } = useLayoutPreference();
-// Filter and sort live in the URL so a refresh or a shared link restores the
-// exact view, not just the query. useUrlState seeds these from the URL on mount.
 const typeFilter = ref("all");
 const sortKey = ref("relevance");
 useUrlState({ q: queryInput, type: typeFilter, sort: sortKey }, { type: "all", sort: "relevance" });
@@ -108,7 +104,6 @@ const items = computed<Item[]>(() => {
 const trimmed = computed(() => queryInput.value.trim());
 const hasResults = computed(() => items.value.length > 0);
 
-// Debounced re-search; the URL mirroring is owned by useUrlState.
 let debounce: ReturnType<typeof setTimeout> | undefined;
 watch(queryInput, (q) => {
   search.query.value = q;

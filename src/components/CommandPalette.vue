@@ -27,7 +27,6 @@ const activeIndex = ref(0);
 
 const search = useMediaSearch({ limit: 8 });
 
-// Empty input and "/" show navigation commands; any other query searches titles.
 const showCommands = computed(() => !query.value.trim() || query.value.startsWith("/"));
 
 const commands = computed<Command[]>(() => {
@@ -70,9 +69,6 @@ const filteredCommands = computed(() => {
 
 const hasResults = computed(() => search.local.value.length > 0 || search.remote.value.length > 0);
 
-// Flat list of everything the arrow keys can land on, in render order, so the
-// palette behaves like every other ⌘K (Spotlight, Linear, Raycast): a highlight
-// moves with Up/Down and Enter activates whatever is highlighted.
 type Nav =
   | { kind: "command"; cmd: Command }
   | { kind: "media"; slug: string | null }
@@ -93,7 +89,6 @@ const navItems = computed<Nav[]>(() => {
 
 const localCount = computed(() => search.local.value.length);
 
-// Results shift under the cursor as the user types; keep the highlight valid.
 watch(navItems, () => {
   activeIndex.value = 0;
 });
@@ -129,7 +124,6 @@ function activate(item: Nav) {
   window.location.href = item.href;
 }
 
-// Debounce title search so each keystroke does not hit the network.
 let debounce: ReturnType<typeof setTimeout> | undefined;
 watch(query, (q) => {
   if (showCommands.value) return;
@@ -337,7 +331,6 @@ onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
             />
           </div>
 
-          <!-- Full-result browsing lives on /search; the palette stays capped for quick navigation. -->
           <a
             v-if="query.trim()"
             :href="`/search?q=${encodeURIComponent(query.trim())}`"

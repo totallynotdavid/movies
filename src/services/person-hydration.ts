@@ -17,10 +17,6 @@ export type PersonView = {
   crew: PersonCrewEntry[];
 };
 
-// Person pages always call TMDB on view: the filmography (acting/crew) is not
-// persisted, so it must be fetched to render. We persist only the scalar bio
-// fields. A failure is recorded durably and degrades to the existing record
-// with an empty filmography rather than breaking the page.
 export async function ensurePersonDetails(person: PersonRecord): Promise<PersonView> {
   if (!tmdbToken()) return { person, acting: [], crew: [] };
 

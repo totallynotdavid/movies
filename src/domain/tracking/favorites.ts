@@ -7,7 +7,6 @@ export async function listFavoriteMedia(userId: string) {
   return db.select().from(favoriteMedia).where(eq(favoriteMedia.userId, userId));
 }
 
-// Favorites joined to catalog rows for profile and media-page reads.
 export async function favoriteMediaForUser(
   userId: string,
 ): Promise<{ mediaId: string; media: MediaRecord }[]> {

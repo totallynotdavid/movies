@@ -9,9 +9,8 @@ const PARAM_CAP = 90;
 
 export type Statement = BatchItem<"sqlite">;
 
-// Splits rows into statements that each stay under the bound-parameter cap. The
-// conflict clause lives in `build` (the caller owns upsert semantics); the
-// kernel owns only the chunk math. Returns statements, it does not execute.
+// The caller's `build` owns the conflict clause.
+// The kernel owns only the chunk math.
 export function insertChunks<Row>(rows: Row[], build: (part: Row[]) => Statement): Statement[] {
   if (rows.length === 0) return [];
   const boundColumns = Object.keys(rows[0] as Record<string, unknown>).length;

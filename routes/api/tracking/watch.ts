@@ -27,7 +27,6 @@ export const POST = defineHandler(async (c) => {
   }));
   if (!resolved.ok) return c.json({ error: resolved.error }, httpStatusFor(resolved.error));
 
-  // An explicit episode is optional; both numbers must be present together.
   let episode: EpisodeRef | undefined;
   if (body.seasonNumber !== undefined || body.episodeNumber !== undefined) {
     if (typeof body.seasonNumber !== "number" || typeof body.episodeNumber !== "number") {

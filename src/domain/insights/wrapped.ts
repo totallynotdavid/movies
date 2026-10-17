@@ -179,8 +179,6 @@ function textAsc(a: string, b: string): number {
 
 type Comparator<T> = (a: T, b: T) => number;
 
-// Tie-break ladder: the first non-zero comparator decides. Replaces the repeated
-// `const rank = ...; if (rank !== 0) return rank;` chains.
 function compareBy<T>(...comparators: Comparator<T>[]): Comparator<T> {
   return (a, b) => {
     for (const compare of comparators) {

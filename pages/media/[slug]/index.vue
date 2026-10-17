@@ -21,8 +21,6 @@ const seasonCount = ref(props.media.seasonCount);
 const episodeTotal = ref(props.media.episodeCount);
 const episodeHydrationError = ref(props.media.episodesError);
 
-// Episode picker state. Watched keys are seeded from the loader and updated
-// optimistically as the user logs episodes.
 const watchedKeys = ref<string[]>([...props.watchedEpisodeKeys]);
 const canLogEpisodes = computed(() => !!props.user);
 
@@ -49,8 +47,6 @@ function applyShowView(view: ShowViewDto) {
   episodeHydrationError.value = view.episodesError;
 }
 
-// Episodes hydrate off-request; poll until the catalog reports a settled state
-// (anything but a bare stub), then stop.
 const { start: startHydrationPoll } = useHydrationPoll<ShowViewDto>({
   fetch: fetchShowView,
   isDone: (view) => view.hydrationState !== "stub",
@@ -76,9 +72,8 @@ async function onUnlogEpisode(seasonNumber: number, episodeNumber: number) {
   watchedKeys.value = watchedKeys.value.filter((key) => key !== k);
 }
 
-// Untracking discards watch history, so guard it with an inline two-step confirm
-// rather than a modal: the first click arms, a second within a few seconds
-// commits. Keeps momentum while making the data loss deliberate.
+// Require a second click before discarding watch history. The delay replaces a
+// confirmation modal for this destructive action.
 const confirmRemove = ref(false);
 let confirmTimer: ReturnType<typeof setTimeout> | undefined;
 function onRemoveClick() {

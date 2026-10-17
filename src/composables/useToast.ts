@@ -1,10 +1,5 @@
 import { ref } from "vue";
 
-// The app's single feedback channel. Any action that mutates server state reports
-// its outcome here instead of each surface re-inventing (or forgetting) success
-// and failure feedback. The host renders one aria-live region, so this doubles as
-// the screen-reader announcer.
-
 export type ToastTone = "success" | "error" | "info";
 
 export type ToastAction = {

@@ -1,10 +1,5 @@
 import { onMounted, watch, type Ref } from "vue";
 
-// The single owner of "this view's state lives in the URL". It seeds the given
-// string refs from the current query string on mount and mirrors later changes
-// back with replaceState (no navigation), so a refresh or a shared link restores
-// the exact filters/sort the user was looking at. Values equal to a declared
-// default are omitted to keep the URL clean.
 export function useUrlState(
   state: Record<string, Ref<string>>,
   defaults: Record<string, string> = {},

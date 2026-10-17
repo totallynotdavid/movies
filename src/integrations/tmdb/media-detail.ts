@@ -14,15 +14,7 @@ import type {
 // Localized titles we keep; the source title's own language is added on top.
 const TITLE_LANGUAGES = ["es", "zh", "ja", "ko", "fr", "de"];
 
-// TMDB aggregate_credits are per-character, not per-person. Long-running and
-// voice-heavy shows can return thousands of cast rows.
-// Cap TV cast by credit row so hydration stays bounded while preserving the most
-// present characters. Movies are not capped.
 const TV_CAST_LIMIT = 100;
-
-// Projection schemas consume only the fields we use; extras are ignored. A
-// row missing a required field is dropped by looseArray, so blank-job crew and
-// nameless people never reach the domain.
 
 const personRef = {
   id: Id,

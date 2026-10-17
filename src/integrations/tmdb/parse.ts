@@ -1,10 +1,5 @@
 import * as v from "valibot";
 
-// Validation building blocks for the TMDB boundary. The integration is an
-// anti-corruption layer: it maps-or-rejects so invalid rows never reach the
-// domain, and the projection schemas catch upstream shape drift at the fields
-// we actually consume. Schemas use `v.object` (extra TMDB keys are ignored).
-
 // Optional object entries: a missing key defaults to null; a present value is
 // coerced, non-empty string / finite number kept, anything else becomes null. The
 // outer v.optional is what makes the key optional on the parent object.

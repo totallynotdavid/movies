@@ -4,9 +4,6 @@ import { useToast } from "@/composables/useToast";
 import { trackingMessage } from "@/shared/tracking-messages";
 import type { MediaRef } from "@/shared/tracking";
 
-// The one-shot tracking action behind a search result row. Every outcome now
-// reports through the toast channel, so the most common path (log/add from a
-// result) can no longer fail silently, and a success offers an immediate undo.
 export function useResultAction(args: {
   media: MediaRef;
   mediaType: "movie" | "show";

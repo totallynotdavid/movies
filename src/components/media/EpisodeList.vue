@@ -16,7 +16,6 @@ const emit = defineEmits<{
 
 const watched = computed(() => new Set(props.watchedKeys));
 
-// Collapse all but the first season by default to keep long shows scannable.
 const openSeasons = ref(new Set<number>(props.seasons.slice(0, 1).map((s) => s.seasonNumber)));
 
 function toggleSeason(seasonNumber: number) {

@@ -3,8 +3,6 @@ import { computed, ref } from "vue";
 import MediaCard from "./MediaCard.vue";
 import { logWatch } from "@/composables/useMediaActions";
 
-// Continue watching can log the next episode without opening the media page.
-// The count updates optimistically and reverts on failure.
 const props = defineProps<{
   mediaId: string;
   title: string;

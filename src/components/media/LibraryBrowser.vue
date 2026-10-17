@@ -18,8 +18,6 @@ const props = defineProps<{
 const localEntries = ref([...props.entries]);
 const { layout } = useLayoutPreference();
 
-// Library filters are a standing preference, not a per-visit choice, so the
-// system remembers them across visits instead of resetting to "all" every time.
 const filterStatus = usePersistentRef("library.filterStatus", "all");
 const filterType = usePersistentRef("library.filterType", "all");
 const sortKey = usePersistentRef("library.sortKey", "updated");

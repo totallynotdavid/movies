@@ -5,8 +5,6 @@ import { voidPlugin } from "void";
 import UnoCSS from "unocss/vite";
 
 export default defineConfig({
-  // `@/*` -> src/* mirrors the tsconfig path alias for the bundler. voidPlugin
-  // already wires `@schema`; this covers the rest of the app source.
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

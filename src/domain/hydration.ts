@@ -1,7 +1,5 @@
-// Hydration freshness is derived, not a stored enum: each track keeps a
-// `*HydratedAt` timestamp (last success) and a `*Error` string (last failure),
-// and the state falls out of the two. A successful hydration clears the error,
-// so a set error always means the most recent attempt failed.
+// A successful hydration clears the error, so a set error always means the most
+// recent attempt failed.
 
 import type { HydrationState } from "@/shared/hydration";
 
@@ -13,10 +11,8 @@ export function hydrationState(
   error: string | null,
   ttlMs: number,
 ): HydrationState {
-  // Never successfully hydrated: distinguish a fresh stub from a failed attempt
-  // so the trigger can block (nothing to show) vs. render-empty-and-retry.
   if (hydratedAt === null) return error ? "failed" : "stub";
-  // We have data; the error (if any) just means the last refresh failed.
+  // Stored data outlives a failed refresh; only the TTL decides stale.
   return Date.now() - hydratedAt < ttlMs ? "fresh" : "stale";
 }
 

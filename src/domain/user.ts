@@ -6,9 +6,6 @@ import { isAvatarColor, type AvatarColor, type Visibility } from "@/shared/types
 
 export type UserRole = "anonymous" | "member" | "admin";
 
-// Read-only domain access to Better Auth's `user` table.
-// User-settable writes go through auth client mutations.
-
 function toVisibility(value: string | null): Visibility {
   return value === "public" ? "public" : "private";
 }

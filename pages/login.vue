@@ -16,9 +16,7 @@ async function submit() {
   loading.value = true;
   try {
     if (mode.value === "signup") {
-      // Capture the browser timezone at account creation (timeZone is an
-      // input:true additionalField). Settings can change it later; there is no
-      // separate capture round-trip.
+      // `timeZone` is an input additional field, so set it during account creation.
       await auth.signUp.email({
         email: email.value,
         password: password.value,

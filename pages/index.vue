@@ -10,7 +10,6 @@ import LibraryBrowser from "@/components/media/LibraryBrowser.vue";
 const props = defineProps<Props>();
 const router = useRouter();
 
-// Continue watching is the in-progress slice shown first on a member's home.
 const CONTINUE_LIMIT = 12;
 const continueWatching = computed(() =>
   props.entries.filter((e) => e.status === "watching").slice(0, CONTINUE_LIMIT),

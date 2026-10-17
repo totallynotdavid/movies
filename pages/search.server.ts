@@ -7,8 +7,6 @@ import type { RatingSystem } from "@/domain/rating";
 
 export type Props = InferProps<typeof loader>;
 
-// Server-renders results for a shareable `/search?q=...` URL so arriving with a
-// query shows hits immediately; the page re-runs client-side as the query changes.
 export const loader = defineHandler(async (c) => {
   const user = getUser();
   const query = c.req.query("q")?.trim() ?? "";

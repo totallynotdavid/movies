@@ -1,11 +1,8 @@
 import { onUnmounted, ref } from "vue";
 
 type PollOptions<T> = {
-  // One fetch of the current state. Rejections are treated as transient.
   fetch: () => Promise<T>;
-  // Stop polling once the watched state has settled (hydrated or failed).
   isDone: (value: T) => boolean;
-  // Apply a fetched value to the view.
   onData: (value: T) => void;
   baseMs?: number;
   maxMs?: number;

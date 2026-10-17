@@ -15,8 +15,6 @@ export type EpisodeRuntime = {
   runtime: number | null;
 };
 
-// Bulk episode runtimes across a set of shows, ordered by airing identity, for
-// the wrapped recap's per-episode runtime resolution.
 export async function episodeRuntimesByMedia(
   mediaIds: readonly string[],
 ): Promise<EpisodeRuntime[]> {
@@ -60,8 +58,7 @@ export async function listEpisodesBySeason(mediaId: string): Promise<SeasonEpiso
 }
 
 // An episode counts as aired when its air date has passed, or is unknown. ISO
-// dates compare lexically. Grouped by media as ordered EpisodeRefs, the input
-// the progress derive core expects.
+// They sort correctly as strings.
 export async function airedEpisodeRefs(
   mediaIds: readonly string[],
 ): Promise<Map<string, EpisodeRef[]>> {

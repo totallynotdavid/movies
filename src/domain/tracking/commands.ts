@@ -40,7 +40,6 @@ export async function saveEntry(
   return upsertEntry(buildEntry(userId, mediaId, prev.value, patch));
 }
 
-// Untracking removes the library row and watch events together.
 export async function removeEntry(
   userId: string,
   mediaId: string,
@@ -101,7 +100,6 @@ export async function recordWatch(
   return ok({ entry, watchedEpisodeCount: after.watchedEpisodeCount });
 }
 
-// Reverses a single episode watch, the undo for an over-eager log.
 export async function unwatchEpisode(
   userId: string,
   mediaId: string,
