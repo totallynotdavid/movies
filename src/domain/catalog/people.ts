@@ -7,8 +7,7 @@ import type { PersonScalars, PersonStubInput } from "@/shared/types/metadata";
 
 export type PersonRecord = typeof people.$inferSelect;
 
-// TMDB gender codes.
-export type Gender = 0 | 1 | 2 | 3;
+type Gender = 0 | 1 | 2 | 3;
 
 const GENDER_LABELS: Record<Gender, string | null> = {
   0: null, // not set / not specified
@@ -26,8 +25,6 @@ export function toPersonId(tmdbId: number) {
   return `tmdb:person:${tmdbId}`;
 }
 
-// Creates or refreshes the lightweight fields available from a credit payload.
-// Hydrated fields (biography, birthday, ...) are filled later on person-page view.
 export function personStubsWrite(stubs: PersonStubInput[]): Statement[] {
   if (stubs.length === 0) return [];
   const now = Date.now();
@@ -68,9 +65,7 @@ export async function findPersonBySlug(slug: string): Promise<PersonRecord | nul
   return rows[0] ?? null;
 }
 
-// Fills the hydrated bio fields on first person-page view. Keeps an existing
-// profile image if TMDB returns none. Stamps freshness and clears any prior
-// error in the same statement.
+// Keeps an existing profile image if TMDB returns none.
 export function personScalarsWrite(personId: string, scalars: PersonScalars): Statement[] {
   const now = Date.now();
   return [

@@ -119,7 +119,7 @@ export function buildProfileStats(
   };
 }
 
-export function calendarStartDate(days: number, today = new Date()): string {
+function calendarStartDate(days: number, today = new Date()): string {
   const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
   end.setUTCDate(end.getUTCDate() - (days - 1));
   return end.toISOString().slice(0, 10);

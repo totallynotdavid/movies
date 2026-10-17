@@ -44,7 +44,7 @@ export function buildEntry(
   };
 }
 
-export function entryUpsertWrite(row: LibraryEntryRecord): Statement {
+function entryUpsertWrite(row: LibraryEntryRecord): Statement {
   return db
     .insert(libraryEntries)
     .values(row)

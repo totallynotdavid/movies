@@ -44,8 +44,6 @@ export type HydrationOutcome =
   | { ok: true; skipped: boolean }
   | { ok: false; error: HydrationError };
 
-// Tier-1 hydration writes details and freshness together.
-// Failures return outcomes so loaders can render existing data.
 async function hydrateMediaDetails(item: MediaRecord): Promise<HydrationOutcome> {
   if (!tmdbToken()) return { ok: true, skipped: true };
   if (hydrationState(item.detailsHydratedAt, item.detailsError, DETAILS_TTL_MS) === "fresh") {
@@ -90,7 +88,6 @@ async function hydrateMediaDetails(item: MediaRecord): Promise<HydrationOutcome>
   return { ok: true, skipped: false };
 }
 
-// Tier-2 hydration fills season episode data from queue consumers.
 async function hydrateMediaEpisodes(msg: EpisodeHydrationMessage): Promise<HydrationOutcome> {
   if (!tmdbToken()) return { ok: true, skipped: true };
 
@@ -126,8 +123,7 @@ export async function loadMedia(slug: string): Promise<MediaRecord | null> {
   return ensureMediaDetails(found);
 }
 
-// Hydrate bare stubs synchronously before the first detail render.
-export async function ensureMediaDetails(item: MediaRecord): Promise<MediaRecord> {
+async function ensureMediaDetails(item: MediaRecord): Promise<MediaRecord> {
   if (hydrationState(item.detailsHydratedAt, item.detailsError, DETAILS_TTL_MS) !== "stub") {
     return item;
   }

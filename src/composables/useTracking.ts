@@ -6,7 +6,7 @@ import { trackingMessage } from "@/shared/tracking-messages";
 import type { TrackedEntryDto } from "@/shared/tracking";
 import { resolveStatus, type LibraryStatus } from "@/shared/library-status";
 
-export type TrackedEntry = {
+type TrackedEntry = {
   id: string;
   filedStatus: LibraryStatus;
   score100: number | null;
