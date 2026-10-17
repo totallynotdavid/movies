@@ -5,6 +5,7 @@
     "": {
       "dependencies": {
         "@void/vue": "^0.28.0",
+        "better-auth": "1.7.7",
         "drizzle-orm": "^0.45.4",
         "valibot": "^1.5.0",
         "void": "^0.28.0",
