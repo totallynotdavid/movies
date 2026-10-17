@@ -171,7 +171,7 @@ async function runCommand(cmd: Command) {
   if (cmd.action) await cmd.action();
 }
 
-// Enter activates the highlighted row. Logging stays behind explicit row actions.
+// Enter navigation never logs media; tracking stays behind explicit row actions.
 function onEnter() {
   const item = navItems.value[activeIndex.value];
   if (item) activate(item);

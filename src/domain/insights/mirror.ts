@@ -341,7 +341,6 @@ export function buildLedger(entries: LedgerEntry[], now: number): Ledger {
     }
   }
 
-  // Most stale first.
   ghosted.sort((a, b) => a.lastWatchedAt - b.lastWatchedAt);
 
   return { droppedCount, ghosted: ghosted.slice(0, GHOSTED_LIMIT) };

@@ -53,7 +53,7 @@ async function bump() {
     :vote-average="voteAverage"
     :slug="slug"
   >
-    <!-- Progress replaces the type marker; the counter already identifies a show. -->
+    <!-- Progress replaces the type marker because the counter identifies a show. -->
     <template #overlay>
       <span
         v-if="progress"

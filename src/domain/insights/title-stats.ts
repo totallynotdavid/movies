@@ -28,8 +28,9 @@ const EMPTY_STATUS: Record<LibraryStatus, number> = {
 
 export async function getMediaStats(mediaId: string, mediaType: MediaType): Promise<MediaStats> {
   // Status distribution has no shared progress row, so this aggregates per
-  // tracker before resolving status. For a very popular title this is the
-  // heaviest read on the page; a materialized stat is the escape hatch.
+  // tracker before resolving status. This keeps each user's filed status and
+  // derived progress together even though it is the heaviest read for a
+  // popular title.
   const episodeKey = sql<string>`${watchEvents.seasonNumber} || ':' || ${watchEvents.episodeNumber}`;
 
   const [trackers, aired, favRows] = await Promise.all([

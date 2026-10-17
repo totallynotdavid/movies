@@ -59,9 +59,4 @@ export default defineConfig({
       "node_modules/**",
     ],
   },
-  /*
-  server: {
-    allowedHosts: [".taila2cbc1.ts.net"],
-  },
-  */
 });
