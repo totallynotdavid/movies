@@ -13,33 +13,28 @@ fixtures and does not need a TMDB token.
 
 ## Verify changes
 
-Run the local commands from the CI check workflow:
+Run the commands CI runs. [mise](https://mise.jdx.dev) installs the pinned tools
+and runs the tasks in `mise.toml`:
 
 ```sh
-vp install
-vp exec void prepare
-vp check
-vp test
+mise run install
+mise run check
 ```
+
+`mise run check` runs `lint`, `typecheck`, `test`, and `build`, and writes
+nothing tracked. `mise run fix` applies safe lint fixes and formats every file,
+Markdown included.
 
 The repository has four CI workflows:
 
 - `.github/workflows/ci.yml` runs on non-`master` pushes and pull requests
-  targeting `master`. It installs dependencies, prepares Void, runs `vp check`,
-  and runs `vp test`.
+  targeting `master`. It runs `mise run install` and `mise run check`.
 - Fallow (`.github/workflows/fallow.yml`) runs on pull requests targeting
-  `master`. It prepares Void and runs
-  `vp dlx fallow audit --format pr-comment-github --quiet`.
+  `master`. It runs `mise run prepare` and `mise run audit`.
 - `.github/workflows/codeql.yml` runs on pushes to `master` and pull requests
   targeting `master`. It runs GitHub CodeQL analysis for JavaScript.
 - `.github/workflows/deploy.yml` runs on pushes to `master`. It runs
-  `vp install`, `vp check`, and `vp exec void deploy`.
-
-Format Markdown with:
-
-```sh
-bunx prettier --print-width 80 --prose-wrap always --write '**/*.md'
-```
+  `mise run install`, `mise run check`, and `mise run deploy`.
 
 Keep behavior changes in source and document the resulting contract in the
 document that owns it. Do not duplicate a rule across the README, architecture

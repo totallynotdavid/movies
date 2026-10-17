@@ -4,15 +4,9 @@ Owner: project maintainers.
 
 ## Prerequisites
 
-The repository pins Node and Vite+ in `mise.toml`:
-
-```toml
-[tools]
-node = "26.11.1"
-vp = "1.1.0"
-```
-
-Use Bun for package scripts. Vite+ is the project workflow tool.
+Install [mise](https://mise.jdx.dev), then run `mise install`. It installs the
+Bun, Node, and Vite+ versions that `mise.toml` pins. The tasks in `mise.toml`
+are the project commands. `mise tasks` lists them. Vite+ runs behind them.
 
 ## Local setup
 
@@ -28,51 +22,51 @@ Create the required secret, install packages, and start the app:
 
 ```sh
 echo "BETTER_AUTH_SECRET=$(openssl rand -base64 48)" > .env
-bun install
-bun dev
+mise run install
+mise run dev
 ```
 
-The `predev` script runs `bun scripts/setup.ts`. Setup reads the generated
-Better Auth schema, applies pending migrations with `vp exec void db migrate`,
-and inserts the committed rows from `db/fixtures/media.json` through a temporary
-SQL file. It does not need a network connection or a TMDB token. The seed path
-in `db/seed.ts` also uses only committed fixtures.
+The `dev` task first runs `setup`, which executes `bun scripts/setup.ts`. Setup
+reads the generated Better Auth schema, applies pending migrations with
+`vp exec void db migrate`, and inserts the committed rows from
+`db/fixtures/media.json` through a temporary SQL file. It does not need a
+network connection or a TMDB token. The seed path in `db/seed.ts` also uses only
+committed fixtures.
 
 ## Checks and tests
 
-Use the repository's Vite+ commands:
-
 ```sh
-vp check
-vp test
-vp env doctor
+mise run check
+mise run fix
 ```
 
-`vp check` runs formatting, linting, and type checking. `vp test` runs the
-JavaScript tests. Use `vp env doctor` when setup or runtime behavior looks
-wrong. The package's `lint` script runs `vp lint && vp fmt --check`; its
-`lint:fix` script runs `vp lint --fix && vp fmt`.
+`check` runs `lint`, `typecheck`, `test`, and `build`, and writes nothing
+tracked. `lint` runs `vp lint --deny-warnings` and `vp fmt --check`. `fix`
+applies safe lint fixes and formats every file. `test` runs the JavaScript
+tests.
 
-If generated `.void/*` types are missing or stale, prepare them without starting
-Vite:
+`lint`, `fix`, `typecheck`, `test`, and `build` depend on `prepare`, which
+generates the `.void/*` types without starting Vite. Run it by hand when the
+types are missing or stale:
 
 ```sh
-vp exec void prepare
+mise run prepare
 ```
+
+Markdown, YAML, and JSON are formatted at 80 columns with prose wrapping.
 
 ## Database operations
 
 Keep migration, seed, and deploy as separate operations.
 
 ```sh
-bun run db:migrate
-bun run db:migrate:remote
-bun run db:seed
+mise run db:migrate
+mise run db:migrate:remote
+mise run db:seed
 ```
 
-The package scripts run `vp exec void db migrate`, its remote form with
-`--remote`, and `vp exec void db seed`. Void also provides these direct
-operations:
+The tasks run `vp exec void db migrate`, its remote form with `--remote`, and
+`vp exec void db seed`. Void also provides these direct operations:
 
 ```sh
 vp exec void db generate
@@ -83,7 +77,7 @@ vp exec void db seed
 `db generate` creates migration SQL from schema changes. `db reset` drops and
 re-applies migrations. `db seed` resets the local database, reapplies
 migrations, and runs the default `db/seed.ts` file. Use the local Void CLI
-reference at `node_modules/void/skills/void/docs/reference/cli.md` for flags.
+reference at `node_modules/void/docs/reference/cli.md` for flags.
 
 ## Fixture refresh
 
@@ -91,8 +85,8 @@ The committed fixture file is enough for local setup. To refresh it from TMDB,
 put `TMDB_READ_ACCESS_TOKEN` in `.env` and run:
 
 ```sh
-bun run fixtures:fetch
-bun run fixtures:trending
+mise run fixtures:fetch
+mise run fixtures:trending
 ```
 
 The first command fetches the configured top-rated and trending movie and show
@@ -106,25 +100,24 @@ The target platform is Void Cloud. The normal release applies remote migrations
 and deploys:
 
 ```sh
-bun run release
+mise run release
 ```
 
-That script runs `vp check`, `vp exec void db migrate --remote`, and
-`vp exec void deploy`.
+That task runs `check`, `db:migrate:remote`, and `deploy`. The `deploy` task
+runs `vp exec void deploy`.
 
 Recovery is for a remote project or database that has been manually reset or
 recreated:
 
 ```sh
-bun run recover
+mise run recover
 ```
 
-It runs `vp exec void db migrate --remote`, `vp exec void db seed`, and
-`vp exec void deploy`. Use it only when a clean remote database is intentional.
+It runs `db:migrate:remote`, `db:seed`, and `deploy`. Use it only when a clean
+remote database is intentional.
 
-The CI deployment workflow runs `vp install`, `vp check`, and
-`vp exec void deploy` with `VOID_TOKEN`. Do not put credentials in this
-repository.
+The CI deployment workflow runs `install`, `check`, and `deploy` with
+`VOID_TOKEN`. Do not put credentials in this repository.
 
 ## Local queues and crons
 

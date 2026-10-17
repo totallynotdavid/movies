@@ -12,13 +12,14 @@ UnoCSS.
 
 ## Get started
 
-Create `.env` with the required auth secret, install dependencies, and start the
-local app:
+With [mise](https://mise.jdx.dev) installed, create `.env` with the required
+auth secret, install dependencies, and start the local app:
 
 ```sh
 echo "BETTER_AUTH_SECRET=$(openssl rand -base64 48)" > .env
-bun install
-bun dev
+mise install
+mise run install
+mise run dev
 ```
 
 `TMDB_READ_ACCESS_TOKEN` is optional. Set it in `.env` to enable remote title

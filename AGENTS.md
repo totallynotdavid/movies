@@ -42,16 +42,15 @@ documentation owns the explanation of the system and its operational procedures:
 
 ## Tooling
 
-- This repository uses Vite+ (`vp`) and Void. Use `vp` for project workflows.
-- The deploy target is Void Cloud. Use `vp exec void deploy` for deploys.
+- This repository uses Vite+ (`vp`) and Void. `mise.toml` defines the project
+  tasks and calls `vp`. Run `mise tasks` to list them.
+- The deploy target is Void Cloud. Use `mise run deploy` for deploys.
 - Do not guess `void` CLI command names or flags.
 - Before running or suggesting a `void` command, read
-  `node_modules/void/skills/void/docs/reference/cli.md`.
-- Before finishing code changes, run `vp check`. If tests exist for touched
-  behavior, run them with `vp test`. If setup or runtime behavior looks wrong,
-  run `vp env doctor`.
+  `node_modules/void/docs/reference/cli.md`.
+- Before finishing code changes, run `mise run fix`, then `mise run check`.
 - If `.void/*` generated types are missing or stale in a fresh clone, CI, or the
-  editor bootstrap, run `vp exec void prepare`.
+  editor bootstrap, run `mise run prepare`.
 
 ## Scope
 
