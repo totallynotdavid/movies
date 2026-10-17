@@ -49,9 +49,9 @@ The `@/*` alias points to `src/` in both `tsconfig.json` and `vite.config.ts`.
 Use it for cross-directory imports such as `@/domain/user`; use relative imports
 only for siblings inside `src/`. `db/` may use `./fixtures`, and
 `scripts/fetch-metadata.ts` may import fixture types from
-`../db/fixtures/types`. Generated `src/db/auth-schema.ts` is the exception
-because it re-exports `../../.void/better-auth-schema`. Use Void's `@schema`
-alias for `db/schema.ts`.
+`../db/fixtures/types`. `src/db/auth-schema.ts` is the exception because it
+re-exports `../../.void/better-auth-schema`. Use Void's `@schema` alias for
+`db/schema.ts`.
 
 Keep the two alias definitions in sync. Manage the generated `files` and `paths`
 entries with `vp exec void init --tsconfig`; hand-edit only the application's
@@ -83,10 +83,10 @@ Seed data uses committed local fixtures and never needs network access.
 ## TMDB boundary
 
 Application runtime code has one TMDB client at
-[`src/integrations/tmdb/client.ts`](src/integrations/tmdb/client.ts). Its base
-URL is `TMDB_BASE`; only `TMDB_READ_ACCESS_TOKEN` comes from `void/env`. The
-fixture tool at [`scripts/fetch-metadata.ts`](scripts/fetch-metadata.ts) is the
-one development-tooling exception and has its own `fetch`.
+[`src/integrations/tmdb/client.ts`](../src/integrations/tmdb/client.ts). Its
+base URL is `TMDB_BASE`; only `TMDB_READ_ACCESS_TOKEN` comes from `void/env`.
+The fixture tool at [`scripts/fetch-metadata.ts`](../scripts/fetch-metadata.ts)
+is the one development-tooling exception and has its own `fetch`.
 
 The integration is an anti-corruption boundary. The parser at
 `src/integrations/tmdb/parse.ts` and the TMDB mapper modules own
@@ -100,24 +100,24 @@ search, and season adapters live under `src/integrations/tmdb/`.
 Hydration freshness is derived from each track's `*HydratedAt` timestamp and
 `*Error` string. It is not a stored enum. The possible states are stub, fresh,
 stale, and failed. The rules are implemented in
-[`src/domain/hydration.ts`](src/domain/hydration.ts).
+[`src/domain/hydration.ts`](../src/domain/hydration.ts).
 
-Media hydration has three tiers:
+Media hydration has two tiers:
 
 1. Tier 1 runs from the media loader when it sees a bare stub. It writes detail
    scalars, full crew, full movie cast, and TV cast capped to the top 100 credit
    rows by episode count. The cap is `TV_CAST_LIMIT` in
-   `src/integrations/tmdb/media-detail.ts`.
+   `src/integrations/tmdb/media-detail.ts`. TMDB `aggregate_credits` lists one
+   row per character, not per person, so the cap counts credit rows.
 2. Tier 2 fans out season episode runtime work through
    `queues/media-hydration.ts`.
-3. Tier 3 per-episode guest-star credit graphs are lazy and demand-gated on
-   favorited people. They are not an eager catalog sweep. The current code does
-   not implement Tier 3; its future UI must remain additive to Tiers 1 and 2.
 
 Media loaders block only on a bare stub. The queue handles background hydration.
-[`crons/reconcile.ts`](crons/reconcile.ts) runs every 15 minutes and enqueues a
-bounded stale, failed, or unhydrated backlog. Refreshing is not done per page
-view.
+[`crons/reconcile.ts`](../crons/reconcile.ts) runs every 15 minutes and enqueues
+a bounded stale, failed, or unhydrated backlog. Refreshing is not done per page
+view. Each run takes at most `RECONCILE_BATCH` titles ordered by popularity, so
+the seeded catalog hydrates most-popular first and a title hydrates without its
+detail page ever being opened.
 
 Media operations return a `HydrationOutcome` and do not throw into a loader.
 TMDB fetch failures are recorded in `*Error` columns. A failed `runBatch`
@@ -135,7 +135,7 @@ empty filmography on failure rather than an outcome.
 
 In application runtime code under `src/`, every bulk insert and every user-sized
 `inArray` goes through `insertChunks`, `selectByIds`, or `runBatch` in
-[`src/db/kernel.ts`](src/db/kernel.ts). Chunk size is derived from the
+[`src/db/kernel.ts`](../src/db/kernel.ts). Chunk size is derived from the
 bound-column count of the row, so adding a column cannot silently breach the D1
 parameter cap. `runBatch` uses one atomic `db.batch()` to commit data and its
 freshness marker together. No bulk write in `src/` bypasses the kernel. The
@@ -154,19 +154,6 @@ per statement, and 2 MB per row. The 30-second limit applies to a whole
 to `.values({})`; omitted keys become literals, while a passed `null` is still
 bound. `db.batch()` is one atomic transaction.
 
-## Credits and external-load constraints
-
-TMDB `aggregate_credits` is per character, not per person. Grey's Anatomy
-measured about 3,200 cast rows, including about 2,600 one-episode guests; voice
-and sketch shows can contain about ten rows per person. The Tier 1 cap is
-therefore per credit row, not per person. A measured uncapped batch was about
-726 statements; the row-capped batches were at most about 120: Grey's 84,
-Simpsons 87, GoT 106, and SNL 119.
-
-TMDB per-episode credits expose `guest_stars`, but cost about one API call per
-episode. Grey's Anatomy would require about 450 calls. That is why Tier 3 is
-lazy and demand-gated, never eager.
-
 ## Queues, crons, and views
 
 Queues are `defineQueue<T>` modules under `queues/`. Void's `maxRetries` default
@@ -184,3 +171,23 @@ average score in the viewer's own rating system (the default system for an
 anonymous viewer) and never reads the profile owner's settings, so
 `ProfileCardModel` has no rating system field and a public profile reveals
 nothing about the owner's choice.
+
+## Client state
+
+The search page loader renders results on the server for `/search?q=...`. The
+client then re-runs the search as the query changes through
+[`useMediaSearch`](../src/composables/useMediaSearch.ts).
+
+[`useUrlState`](../src/composables/useUrlState.ts) seeds string refs from the
+query string on mount and mirrors later changes back with
+`history.replaceState`, so a refresh or a shared link restores the filters and
+sort. A value equal to its declared default is omitted from the URL.
+[`usePersistentRef`](../src/composables/usePersistentRef.ts) keeps a view
+preference in `localStorage` when it should outlive a visit but does not belong
+in the URL, such as the default library filters.
+
+`useTracking` reports failures and `useResultAction` reports every outcome
+through [`useToast`](../src/composables/useToast.ts); a success from
+`useResultAction` offers an undo. `ToastHost` renders an error toast with
+`role="alert"` and `aria-live="assertive"`, and any other toast with
+`role="status"` and `aria-live="polite"`.
