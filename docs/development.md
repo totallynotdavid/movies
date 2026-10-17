@@ -5,8 +5,10 @@ Owner: project maintainers.
 ## Prerequisites
 
 Install [mise](https://mise.jdx.dev), then run `mise install`. It installs the
-Bun, Node, and Vite+ versions that `mise.toml` pins. The tasks in `mise.toml`
-are the project commands. `mise tasks` lists them. Vite+ runs behind them.
+Bun and Node versions that `mise.toml` pins. `mise run install` installs Vite+
+from `bun.lock`, and mise puts `node_modules/.bin` on the path. The tasks in
+`mise.toml` are the project commands. `mise tasks` lists them. Vite+ runs behind
+them.
 
 ## Local setup
 

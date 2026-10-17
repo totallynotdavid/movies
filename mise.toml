@@ -1,7 +1,9 @@
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+
 [tools]
 bun = "1.4.3"
 node = "26.11.1"
-vp = "1.1.0"
 
 [tasks.install]
 description = "Install dependencies from bun.lock without resolving"
