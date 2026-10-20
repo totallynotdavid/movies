@@ -4,7 +4,7 @@
     "postinstall": "vp config"
   },
   "dependencies": {
-    "@void/vue": "^0.28.0",
+    "@void/vue": "^1.1.11",
     "better-auth": "1.7.11",
     "drizzle-orm": "^0.45.4",
     "valibot": "^1.5.0",
