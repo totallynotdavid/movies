@@ -1,8 +1,8 @@
 diff --git a/dist/index.mjs b/dist/index.mjs
-index d70d6a5a8c5d7b021d08c9cf70d62fb8666875ad..37e289262da4691722eaff09c2f9c8cd20eff814 100644
+index 4db449979904e136249dbd5a4a4d82a9d66376c8..5a84bcba6788ef4893378bb492bb428b5bb8b487 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
-@@ -96170,6 +96170,7 @@ const nodeJsCompatPlugin = createPlugin("nodejs-compat", (ctx) => {
+@@ -96185,6 +96185,7 @@ const nodeJsCompatPlugin = createPlugin("nodejs-compat", (ctx) => {
  				const result = nodeJsCompat.resolveNodeJsImport(source);
  				if (!result) return;
  				if (this.environment.mode === "dev") {
