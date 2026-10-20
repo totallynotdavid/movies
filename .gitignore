@@ -17,3 +17,4 @@ server/middleware/__void-dev-trigger.ts
 .wrangler
 *.tsbuildinfo
 .DS_Store
+.vitest/
