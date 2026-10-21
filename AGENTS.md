@@ -43,15 +43,15 @@ documentation owns the explanation of the system and its operational procedures:
 
 ## Tooling
 
-- This repository uses Vite+ (`vp`) and Void. `mise.toml` defines the project
-  tasks and calls `vp`. Run `mise tasks` to list them.
-- The deploy target is Void Cloud. Use `mise run deploy` for deploys.
+- This repository uses Vite+ (`vp`) and Void. The `package.json` scripts are the
+  project commands and call `vp`. `mise.toml` only pins the tool versions.
+- The deploy target is Void Cloud. Use `bun run deploy` for deploys.
 - Do not guess `void` CLI command names or flags.
 - Before running or suggesting a `void` command, read
   `node_modules/void/docs/reference/cli.md`.
-- Before finishing code changes, run `mise run fix`, then `mise run check`.
+- Before finishing code changes, run `bun run fix`, then `bun run check`.
 - If `.void/*` generated types are missing or stale in a fresh clone, CI, or the
-  editor bootstrap, run `mise run prepare`.
+  editor bootstrap, run `bun run typegen`.
 
 ## Scope
 

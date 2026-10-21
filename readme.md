@@ -18,8 +18,8 @@ auth secret, install dependencies, and start the local app:
 ```sh
 echo "BETTER_AUTH_SECRET=$(openssl rand -base64 48)" > .env
 mise install
-mise run install
-mise run dev
+bun install --frozen-lockfile
+bun run dev
 ```
 
 `TMDB_READ_ACCESS_TOKEN` is optional. Set it in `.env` to enable remote title

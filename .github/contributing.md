@@ -14,28 +14,30 @@ committed fixtures and does not need a TMDB token.
 
 ## Verify changes
 
-Run the commands CI runs. [mise](https://mise.jdx.dev) installs the pinned tools
-and runs the tasks in `mise.toml`:
+Run the commands CI runs. [mise](https://mise.jdx.dev) installs the tools that
+`mise.toml` pins, and the `package.json` scripts run the checks:
 
 ```sh
-mise run install
-mise run check
+mise install
+bun install --frozen-lockfile
+bun run check
 ```
 
-`mise run check` runs `lint`, `typecheck`, `test`, and `build`, and writes
-nothing tracked. `mise run fix` applies safe lint fixes and formats every file,
+`bun run check` runs `lint`, `typecheck`, `test`, and `build`, and writes
+nothing tracked. `bun run fix` applies safe lint fixes and formats every file,
 Markdown included.
 
 The repository has four CI workflows:
 
 - `.github/workflows/ci.yml` runs on non-`master` pushes and pull requests
-  targeting `master`. It runs `mise run install` and `mise run check`.
+  targeting `master`. It runs `bun install --frozen-lockfile` and
+  `bun run check`.
 - Fallow (`.github/workflows/fallow.yml`) runs on pull requests targeting
-  `master`. It runs `mise run prepare` and `mise run audit`.
+  `master`. It runs `bun run typegen` and `bun run audit`.
 - `.github/workflows/codeql.yml` runs on pushes to `master` and pull requests
   targeting `master`. It runs GitHub CodeQL analysis for JavaScript.
 - `.github/workflows/deploy.yml` runs on pushes to `master`. It runs
-  `mise run install`, `mise run check`, and `mise run deploy`.
+  `bun install --frozen-lockfile`, `bun run check`, and `bun run deploy`.
 
 Keep behavior changes in source and document the resulting contract in the
 document that owns it. Do not duplicate a rule across the README, architecture

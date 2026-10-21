@@ -5,10 +5,10 @@ Owner: project maintainers.
 ## Prerequisites
 
 Install [mise](https://mise.jdx.dev), then run `mise install`. It installs the
-Bun and Node versions that `mise.toml` pins. `mise run install` installs Vite+
-from `bun.lock`, and mise puts `node_modules/.bin` on the path. The tasks in
-`mise.toml` are the project commands. `mise tasks` lists them. Vite+ runs behind
-them.
+Bun and Node versions that `mise.toml` pins. `bun install --frozen-lockfile`
+installs Vite+ from `bun.lock`, and mise puts `node_modules/.bin` on the path.
+The scripts in `package.json` are the project commands. `bun run` lists them.
+Vite+ runs behind them.
 
 ## Local setup
 
@@ -24,12 +24,12 @@ Create the required secret, install packages, and start the app:
 
 ```sh
 echo "BETTER_AUTH_SECRET=$(openssl rand -base64 48)" > .env
-mise run install
-mise run dev
+bun install --frozen-lockfile
+bun run dev
 ```
 
-The `dev` task first runs `setup`, which executes `bun scripts/setup.ts`. Setup
-reads the generated Better Auth schema, applies pending migrations with
+The `dev` script first runs `setup`, which executes `bun scripts/setup.ts`.
+Setup reads the generated Better Auth schema, applies pending migrations with
 `vp exec void db migrate`, and inserts the committed rows from
 `db/fixtures/media.json` through a temporary SQL file. It does not need a
 network connection or a TMDB token. The seed path in `db/seed.ts` also uses only
@@ -38,8 +38,8 @@ committed fixtures.
 ## Checks and tests
 
 ```sh
-mise run check
-mise run fix
+bun run check
+bun run fix
 ```
 
 `check` runs `lint`, `typecheck`, `test`, and `build`, and writes nothing
@@ -47,12 +47,12 @@ tracked. `lint` runs `vp lint --deny-warnings` and `vp fmt --check`. `fix`
 applies safe lint fixes and formats every file. `test` runs the JavaScript
 tests.
 
-`lint`, `fix`, `typecheck`, `test`, and `build` depend on `prepare`, which
+`lint`, `fix`, `typecheck`, `test`, and `build` first run `typegen`, which
 generates the `.void/*` types without starting Vite. Run it by hand when the
 types are missing or stale:
 
 ```sh
-mise run prepare
+bun run typegen
 ```
 
 Markdown, YAML, and JSON are formatted at 80 columns with prose wrapping.
@@ -62,12 +62,12 @@ Markdown, YAML, and JSON are formatted at 80 columns with prose wrapping.
 Keep migration, seed, and deploy as separate operations.
 
 ```sh
-mise run db:migrate
-mise run db:migrate:remote
-mise run db:seed
+bun run db:migrate
+bun run db:migrate:remote
+bun run db:seed
 ```
 
-The tasks run `vp exec void db migrate`, its remote form with `--remote`, and
+The scripts run `vp exec void db migrate`, its remote form with `--remote`, and
 `vp exec void db seed`. Void also provides these direct operations:
 
 ```sh
@@ -87,8 +87,8 @@ The committed fixture file is enough for local setup. To refresh it from TMDB,
 put `TMDB_READ_ACCESS_TOKEN` in `.env` and run:
 
 ```sh
-mise run fixtures:fetch
-mise run fixtures:trending
+bun run fixtures:fetch
+bun run fixtures:trending
 ```
 
 The first command fetches the configured top-rated and trending movie and show
@@ -102,24 +102,24 @@ The target platform is Void Cloud. The normal release applies remote migrations
 and deploys:
 
 ```sh
-mise run release
+bun run release
 ```
 
-That task runs `check`, `db:migrate:remote`, and `deploy`. The `deploy` task
+That script runs `check`, `db:migrate:remote`, and `deploy`. The `deploy` script
 runs `vp exec void deploy`.
 
 Recovery is for a remote project or database that has been manually reset or
 recreated:
 
 ```sh
-mise run recover
+bun run recover
 ```
 
 It runs `db:migrate:remote`, `db:seed`, and `deploy`. Use it only when a clean
 remote database is intentional.
 
-The CI deployment workflow runs `install`, `check`, and `deploy` with
-`VOID_TOKEN`. Do not put credentials in this repository.
+The CI deployment workflow runs `bun install --frozen-lockfile`, `check`, and
+`deploy` with `VOID_TOKEN`. Do not put credentials in this repository.
 
 ## Local queues and crons
 
