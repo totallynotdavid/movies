@@ -16,15 +16,15 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Full history so `fallow audit` can resolve the merge-base and
           # attribute findings as new-vs-inherited. A shallow clone breaks this.
           fetch-depth: 0
 
-      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5
-      - run: mise run install
-      - run: mise run prepare
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+      - run: bun install --frozen-lockfile
+      - run: bun run typegen
 
       # One audit run produces the PR-comment body and carries the gate verdict
       # in its exit code. Capture the code here, enforce it after commenting so a
@@ -33,7 +33,7 @@ jobs:
         id: audit
         run: |
           set +e
-          mise run --quiet audit > fallow-comment.md
+          bun run --silent audit > fallow-comment.md
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           set -e
 
