@@ -18,3 +18,5 @@ server/middleware/__void-dev-trigger.ts
 *.tsbuildinfo
 .DS_Store
 .vitest/
+.void-wrangler.jsonc
+!.env.example

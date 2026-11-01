@@ -4,7 +4,8 @@
     "./.void/db.d.ts",
     "./.void/routes.d.ts",
     "./.void/queues.d.ts",
-    "./.void/env.d.ts"
+    "./.void/env.d.ts",
+    "./.void/auth.d.ts"
   ],
   "compilerOptions": {
     "types": ["void/env"],
