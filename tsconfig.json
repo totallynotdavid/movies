@@ -1,5 +1,4 @@
 {
-  "extends": "./.void/tsconfig.json",
   "files": [
     "./.void/db.d.ts",
     "./.void/routes.d.ts",
